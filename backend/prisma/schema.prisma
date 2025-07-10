@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 供货商
+model Supplier {
+  id          String     @id @default(uuid()) // 主键ID（UUID）
+  name        String // 供货商名称（必填）
+  phone       String? // 联系电话（可选）
+  wechat      String? // 微信账号（可选）
+  description String? // 供货商描述（可选）
+  rating      String? // 供货商评价（可选）
+  images      Json       @default("[]") // 供货商图片数组，以JSON存储
+  delete      Int        @default(0)
+  groupBuy    GroupBuy[]
+  createdAt   DateTime   @default(now()) // 创建时间
+  updatedAt   DateTime   @updatedAt // 最后更新时间
+
+  @@index([id])
+  @@index([name])
+}
+
+// 商品类型
+model ProductType {
+  id          String    @id @default(uuid()) // 主键ID（UUID）
+  name        String // 分类名称（必填）
+  description String? // 分类描述（可选）
+  product     Product[]
+  delete      Int       @default(0)
+  createdAt   DateTime  @default(now()) // 创建时间
+  updatedAt   DateTime  @updatedAt // 最后更新时间
+
+  @@index([id])
+}
+
+// 商品
+model Product {
+  id            String      @id @default(uuid()) // 主键ID（UUID）
+  name          String // 商品名称（必填）
+  description   String? // 商品描述（可选）
+  productType   ProductType @relation(fields: [productTypeId], references: [id])
+  productTypeId String
+  delete        Int         @default(0)
+  groupBuy      GroupBuy[]
+  createdAt     DateTime    @default(now()) // 创建时间
+  updatedAt     DateTime    @updatedAt // 最后更新时间
+
+  @@index([id])
+  @@index([name])
+}
+
+// 客户
+model Customer {
+  id                String          @id @default(uuid()) // 主键ID（UUID）
+  name              String // 客户姓名（必填）
+  phone             String? // 联系电话（可选）
+  wechat            String? // 微信账号（可选）
+  address           String? // 地址信息（可选）
+  description       String? // 客户描述（可选）
+  customerAddress   CustomerAddress @relation(fields: [customerAddressId], references: [id])
+  customerAddressId String
+  orders            Order[]
+  delete            Int             @default(0)
+  createdAt         DateTime        @default(now()) // 创建时间
+  updatedAt         DateTime        @updatedAt // 最后更新时间
+
+  @@index([id])
+  @@index([name])
+}
+
+// 客户地址
+model CustomerAddress {
+  id        String     @id @default(uuid())
+  name      String
+  customer  Customer[]
+  delete    Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+// 团购单
+model GroupBuy {
+  id                String   @id @default(uuid()) // 主键ID（UUID）
+  name              String // 团购名称（必填）
+  description       String? // 团购描述（可选）
+  groupBuyStartDate DateTime // 团购发起时间
+  supplierId        String
+  supplier          Supplier @relation(fields: [supplierId], references: [id])
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id])
+  units             Json     @default("[]") // 团购规格数组，以JSON存储 包含id,规格unit,售价price,成本价costPrice四个字段
+  order             Order[]
+  images            Json     @default("[]") // 商品图片数组，以JSON存储
+  delete            Int      @default(0)
+  createdAt         DateTime @default(now()) // 创建时间
+  updatedAt         DateTime @updatedAt // 最后更新时间
+
+  @@index([id])
+  @@index([name])
+}
+
+enum OrderStatus {
+  NOTPAID // 未付款
+  PAID // 已付款
+  COMPLETED // 已完成
+  REFUNDED // 已退款
+}
+
+// 订单
+model Order {
+  id          String      @id @default(uuid())
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  groupBuyId  String
+  groupBuy    GroupBuy    @relation(fields: [groupBuyId], references: [id])
+  unitId      String
+  quantity    Int // 购买份数
+  description String? //备注
+  status      OrderStatus @default(NOTPAID) // 订单状态
+  delete      Int         @default(0)
+  createdAt   DateTime    @default(now()) // 创建时间
+  updatedAt   DateTime    @updatedAt // 最后更新时间
+
+  @@index([id])
+  @@index([customerId])
+  @@index([groupBuyId])
+}
+
+model GlobalSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique // 如果用固定ID，这个字段可以省略或者作为额外索引
+  value     Json // 存储 JSON 字符串
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([key])
+}
