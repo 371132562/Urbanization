@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 
-import ErrorPage from './components/Error'
+import ErrorPage from '@/components/Error'
 
 const router = createBrowserRouter([
   {
@@ -16,6 +16,46 @@ const router = createBrowserRouter([
       {
         path: '/home',
         lazy: () => import('./pages/Home')
+      },
+      {
+        path: '/comprehensiveEvaluation',
+        lazy: () => import('./pages/ComprehensiveEvaluation')
+      },
+      {
+        path: '/urbanizationProcess',
+        lazy: () => import('./pages/UrbanizationProcess')
+      },
+      {
+        path: '/humanDynamics',
+        lazy: () => import('./pages/HumanDynamics')
+      },
+      {
+        path: '/materialDynamics',
+        lazy: () => import('./pages/MaterialDynamics')
+      },
+      {
+        path: '/spatialDynamics',
+        lazy: () => import('./pages/SpatialDynamics')
+      },
+      {
+        path: '/dataManagement',
+        lazy: () => import('./pages/DataManagement')
+      },
+      {
+        path: '/map/urbanizationRate',
+        lazy: () => import('./pages/Map/UrbanizationRate')
+      },
+      {
+        path: '/map/mapEdit',
+        lazy: () => import('./pages/Map/MapEdit')
+      },
+      {
+        path: '/evaluationModel',
+        lazy: () => import('./pages/EvaluationModel')
+      },
+      {
+        path: '/articleManagement',
+        lazy: () => import('./pages/ArticleManagement')
       }
     ]
   }
