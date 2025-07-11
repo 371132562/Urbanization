@@ -13,8 +13,8 @@ datasource db {
 // 大洲字典表
 model Continent {
   id      String    @id @default(uuid())
-  cnName  String
-  enName  String
+  cnName  String    @unique
+  enName  String    @unique
   Country Country[]
 
   @@index([id])
@@ -25,8 +25,8 @@ model Continent {
 // 国家字典表
 model Country {
   id                   String                 @id @default(uuid()) // 主键ID（UUID）
-  cnName               String // 国家中文名
-  enName               String // 国家英文名
+  cnName               String                 @unique // 国家中文名
+  enName               String                 @unique // 国家英文名
   continentId          String
   continent            Continent              @relation(fields: [continentId], references: [id]) // 所属大洲
   UrbanizationWorldMap UrbanizationWorldMap[]
@@ -39,8 +39,8 @@ model Country {
 // 一级维度
 model TopIndicator {
   id                 String               @id @default(uuid()) // 主键ID（UUID）
-  indicatorCnName    String // 指标中文名称
-  indicatorEsName    String // 指标英文名称
+  indicatorCnName    String               @unique // 指标中文名称
+  indicatorEsName    String               @unique // 指标英文名称
   description        String? // 描述
   weight             Decimal //权重
   SecondaryIndicator SecondaryIndicator[]
@@ -54,8 +54,8 @@ model TopIndicator {
 // 二级要素
 model SecondaryIndicator {
   id                String              @id @default(uuid()) // 主键ID（UUID）
-  indicatorCnName   String // 指标中文名称
-  indicatorEsName   String // 指标英文名称
+  indicatorCnName   String              @unique // 指标中文名称
+  indicatorEsName   String              @unique // 指标英文名称
   description       String? // 描述
   weight            Decimal //权重
   topIndicatorId    String
@@ -71,8 +71,8 @@ model SecondaryIndicator {
 // 三级指标
 model DetailedIndicator {
   id                   String              @id @default(uuid()) // 主键ID（UUID）
-  indicatorCnName      String // 指标中文名称
-  indicatorEsName      String // 指标英文名称
+  indicatorCnName      String              @unique // 指标中文名称
+  indicatorEsName      String              @unique // 指标英文名称
   description          String? // 描述
   weight               Decimal //权重
   secondaryIndicatorId String

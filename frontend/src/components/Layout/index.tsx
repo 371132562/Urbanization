@@ -18,7 +18,7 @@ import { useLocation, useNavigate, useOutlet } from 'react-router'
 
 import ErrorPage from '@/components/Error'
 
-const { Header, Sider, Content } = Layout
+const { Header, Sider, Content, Footer } = Layout
 
 export const Component: FC = () => {
   const outlet = useOutlet()
@@ -135,11 +135,16 @@ export const Component: FC = () => {
             defaultOpenKeys={defaultOpenKeys}
           />
         </Sider>
-        <Content className="!flex flex-grow flex-col bg-gray-100 px-8 py-14">
-          <div className="flex-grow overflow-y-auto rounded-lg bg-white p-6 shadow-md">
-            <ErrorBoundary FallbackComponent={ErrorPage}>{outlet}</ErrorBoundary>
-          </div>
-        </Content>
+        <Layout>
+          <Content className="!flex flex-grow flex-col bg-gray-100 p-8 pb-2 pt-10">
+            <div className="flex-grow overflow-y-auto rounded-lg bg-white p-6 shadow-md">
+              <ErrorBoundary FallbackComponent={ErrorPage}>{outlet}</ErrorBoundary>
+            </div>
+          </Content>
+          <Footer>
+            <div className="flex w-full justify-center">帮助与支持 如需帮助请联系XXXXXX</div>
+          </Footer>
+        </Layout>
       </Layout>
     </Layout>
   )

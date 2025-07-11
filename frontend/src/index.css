@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Heiti SC", "WenQuanYi Micro Hei", sans-serif;
+}
+
 /* width */
 ::-webkit-scrollbar {
     width: 12px;
