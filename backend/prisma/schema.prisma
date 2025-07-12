@@ -19,6 +19,9 @@ model Continent {
   enName  String    @unique // 大洲英文名
   Country Country[] // 关联到国家表
 
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
+
   @@index([id])
   @@index([cnName])
   @@index([enName])
@@ -31,8 +34,10 @@ model Country {
   enName               String                 @unique // 国家英文名
   continentId          String // 外键，关联到大洲ID
   continent            Continent              @relation(fields: [continentId], references: [id]) // 所属大洲
-  UrbanizationWorldMap UrbanizationWorldMap[] // 关联到世界地图城镇化数据
+  urbanizationWorldMap UrbanizationWorldMap[] // 关联到世界地图城镇化数据
   indicatorValues      IndicatorValue[] // 关联到指标数值表
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
 
   @@index([id])
   @@index([cnName])
@@ -46,7 +51,9 @@ model TopIndicator {
   indicatorEnName    String               @unique // 指标英文名称
   description        String? // 描述
   weight             Decimal // 权重
-  SecondaryIndicator SecondaryIndicator[] // 关联到二级指标
+  secondaryIndicator SecondaryIndicator[] // 关联到二级指标
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
 
   @@index([id])
   @@index([indicatorCnName])
@@ -64,7 +71,9 @@ model SecondaryIndicator {
   topIndicatorId    String // 外键，关联到一级指标ID
   topIndicator      TopIndicator        @relation(fields: [topIndicatorId], references: [id]) // 所属一级维度
   detailedIndicator DetailedIndicator[] // 关联到三级指标
-
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
+  
   @@index([id])
   @@index([indicatorCnName])
   @@index([indicatorEnName])
@@ -80,8 +89,10 @@ model DetailedIndicator {
   description          String? // 描述
   weight               Decimal // 权重
   secondaryIndicatorId String // 外键，关联到二级指标ID
-  SecondaryIndicator   SecondaryIndicator? @relation(fields: [secondaryIndicatorId], references: [id]) // 所属二级要素
+  SecondaryIndicator   SecondaryIndicator @relation(fields: [secondaryIndicatorId], references: [id]) // 所属二级要素
   IndicatorValue       IndicatorValue[] // 关联到指标数值表
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
 
   @@index([id])
   @@index([indicatorCnName])
@@ -98,6 +109,8 @@ model IndicatorValue {
   country             Country           @relation(fields: [countryId], references: [id]) // 所属国家
   detailedIndicatorId String // 外键，关联到三级指标ID
   detailedIndicator   DetailedIndicator @relation(fields: [detailedIndicatorId], references: [id]) // 所属三级指标
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
 
   @@unique([countryId, year, detailedIndicatorId], name: "countryYearIndicator") // 复合唯一约束，确保一个国家一年一个指标只有一个值
   @@index([countryId, year])
@@ -109,6 +122,8 @@ model UrbanizationWorldMap {
   countryId    String  @unique // 国家ID，这里应该是唯一的，一个国家只有一条记录
   country      Country @relation(fields: [countryId], references: [id]) // 所属国家
   urbanization Boolean @default(false) // 是否城镇化
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
 }
 
 // 文章管理表
@@ -117,4 +132,6 @@ model Article {
   title   String // 文章标题
   content String // 文章内容
   delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
 }

@@ -42,6 +42,10 @@ const router = createBrowserRouter([
         lazy: () => import('./pages/DataManagement')
       },
       {
+        path: '/dataManagement/modify/:countryId/:year',
+        lazy: () => import('./pages/DataManagement/Modify')
+      },
+      {
         path: '/map/urbanizationRate',
         lazy: () => import('./pages/Map/UrbanizationRate')
       },

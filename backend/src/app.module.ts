@@ -9,6 +9,7 @@ import { UPLOAD_DIR } from './utils/file-upload.utils'; // 导入上传目录常
 
 //业务模块
 import { DataManagementModule } from './businessComponent/dataManagement/dataManagement.module';
+import { IndicatorModule } from './businessComponent/indicator/indicator.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { DataManagementModule } from './businessComponent/dataManagement/dataMan
 
     //业务模块
     DataManagementModule,
+    IndicatorModule, // 指标查询模块
   ],
   controllers: [],
   providers: [],

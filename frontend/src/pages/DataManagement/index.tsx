@@ -1,9 +1,11 @@
 /* 数据管理列表页 */
 import { DownloadOutlined, FormOutlined } from '@ant-design/icons'
 import { useDebounce } from 'ahooks'
-import { Collapse, Input, Spin, Table } from 'antd'
+import { Button, Collapse, Input, Spin, Table, Tag } from 'antd'
+import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
-import type { CountryData, IndicatorValue, YearData } from 'urbanization-backend/types/dto'
+import { NavLink } from 'react-router'
+import type { CountryData, YearData } from 'urbanization-backend/types/dto'
 
 import FeatureButton from '@/components/FeatureButton'
 import useDataManagementStore from '@/stores/dataManagementStore'
@@ -19,7 +21,7 @@ const DataManagement = () => {
     filteredDataByCountry
   } = useDataManagementStore()
   const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, { wait: 400 })
+  const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 })
 
   useEffect(() => {
     getDataManagementList()
@@ -30,24 +32,38 @@ const DataManagement = () => {
       title: '国家',
       dataIndex: 'cnName',
       key: 'cnName'
-    }
-  ]
-
-  const indicatorTableColumns = [
-    {
-      title: '指标中文名',
-      dataIndex: 'cnName',
-      key: 'cnName'
     },
     {
-      title: '指标英文名',
-      dataIndex: 'enName',
-      key: 'enName'
+      title: '数据完整性',
+      dataIndex: 'isComplete',
+      key: 'isComplete',
+      render: (isComplete: boolean) => (
+        <Tag color={isComplete ? 'success' : 'warning'}>{isComplete ? '完整' : '部分缺失'}</Tag>
+      )
     },
     {
-      title: '值',
-      dataIndex: 'value',
-      key: 'value'
+      title: '创建时间',
+      dataIndex: 'createTime',
+      key: 'createTime',
+      render: (date: Date) => dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+    },
+    {
+      title: '更新时间',
+      dataIndex: 'updateTime',
+      key: 'updateTime',
+      render: (date: Date) => dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+    },
+    {
+      title: '操作',
+      dataIndex: 'action',
+      key: 'action',
+      render: (_: any, record: CountryData) => (
+        <Button type="link">
+          <NavLink to={`/dataManagement/modify/${record.id}/${dayjs(record.year).format('YYYY')}`}>
+            编辑
+          </NavLink>
+        </Button>
+      )
     }
   ]
 
@@ -96,27 +112,21 @@ const DataManagement = () => {
         defaultActiveKey={filteredData[0]?.year.toString()}
       >
         {filteredData.map((yearData: YearData) => (
-          <Panel
-            header={<span className="text-base font-semibold">{yearData.year}年</span>}
-            key={yearData.year}
-          >
-            <Table
+        <Panel
+            header={
+              <span className="text-base font-semibold">
+                {dayjs(yearData.year).format('YYYY')}年
+              </span>
+            }
+            key={yearData.year.toString()}
+        >
+          <Table
               columns={countryTableColumns}
               dataSource={yearData.data}
-              rowKey="enName"
-              expandable={{
-                expandedRowRender: (record: CountryData) => (
-                  <Table
-                    columns={indicatorTableColumns}
-                    dataSource={record.values}
-                    rowKey={(record: IndicatorValue) => `${record.cnName}-${record.enName}`}
-                    pagination={false}
-                  />
-                )
-              }}
-              pagination={false}
-            />
-          </Panel>
+              rowKey="id"
+            pagination={false}
+          />
+        </Panel>
         ))}
       </Collapse>
     </div>

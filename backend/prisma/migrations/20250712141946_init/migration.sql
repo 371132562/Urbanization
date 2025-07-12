@@ -2,7 +2,9 @@
 CREATE TABLE "Continent" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "cnName" TEXT NOT NULL,
-    "enName" TEXT NOT NULL
+    "enName" TEXT NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL
 );
 
 -- CreateTable
@@ -11,6 +13,8 @@ CREATE TABLE "Country" (
     "cnName" TEXT NOT NULL,
     "enName" TEXT NOT NULL,
     "continentId" TEXT NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL,
     CONSTRAINT "Country_continentId_fkey" FOREIGN KEY ("continentId") REFERENCES "Continent" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -20,7 +24,9 @@ CREATE TABLE "TopIndicator" (
     "indicatorCnName" TEXT NOT NULL,
     "indicatorEnName" TEXT NOT NULL,
     "description" TEXT,
-    "weight" DECIMAL NOT NULL
+    "weight" DECIMAL NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL
 );
 
 -- CreateTable
@@ -31,6 +37,8 @@ CREATE TABLE "SecondaryIndicator" (
     "description" TEXT,
     "weight" DECIMAL NOT NULL,
     "topIndicatorId" TEXT NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL,
     CONSTRAINT "SecondaryIndicator_topIndicatorId_fkey" FOREIGN KEY ("topIndicatorId") REFERENCES "TopIndicator" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -43,6 +51,8 @@ CREATE TABLE "DetailedIndicator" (
     "description" TEXT,
     "weight" DECIMAL NOT NULL,
     "secondaryIndicatorId" TEXT NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL,
     CONSTRAINT "DetailedIndicator_secondaryIndicatorId_fkey" FOREIGN KEY ("secondaryIndicatorId") REFERENCES "SecondaryIndicator" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -53,6 +63,8 @@ CREATE TABLE "IndicatorValue" (
     "year" DATETIME NOT NULL,
     "countryId" TEXT NOT NULL,
     "detailedIndicatorId" TEXT NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL,
     CONSTRAINT "IndicatorValue_countryId_fkey" FOREIGN KEY ("countryId") REFERENCES "Country" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "IndicatorValue_detailedIndicatorId_fkey" FOREIGN KEY ("detailedIndicatorId") REFERENCES "DetailedIndicator" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -62,6 +74,8 @@ CREATE TABLE "UrbanizationWorldMap" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "countryId" TEXT NOT NULL,
     "urbanization" BOOLEAN NOT NULL DEFAULT false,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL,
     CONSTRAINT "UrbanizationWorldMap_countryId_fkey" FOREIGN KEY ("countryId") REFERENCES "Country" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -70,7 +84,9 @@ CREATE TABLE "Article" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
-    "delete" INTEGER NOT NULL DEFAULT 0
+    "delete" INTEGER NOT NULL DEFAULT 0,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL
 );
 
 -- CreateIndex
