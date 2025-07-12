@@ -6,6 +6,7 @@
 
 const { PrismaClient } = require('@prisma/client');
 const pino = require('pino'); // 引入 pino
+const dayjs = require('dayjs'); // 引入 dayjs
 const { continents } = require('./initialData/countries'); // 导入大洲和国家的初始数据
 const indicatorData = require('./initialData/indicatorData'); // 导入指标体系的初始数据
 const indicatorValues = require('./initialData/indicatorValues'); // 导入指标值的初始数据
@@ -223,7 +224,10 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
   });
   // 创建一个唯一标识符字符串（例如 'countryId-year-indicatorId'）并存入Set。
   const existingValuesSet = new Set(
-    existingValues.map((v) => `${v.countryId}-${v.year}-${v.detailedIndicatorId}`),
+    existingValues.map(
+      (v) =>
+        `${v.countryId}-${dayjs(v.year).format('YYYY')}-${v.detailedIndicatorId}`,
+    ),
   );
 
   // 用于存储所有待创建的新记录的数组。
@@ -248,24 +252,31 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
       const detailedIndicator = detailedIndicatorCache.get(valueData.indicatorEnName) ||
                                 Array.from(detailedIndicatorCache.values()).find(i => i.indicatorCnName === valueData.indicatorCnName);
 
-      // 如果指标找不到，则跳过此条记录。
+      // 如果指标在中英缓存中都找不到，记录警告并跳过。
       if (!detailedIndicator) {
-        logger.warn({ indicatorCn: valueData.indicatorCnName, indicatorEn: valueData.indicatorEnName }, `在缓存中未找到三级指标, 跳过此条目.`);
+        logger.warn({ indicatorCn: valueData.indicatorCnName, indicatorEn: valueData.indicatorEnName }, `在缓存中未找到指标, 跳过此条目.`);
         continue;
       }
+      // 将年份转换为 Date 对象，例如：2023 -> new Date('2023-01-01')
+      const yearDate = dayjs(countryData.year.toString()).startOf('year').toDate();
 
-      // 步骤 2.3: 检查组合了国家、年份和指标的记录是否已经存在于数据库中。
-      const valueIdentifier = `${country.id}-${countryData.year}-${detailedIndicator.id}`;
-      if (!existingValuesSet.has(valueIdentifier)) {
-        // 如果不存在，则将这条准备好的、包含所有外键ID的新记录添加到待创建数组中。
+      // 步骤 2.3: 在将数据添加到待创建列表前，检查其唯一性。
+      // 使用与上面 `existingValuesSet` 相同的格式创建唯一标识符。
+      const uniqueIdentifier = `${country.id}-${countryData.year}-${detailedIndicator.id}`;
+      if (!existingValuesSet.has(uniqueIdentifier)) {
+        // 如果该组合不存在，则将其添加到待创建数组中。
         valuesToCreate.push({
           countryId: country.id,
           detailedIndicatorId: detailedIndicator.id,
-          year: countryData.year,
-          value: valueData.value, // `value` 字段在 schema 中是可选的，可以是 null
+          year: yearDate,
+      //    value: valueData.value, // 假设 value 可能为 null 或 undefined
+          // Prisma 会自动处理 Decimal 类型，无需特殊转换
+          ...(valueData.value !== null &&
+            valueData.value !== undefined && { value: valueData.value }),
         });
-        // 同时，将标识符添加到Set中，以防止在同一次运行中因为源文件有重复而重复添加。
-        existingValuesSet.add(valueIdentifier); 
+
+        // 为了防止在同一次运行中添加重复记录，也将新的唯一标识符添加到 set 中。
+        existingValuesSet.add(uniqueIdentifier);
       }
     }
   }

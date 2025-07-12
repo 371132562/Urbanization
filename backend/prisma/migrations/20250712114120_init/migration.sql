@@ -50,7 +50,7 @@ CREATE TABLE "DetailedIndicator" (
 CREATE TABLE "IndicatorValue" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "value" DECIMAL,
-    "year" INTEGER NOT NULL,
+    "year" DATETIME NOT NULL,
     "countryId" TEXT NOT NULL,
     "detailedIndicatorId" TEXT NOT NULL,
     CONSTRAINT "IndicatorValue_countryId_fkey" FOREIGN KEY ("countryId") REFERENCES "Country" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
