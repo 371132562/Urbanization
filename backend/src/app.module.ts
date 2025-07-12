@@ -7,6 +7,9 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { UploadModule } from './upload/upload.module';
 import { UPLOAD_DIR } from './utils/file-upload.utils'; // 导入上传目录常量
 
+//业务模块
+import { DataManagementModule } from './businessComponent/dataManagement/dataManagement.module';
+
 @Module({
   imports: [
     //公共模块
@@ -30,6 +33,7 @@ import { UPLOAD_DIR } from './utils/file-upload.utils'; // 导入上传目录常
     UploadModule, // 上传模块
 
     //业务模块
+    DataManagementModule,
   ],
   controllers: [],
   providers: [],

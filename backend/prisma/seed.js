@@ -5,26 +5,10 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-const pino = require('pino'); // 引入 pino
 const dayjs = require('dayjs'); // 引入 dayjs
 const { continents } = require('./initialData/countries'); // 导入大洲和国家的初始数据
 const indicatorData = require('./initialData/indicatorData'); // 导入指标体系的初始数据
 const indicatorValues = require('./initialData/indicatorValues'); // 导入指标值的初始数据
-
-// 配置 pino logger
-const logger = pino({
-  // 显式设置日志级别，优先从环境变量`LOG_LEVEL`中读取，默认为'info'
-  // 这样可以让我们通过 `cross-env LOG_LEVEL=debug` 的方式来控制日志的详细程度
-  level: process.env.LOG_LEVEL || 'info',
-  transport: {
-    target: 'pino-pretty', // 使用 pino-pretty 美化输出
-    options: {
-      colorize: true, // 开启颜色
-      translateTime: 'SYS:yyyy-mm-dd HH:MM:ss', // 定义时间格式
-      ignore: 'pid,hostname', // 忽略不必要的字段
-    },
-  },
-});
 
 const prisma = new PrismaClient();
 
@@ -35,7 +19,7 @@ const prisma = new PrismaClient();
  * @param {Map<string, object>} countryCache - 用于存储国家数据的缓存，以英文名作为键。
  */
 async function seedContinentsAndCountries(continentCache, countryCache) {
-  logger.info('开始生成大洲和国家种子数据...');
+  console.info('开始生成大洲和国家种子数据...');
 
   // 步骤 1: 预先一次性从数据库加载所有已存在的大洲和国家数据，以减少后续的数据库查询。
   const existingContinents = await prisma.continent.findMany();
@@ -59,9 +43,9 @@ async function seedContinentsAndCountries(continentCache, countryCache) {
       });
       // 将新创建的记录添加到缓存中，以便在后续操作中直接使用，无需再次查询。
       continentCache.set(continent.enName, continent);
-      logger.info({ continent: continent.cnName }, `已创建大洲`);
+      console.info({ continent: continent.cnName }, `已创建大洲`);
     } else {
-      logger.debug({ continent: continent.cnName }, `大洲已存在, 跳过`);
+      console.debug({ continent: continent.cnName }, `大洲已存在, 跳过`);
     }
 
     // 步骤 3: 遍历当前大洲下的国家列表。
@@ -77,13 +61,13 @@ async function seedContinentsAndCountries(continentCache, countryCache) {
           },
         });
         countryCache.set(country.enName, country);
-        logger.info({ country: countryData.cnName, continent: continent.cnName }, `已创建国家`);
+        console.info({ country: countryData.cnName, continent: continent.cnName }, `已创建国家`);
       } else {
-        logger.debug({ country: countryData.cnName }, `国家已存在, 跳过`);
+        console.debug({ country: countryData.cnName }, `国家已存在, 跳过`);
       }
     }
   }
-  logger.info('大洲和国家种子数据生成完毕!');
+  console.info('大洲和国家种子数据生成完毕!');
 }
 
 /**
@@ -92,7 +76,7 @@ async function seedContinentsAndCountries(continentCache, countryCache) {
  * @param {Map<string, object>} countryCache - 包含所有已处理国家信息的缓存。
  */
 async function seedUrbanizationWorldMap(countryCache) {
-  logger.info('开始生成世界地图城镇化种子数据...');
+  console.info('开始生成世界地图城镇化种子数据...');
 
   // 步骤 1: 预加载所有已存在的 UrbanizationWorldMap 记录的 countryId。
   const existingMapData = await prisma.urbanizationWorldMap.findMany({
@@ -116,15 +100,15 @@ async function seedUrbanizationWorldMap(countryCache) {
 
   // 步骤 3: 如果有新的记录需要创建，则进行批量插入。
   if (mapEntriesToCreate.length > 0) {
-    logger.info({ count: mapEntriesToCreate.length }, `准备为 ${mapEntriesToCreate.length} 个国家创建新的世界地图城镇化记录...`);
+    console.info({ count: mapEntriesToCreate.length }, `准备为 ${mapEntriesToCreate.length} 个国家创建新的世界地图城镇化记录...`);
     await prisma.urbanizationWorldMap.createMany({
       data: mapEntriesToCreate,
     });
-    logger.info('新的世界地图城镇化记录已批量创建完毕!');
+    console.info('新的世界地图城镇化记录已批量创建完毕!');
   } else {
-    logger.info('没有新的世界地图城镇化记录需要创建。');
+    console.info('没有新的世界地图城镇化记录需要创建。');
   }
-  logger.info('世界地图城镇化种子数据生成完毕!');
+  console.info('世界地图城镇化种子数据生成完毕!');
 }
 
 /**
@@ -135,7 +119,7 @@ async function seedUrbanizationWorldMap(countryCache) {
  * @param {Map<string, object>} detailedIndicatorCache - 三级指标的缓存。
  */
 async function seedIndicators(topIndicatorCache, secondaryIndicatorCache, detailedIndicatorCache) {
-  logger.info('开始生成指标体系种子数据...');
+  console.info('开始生成指标体系种子数据...');
 
   // 步骤 1: 预加载所有层级的现有指标数据到各自的缓存中。
   const existingTop = await prisma.topIndicator.findMany();
@@ -158,9 +142,9 @@ async function seedIndicators(topIndicatorCache, secondaryIndicatorCache, detail
         },
       });
       topIndicatorCache.set(topIndicator.indicatorEnName, topIndicator);
-      logger.info({ indicator: topIndicatorData.indicatorCnName }, `创建一级指标`);
+      console.info({ indicator: topIndicatorData.indicatorCnName }, `创建一级指标`);
     } else {
-      logger.debug({ indicator: topIndicatorData.indicatorCnName }, `一级指标已存在, 跳过`);
+      console.debug({ indicator: topIndicatorData.indicatorCnName }, `一级指标已存在, 跳过`);
     }
 
     // 步骤 3: 遍历当前一级指标下的二级指标。
@@ -177,9 +161,9 @@ async function seedIndicators(topIndicatorCache, secondaryIndicatorCache, detail
           },
         });
         secondaryIndicatorCache.set(secondaryIndicator.indicatorEnName, secondaryIndicator);
-        logger.info({ indicator: secondaryIndicatorData.indicatorCnName }, `创建二级指标`);
+        console.info({ indicator: secondaryIndicatorData.indicatorCnName }, `创建二级指标`);
       } else {
-        logger.debug({ indicator: secondaryIndicatorData.indicatorCnName }, `二级指标已存在, 跳过`);
+        console.debug({ indicator: secondaryIndicatorData.indicatorCnName }, `二级指标已存在, 跳过`);
       }
 
       // 步骤 4: 遍历当前二级指标下的三级指标。
@@ -197,14 +181,14 @@ async function seedIndicators(topIndicatorCache, secondaryIndicatorCache, detail
             },
           });
           detailedIndicatorCache.set(detailedIndicator.indicatorEnName, detailedIndicator);
-          logger.info({ indicator: detailedIndicatorData.indicatorCnName }, `创建三级指标`);
+          console.info({ indicator: detailedIndicatorData.indicatorCnName }, `创建三级指标`);
         } else {
-          logger.debug({ indicator: detailedIndicatorData.indicatorCnName }, `三级指标已存在, 跳过`);
+          console.debug({ indicator: detailedIndicatorData.indicatorCnName }, `三级指标已存在, 跳过`);
         }
       }
     }
   }
-  logger.info('指标体系种子数据生成完毕!');
+  console.info('指标体系种子数据生成完毕!');
 }
 
 /**
@@ -214,7 +198,7 @@ async function seedIndicators(topIndicatorCache, secondaryIndicatorCache, detail
  * @param {Map<string, object>} detailedIndicatorCache - 已填充的三级指标数据的缓存。
  */
 async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
-  logger.info('开始生成指标数值种子数据...');
+  console.info('开始生成指标数值种子数据...');
 
   // 步骤 1: 预加载所有已存在的指标值记录，并将其转换为一个 Set 以进行高效的重复检查。
   // Set 的查找时间复杂度为 O(1)，远优于每次都在循环中查询数据库。
@@ -242,7 +226,7 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
 
     // 如果国家在中英缓存中都找不到，则无法关联，只能跳过该国家的所有数据。
     if (!country) {
-      logger.warn({ countryCn: countryData.countryCnName, countryEn: countryData.countryEnName }, `在缓存中未找到国家, 跳过此国家的所有条目.`);
+      console.warn({ countryCn: countryData.countryCnName, countryEn: countryData.countryEnName }, `在缓存中未找到国家, 跳过此国家的所有条目.`);
       continue;
     }
 
@@ -254,7 +238,7 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
 
       // 如果指标在中英缓存中都找不到，记录警告并跳过。
       if (!detailedIndicator) {
-        logger.warn({ indicatorCn: valueData.indicatorCnName, indicatorEn: valueData.indicatorEnName }, `在缓存中未找到指标, 跳过此条目.`);
+        console.warn({ indicatorCn: valueData.indicatorCnName, indicatorEn: valueData.indicatorEnName }, `在缓存中未找到指标, 跳过此条目.`);
         continue;
       }
       // 将年份转换为 Date 对象，例如：2023 -> new Date('2023-01-01')
@@ -283,17 +267,17 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
 
   // 步骤 3: 检查是否有任何新的记录需要被创建。
   if (valuesToCreate.length > 0) {
-    logger.info({ count: valuesToCreate.length }, `准备创建 ${valuesToCreate.length} 条新的指标数值...`);
+    console.info({ count: valuesToCreate.length }, `准备创建 ${valuesToCreate.length} 条新的指标数值...`);
     // 使用 `createMany` API 一次性将数组中的所有数据插入数据库，这是最高效的方式。
     await prisma.indicatorValue.createMany({
       data: valuesToCreate,
     });
-    logger.info('新的指标数值已批量创建完毕!');
+    console.info('新的指标数值已批量创建完毕!');
   } else {
-    logger.info('没有新的指标数值需要创建.');
+    console.info('没有新的指标数值需要创建.');
   }
 
-  logger.info('指标数值种子数据生成完毕!');
+  console.info('指标数值种子数据生成完毕!');
 }
 
 /**
@@ -319,7 +303,7 @@ async function main() {
 main()
   .catch((e) => {
     // 捕获并打印任何在异步执行过程中发生的错误。
-    logger.error(e, '数据生成过程中发生错误:');
+    console.error(e, '数据生成过程中发生错误:');
     process.exit(1); // 以非零退出码退出，表示执行失败。
   })
   .finally(async () => {

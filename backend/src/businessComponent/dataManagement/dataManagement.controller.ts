@@ -1,8 +1,17 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post } from '@nestjs/common';
 import { DataManagementService } from './dataManagement.service';
-import { Prisma } from '@prisma/client';
+import { DataManagementListDto } from 'types/dto';
 
-@Controller('supplier')
+@Controller('dataManagement')
 export class DataManagementController {
-  constructor(private readonly supplierService: DataManagementService) {}
+  constructor(private readonly dataManagementService: DataManagementService) {}
+
+  /**
+   * 获取所有数据管理条目
+   * @returns {Promise<DataManagementListDto>}
+   */
+  @Post('list')
+  async list(): Promise<DataManagementListDto> {
+    return this.dataManagementService.list();
+  }
 }

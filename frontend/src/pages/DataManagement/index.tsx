@@ -1,63 +1,67 @@
+/* 数据管理列表页 */
 import { DownloadOutlined, FormOutlined } from '@ant-design/icons'
 import { useDebounce } from 'ahooks'
-import { Collapse, Input, Table } from 'antd'
-import { useMemo, useState } from 'react'
+import { Collapse, Input, Spin, Table } from 'antd'
+import { useEffect, useMemo, useState } from 'react'
+import type { CountryData, IndicatorValue, YearData } from 'urbanization-backend/types/dto'
 
 import FeatureButton from '@/components/FeatureButton'
+import useDataManagementStore from '@/stores/dataManagementStore'
 
 const { Panel } = Collapse
 const { Search } = Input
 
 const DataManagement = () => {
-  const tableColumns = [
-    {
-      title: '国家',
-      dataIndex: 'country',
-      key: 'country'
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt'
-    },
-    {
-      title: '更新时间',
-      dataIndex: 'updatedAt',
-      key: 'updatedAt'
-    }
-  ]
-
-  const tableData = [
-    {
-      key: '1',
-      country: '中国',
-      createdAt: '2023-01-15 10:30:00',
-      updatedAt: '2023-05-20 14:00:00'
-    },
-    {
-      key: '2',
-      country: '美国',
-      createdAt: '2023-02-10 11:00:00',
-      updatedAt: '2023-06-25 18:45:00'
-    },
-    {
-      key: '3',
-      country: '日本',
-      createdAt: '2023-03-05 09:00:00',
-      updatedAt: '2023-07-11 12:10:00'
-    }
-  ]
-
+  const {
+    data,
+    listLoading: loading,
+    getDataManagementList,
+    filteredDataByCountry
+  } = useDataManagementStore()
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, { wait: 400 })
 
-  const filteredData = useMemo(() => {
-    const term = debouncedSearchTerm.trim().toLowerCase()
-    if (!term) {
-      return tableData
+  useEffect(() => {
+    getDataManagementList()
+  }, [getDataManagementList])
+
+  const countryTableColumns = [
+    {
+      title: '国家',
+      dataIndex: 'cnName',
+      key: 'cnName'
     }
-    return tableData.filter(item => item.country.toLowerCase().includes(term))
-  }, [debouncedSearchTerm, tableData])
+  ]
+
+  const indicatorTableColumns = [
+    {
+      title: '指标中文名',
+      dataIndex: 'cnName',
+      key: 'cnName'
+    },
+    {
+      title: '指标英文名',
+      dataIndex: 'enName',
+      key: 'enName'
+    },
+    {
+      title: '值',
+      dataIndex: 'value',
+      key: 'value'
+    }
+  ]
+
+  const filteredData = useMemo(() => {
+    return filteredDataByCountry(debouncedSearchTerm, data)
+  }, [debouncedSearchTerm, data, filteredDataByCountry])
+
+  if (loading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Spin size="large" />
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -89,30 +93,31 @@ const DataManagement = () => {
 
       <Collapse
         accordion
-        defaultActiveKey={['1']}
+        defaultActiveKey={filteredData[0]?.year.toString()}
       >
-        <Panel
-          header={<span className="text-base font-semibold">2023年</span>}
-          key="1"
-        >
-          <Table
-            columns={tableColumns}
-            dataSource={filteredData}
-            pagination={false}
-          />
-        </Panel>
-        <Panel
-          header={<span className="text-base font-semibold">2022年</span>}
-          key="2"
-        >
-          <div className="p-4">暂无2022年数据</div>
-        </Panel>
-        <Panel
-          header={<span className="text-base font-semibold">2021年</span>}
-          key="3"
-        >
-          <div className="p-4">暂无2021年数据</div>
-        </Panel>
+        {filteredData.map((yearData: YearData) => (
+          <Panel
+            header={<span className="text-base font-semibold">{yearData.year}年</span>}
+            key={yearData.year}
+          >
+            <Table
+              columns={countryTableColumns}
+              dataSource={yearData.data}
+              rowKey="enName"
+              expandable={{
+                expandedRowRender: (record: CountryData) => (
+                  <Table
+                    columns={indicatorTableColumns}
+                    dataSource={record.values}
+                    rowKey={(record: IndicatorValue) => `${record.cnName}-${record.enName}`}
+                    pagination={false}
+                  />
+                )
+              }}
+              pagination={false}
+            />
+          </Panel>
+        ))}
       </Collapse>
     </div>
   )
