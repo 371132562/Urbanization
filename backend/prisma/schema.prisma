@@ -1,21 +1,23 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// 指定生成器，这里是 Prisma Client for JavaScript
 generator client {
   provider = "prisma-client-js"
 }
 
+// 定义数据源，这里使用 SQLite
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL") // 数据库链接从环境变量中读取
 }
 
 // 大洲字典表
 model Continent {
-  id      String    @id @default(uuid())
-  cnName  String    @unique
-  enName  String    @unique
-  Country Country[]
+  id      String    @id @default(uuid()) // 主键ID（UUID）
+  cnName  String    @unique // 大洲中文名
+  enName  String    @unique // 大洲英文名
+  Country Country[] // 关联到国家表
 
   @@index([id])
   @@index([cnName])
@@ -27,44 +29,45 @@ model Country {
   id                   String                 @id @default(uuid()) // 主键ID（UUID）
   cnName               String                 @unique // 国家中文名
   enName               String                 @unique // 国家英文名
-  continentId          String
+  continentId          String // 外键，关联到大洲ID
   continent            Continent              @relation(fields: [continentId], references: [id]) // 所属大洲
-  UrbanizationWorldMap UrbanizationWorldMap[]
+  UrbanizationWorldMap UrbanizationWorldMap[] // 关联到世界地图城镇化数据
+  indicatorValues      IndicatorValue[] // 关联到指标数值表
 
   @@index([id])
   @@index([cnName])
   @@index([enName])
 }
 
-// 一级维度
+// 一级维度/指标
 model TopIndicator {
   id                 String               @id @default(uuid()) // 主键ID（UUID）
   indicatorCnName    String               @unique // 指标中文名称
-  indicatorEsName    String               @unique // 指标英文名称
+  indicatorEnName    String               @unique // 指标英文名称
   description        String? // 描述
-  weight             Decimal //权重
-  SecondaryIndicator SecondaryIndicator[]
+  weight             Decimal // 权重
+  SecondaryIndicator SecondaryIndicator[] // 关联到二级指标
 
   @@index([id])
   @@index([indicatorCnName])
-  @@index([indicatorEsName])
+  @@index([indicatorEnName])
   @@index([weight])
 }
 
-// 二级要素
+// 二级要素/指标
 model SecondaryIndicator {
   id                String              @id @default(uuid()) // 主键ID（UUID）
   indicatorCnName   String              @unique // 指标中文名称
-  indicatorEsName   String              @unique // 指标英文名称
+  indicatorEnName   String              @unique // 指标英文名称
   description       String? // 描述
-  weight            Decimal //权重
-  topIndicatorId    String
-  topIndicator      TopIndicator        @relation(fields: [topIndicatorId], references: [id]) // 一级维度
-  detailedIndicator DetailedIndicator[]
+  weight            Decimal // 权重
+  topIndicatorId    String // 外键，关联到一级指标ID
+  topIndicator      TopIndicator        @relation(fields: [topIndicatorId], references: [id]) // 所属一级维度
+  detailedIndicator DetailedIndicator[] // 关联到三级指标
 
   @@index([id])
   @@index([indicatorCnName])
-  @@index([indicatorEsName])
+  @@index([indicatorEnName])
   @@index([weight])
 }
 
@@ -72,30 +75,46 @@ model SecondaryIndicator {
 model DetailedIndicator {
   id                   String              @id @default(uuid()) // 主键ID（UUID）
   indicatorCnName      String              @unique // 指标中文名称
-  indicatorEsName      String              @unique // 指标英文名称
+  indicatorEnName      String              @unique // 指标英文名称
+  unit                 String // 指标单位
   description          String? // 描述
-  weight               Decimal //权重
-  secondaryIndicatorId String
-  SecondaryIndicator   SecondaryIndicator? @relation(fields: [secondaryIndicatorId], references: [id])
+  weight               Decimal // 权重
+  secondaryIndicatorId String // 外键，关联到二级指标ID
+  SecondaryIndicator   SecondaryIndicator? @relation(fields: [secondaryIndicatorId], references: [id]) // 所属二级要素
+  IndicatorValue       IndicatorValue[] // 关联到指标数值表
 
   @@index([id])
   @@index([indicatorCnName])
-  @@index([indicatorEsName])
+  @@index([indicatorEnName])
   @@index([weight])
 }
 
-// 展示是否城镇化的世界地图
-model UrbanizationWorldMap {
-  id           String  @id @default(uuid())
-  countryId    String
-  country      Country @relation(fields: [countryId], references: [id])
-  urbanization Boolean @default(false)
+// 指标值表，存储各国各年的三级指标具体数值
+model IndicatorValue {
+  id                  String            @id @default(uuid()) // 主键ID
+  value               Decimal? // 指标的具体值, 允许为空
+  year                Int // 数据年份
+  countryId           String // 外键，关联到国家ID
+  country             Country           @relation(fields: [countryId], references: [id]) // 所属国家
+  detailedIndicatorId String // 外键，关联到三级指标ID
+  detailedIndicator   DetailedIndicator @relation(fields: [detailedIndicatorId], references: [id]) // 所属三级指标
+
+  @@unique([countryId, year, detailedIndicatorId], name: "countryYearIndicator") // 复合唯一约束，确保一个国家一年一个指标只有一个值
+  @@index([countryId, year])
 }
 
-// 文章管理
+// 世界地图城镇化展示表
+model UrbanizationWorldMap {
+  id           String  @id @default(uuid()) // 主键ID
+  countryId    String  @unique // 国家ID，这里应该是唯一的，一个国家只有一条记录
+  country      Country @relation(fields: [countryId], references: [id]) // 所属国家
+  urbanization Boolean @default(false) // 是否城镇化
+}
+
+// 文章管理表
 model Article {
-  id      String @id @default(uuid())
-  title   String
-  content String
-  delete  Int    @default(0)
+  id      String @id @default(uuid()) // 主键ID
+  title   String // 文章标题
+  content String // 文章内容
+  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 }

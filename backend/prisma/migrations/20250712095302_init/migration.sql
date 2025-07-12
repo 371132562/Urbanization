@@ -18,7 +18,7 @@ CREATE TABLE "Country" (
 CREATE TABLE "TopIndicator" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "indicatorCnName" TEXT NOT NULL,
-    "indicatorEsName" TEXT NOT NULL,
+    "indicatorEnName" TEXT NOT NULL,
     "description" TEXT,
     "weight" DECIMAL NOT NULL
 );
@@ -27,7 +27,7 @@ CREATE TABLE "TopIndicator" (
 CREATE TABLE "SecondaryIndicator" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "indicatorCnName" TEXT NOT NULL,
-    "indicatorEsName" TEXT NOT NULL,
+    "indicatorEnName" TEXT NOT NULL,
     "description" TEXT,
     "weight" DECIMAL NOT NULL,
     "topIndicatorId" TEXT NOT NULL,
@@ -38,11 +38,23 @@ CREATE TABLE "SecondaryIndicator" (
 CREATE TABLE "DetailedIndicator" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "indicatorCnName" TEXT NOT NULL,
-    "indicatorEsName" TEXT NOT NULL,
+    "indicatorEnName" TEXT NOT NULL,
+    "unit" TEXT NOT NULL,
     "description" TEXT,
     "weight" DECIMAL NOT NULL,
     "secondaryIndicatorId" TEXT NOT NULL,
     CONSTRAINT "DetailedIndicator_secondaryIndicatorId_fkey" FOREIGN KEY ("secondaryIndicatorId") REFERENCES "SecondaryIndicator" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "IndicatorValue" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "value" DECIMAL,
+    "year" INTEGER NOT NULL,
+    "countryId" TEXT NOT NULL,
+    "detailedIndicatorId" TEXT NOT NULL,
+    CONSTRAINT "IndicatorValue_countryId_fkey" FOREIGN KEY ("countryId") REFERENCES "Country" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "IndicatorValue_detailedIndicatorId_fkey" FOREIGN KEY ("detailedIndicatorId") REFERENCES "DetailedIndicator" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -62,6 +74,12 @@ CREATE TABLE "Article" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Continent_cnName_key" ON "Continent"("cnName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Continent_enName_key" ON "Continent"("enName");
+
+-- CreateIndex
 CREATE INDEX "Continent_id_idx" ON "Continent"("id");
 
 -- CreateIndex
@@ -69,6 +87,12 @@ CREATE INDEX "Continent_cnName_idx" ON "Continent"("cnName");
 
 -- CreateIndex
 CREATE INDEX "Continent_enName_idx" ON "Continent"("enName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Country_cnName_key" ON "Country"("cnName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Country_enName_key" ON "Country"("enName");
 
 -- CreateIndex
 CREATE INDEX "Country_id_idx" ON "Country"("id");
@@ -80,16 +104,28 @@ CREATE INDEX "Country_cnName_idx" ON "Country"("cnName");
 CREATE INDEX "Country_enName_idx" ON "Country"("enName");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "TopIndicator_indicatorCnName_key" ON "TopIndicator"("indicatorCnName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TopIndicator_indicatorEnName_key" ON "TopIndicator"("indicatorEnName");
+
+-- CreateIndex
 CREATE INDEX "TopIndicator_id_idx" ON "TopIndicator"("id");
 
 -- CreateIndex
 CREATE INDEX "TopIndicator_indicatorCnName_idx" ON "TopIndicator"("indicatorCnName");
 
 -- CreateIndex
-CREATE INDEX "TopIndicator_indicatorEsName_idx" ON "TopIndicator"("indicatorEsName");
+CREATE INDEX "TopIndicator_indicatorEnName_idx" ON "TopIndicator"("indicatorEnName");
 
 -- CreateIndex
 CREATE INDEX "TopIndicator_weight_idx" ON "TopIndicator"("weight");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SecondaryIndicator_indicatorCnName_key" ON "SecondaryIndicator"("indicatorCnName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SecondaryIndicator_indicatorEnName_key" ON "SecondaryIndicator"("indicatorEnName");
 
 -- CreateIndex
 CREATE INDEX "SecondaryIndicator_id_idx" ON "SecondaryIndicator"("id");
@@ -98,10 +134,16 @@ CREATE INDEX "SecondaryIndicator_id_idx" ON "SecondaryIndicator"("id");
 CREATE INDEX "SecondaryIndicator_indicatorCnName_idx" ON "SecondaryIndicator"("indicatorCnName");
 
 -- CreateIndex
-CREATE INDEX "SecondaryIndicator_indicatorEsName_idx" ON "SecondaryIndicator"("indicatorEsName");
+CREATE INDEX "SecondaryIndicator_indicatorEnName_idx" ON "SecondaryIndicator"("indicatorEnName");
 
 -- CreateIndex
 CREATE INDEX "SecondaryIndicator_weight_idx" ON "SecondaryIndicator"("weight");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DetailedIndicator_indicatorCnName_key" ON "DetailedIndicator"("indicatorCnName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DetailedIndicator_indicatorEnName_key" ON "DetailedIndicator"("indicatorEnName");
 
 -- CreateIndex
 CREATE INDEX "DetailedIndicator_id_idx" ON "DetailedIndicator"("id");
@@ -110,7 +152,16 @@ CREATE INDEX "DetailedIndicator_id_idx" ON "DetailedIndicator"("id");
 CREATE INDEX "DetailedIndicator_indicatorCnName_idx" ON "DetailedIndicator"("indicatorCnName");
 
 -- CreateIndex
-CREATE INDEX "DetailedIndicator_indicatorEsName_idx" ON "DetailedIndicator"("indicatorEsName");
+CREATE INDEX "DetailedIndicator_indicatorEnName_idx" ON "DetailedIndicator"("indicatorEnName");
 
 -- CreateIndex
 CREATE INDEX "DetailedIndicator_weight_idx" ON "DetailedIndicator"("weight");
+
+-- CreateIndex
+CREATE INDEX "IndicatorValue_countryId_year_idx" ON "IndicatorValue"("countryId", "year");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "IndicatorValue_countryId_year_detailedIndicatorId_key" ON "IndicatorValue"("countryId", "year", "detailedIndicatorId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UrbanizationWorldMap_countryId_key" ON "UrbanizationWorldMap"("countryId");
