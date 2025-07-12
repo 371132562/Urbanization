@@ -4,15 +4,20 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { BusinessException } from './businessException';
 import { ErrorCode } from '../../types/response';
 
 @Catch() // 捕获所有异常
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
     let code: number;
     let msg: string;
@@ -30,43 +35,43 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       // 4xxxx 范围：NestJS 内置的 HttpException (例如 ValidationPipe, NotFoundException 等)
       const status = exception.getStatus();
-      const exceptionResponse = exception.getResponse();
+      const exceptionResponse = exception.getResponse() as {
+        message?: string | string[];
+      };
 
       // 这里我们将 HTTP 状态码直接作为 code，因为它们本身就是一种错误码分类
       code = status;
-      msg =
-        (exceptionResponse as any).message ||
-        exception.message ||
-        'HTTP请求错误';
+
+      const responseMessage =
+        typeof exceptionResponse === 'string'
+          ? exceptionResponse
+          : exceptionResponse.message;
+
+      msg = Array.isArray(responseMessage)
+        ? responseMessage.join(', ')
+        : responseMessage || exception.message || 'HTTP请求错误';
 
       // 对于 ValidationPipe 抛出的错误，其 message 可能是一个数组
-      if (Array.isArray((exceptionResponse as any).message)) {
-        data = (exceptionResponse as any).message; // 将详细验证错误放入 data
+      if (Array.isArray(responseMessage)) {
+        data = responseMessage; // 将详细验证错误放入 data
       } else {
         data = null;
       }
 
       // 可以根据 HTTP 状态码进一步细化 msg
-      switch (status) {
-        case HttpStatus.BAD_REQUEST:
-          msg = '请求参数错误';
-          break;
-        case HttpStatus.UNAUTHORIZED:
-          code = ErrorCode.UNAUTHORIZED; // 将 HTTP 401 映射到 3xxxx 认证错误
-          msg = '未认证或认证失败';
-          break;
-        case HttpStatus.FORBIDDEN:
-          code = ErrorCode.FORBIDDEN; // 将 HTTP 403 映射到 3xxxx 权限错误
-          msg = '无权限访问';
-          break;
-        case HttpStatus.NOT_FOUND:
-          msg = '请求资源不存在';
-          break;
-        case HttpStatus.INTERNAL_SERVER_ERROR:
-          code = ErrorCode.SYSTEM_ERROR; // 将 HTTP 500 映射到 5xxxx 系统错误
-          msg = '服务器内部错误';
-          break;
-        // 可以根据需要添加更多 HTTP 状态码的映射和描述
+      if (status === (HttpStatus.BAD_REQUEST as number)) {
+        msg = '请求参数错误';
+      } else if (status === (HttpStatus.UNAUTHORIZED as number)) {
+        code = ErrorCode.UNAUTHORIZED; // 将 HTTP 401 映射到 3xxxx 认证错误
+        msg = '未认证或认证失败';
+      } else if (status === (HttpStatus.FORBIDDEN as number)) {
+        code = ErrorCode.FORBIDDEN; // 将 HTTP 403 映射到 3xxxx 权限错误
+        msg = '无权限访问';
+      } else if (status === (HttpStatus.NOT_FOUND as number)) {
+        msg = '请求资源不存在';
+      } else if (status === (HttpStatus.INTERNAL_SERVER_ERROR as number)) {
+        code = ErrorCode.SYSTEM_ERROR; // 将 HTTP 500 映射到 5xxxx 系统错误
+        msg = '服务器内部错误';
       }
     } else {
       // 5xxxx 范围：其他未知错误
@@ -74,6 +79,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       msg = '未知系统错误发生';
       data = (exception as Error).message || '服务器内部发生未知错误'; // 捕获原始错误消息
     }
+
+    const logMessage = `【${request.method}】${request.url} - ${code} - ${msg}`;
+    this.logger.error(logMessage, (exception as Error).stack);
 
     // 统一返回 200 状态码，真正的业务错误码在 'code' 字段中
     response.status(HttpStatus.OK).json({

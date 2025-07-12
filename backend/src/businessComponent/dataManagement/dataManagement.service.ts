@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   CountryData,
@@ -9,6 +9,8 @@ import {
 
 @Injectable()
 export class DataManagementService {
+  private readonly logger = new Logger(DataManagementService.name);
+
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -16,6 +18,7 @@ export class DataManagementService {
    * @returns 按年份分组的国家指标数据
    */
   async list(): Promise<DataManagementListDto> {
+    this.logger.log('从数据库获取所有指标数据。');
     const indicatorValues = await this.prisma.indicatorValue.findMany({
       include: {
         country: true,
@@ -66,6 +69,7 @@ export class DataManagementService {
     }
 
     // 按年份升序排序
+    this.logger.log('指标数据处理完成并按年份排序。');
     return result.sort((a, b) => a.year - b.year);
   }
 }

@@ -45,3 +45,6 @@ uploads
 
 # macOS 特有的文件
 .DS_Store
+
+# Log files
+backend/logs
