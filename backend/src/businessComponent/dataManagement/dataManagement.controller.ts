@@ -1,15 +1,25 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Post,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
 import { DataManagementService } from './dataManagement.service';
+import { Response } from 'express';
 import {
   CountryDetailReqDto,
   CountryDetailResDto,
   CreateIndicatorValuesDto,
   DataManagementListDto,
   CountryYearQueryDto,
+  ExportDataReqDto,
 } from '../../../types/dto';
 
 @Controller('dataManagement')
 export class DataManagementController {
+  private readonly logger = new Logger(DataManagementController.name);
   constructor(private readonly dataManagementService: DataManagementService) {}
 
   /**
@@ -53,5 +63,37 @@ export class DataManagementController {
   @Post('checkExistingData')
   checkExistingData(@Body() params: CountryYearQueryDto) {
     return this.dataManagementService.checkExistingData(params);
+  }
+
+  /**
+   * 导出特定年份和多个国家的数据
+   * @param params 导出参数，包含年份、国家ID数组和格式
+   * @param res Express响应对象，用于设置响应头和发送文件
+   * @returns {Promise<StreamableFile>} 文件流
+   */
+  @Post('export')
+  async exportData(
+    @Body() params: ExportDataReqDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    this.logger.log(
+      `收到导出请求, 年份: ${new Date(
+        params.year,
+      ).toISOString()}, 国家数量: ${params.countryIds.length}, 格式: ${
+        params.format
+      }`,
+    );
+    const { buffer, mime, fileName } =
+      await this.dataManagementService.exportData(params);
+
+    // 对文件名进行编码，以支持非ASCII字符，并防止"Invalid character"错误
+    const encodedFileName = encodeURIComponent(fileName);
+    res.setHeader('Content-Type', mime);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodedFileName}`,
+    );
+
+    return new StreamableFile(buffer);
   }
 }

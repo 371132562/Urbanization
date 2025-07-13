@@ -1,19 +1,31 @@
+/* 全部国家选择器 */
 import { Select, Skeleton } from 'antd'
 import { useEffect, useMemo } from 'react'
-import type { CountryWithContinentDto } from 'urbanization-backend/types/dto'
+import type { Country, CountryData, CountryWithContinentDto } from 'urbanization-backend/types/dto'
 
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 
 const { Option, OptGroup } = Select
 
 interface CountrySelectProps {
-  value?: string | null
-  onChange?: (value: string) => void
+  value?: string | string[] | null
+  onChange?: (value: string | string[]) => void
   disabled?: boolean
   style?: React.CSSProperties
+  mode?: 'multiple' | 'tags'
+  placeholder?: string
+  options?: (Country | CountryData)[] // 外部传入的国家选项
 }
 
-const CountrySelect = ({ value, onChange, disabled, style }: CountrySelectProps) => {
+const CountrySelect = ({
+  value,
+  onChange,
+  disabled,
+  style,
+  mode,
+  placeholder = '请选择国家',
+  options
+}: CountrySelectProps) => {
   // --- CountryAndContinent Store ---
   const continents = useCountryAndContinentStore(state => state.continents)
   const countries = useCountryAndContinentStore(state => state.countries)
@@ -22,19 +34,40 @@ const CountrySelect = ({ value, onChange, disabled, style }: CountrySelectProps)
   const getContinents = useCountryAndContinentStore(state => state.getContinents)
   const getCountries = useCountryAndContinentStore(state => state.getCountries)
 
-  // 加载大洲和国家数据
+  // 仅在未提供外部options时加载内部数据
   useEffect(() => {
-    getContinents(true) // 获取大洲数据，并包含国家
-    getCountries({ includeContinent: true }) // 获取所有国家数据，包含大洲信息
-  }, [getContinents, getCountries])
+    if (!options) {
+      getContinents(true) // 获取大洲数据，并包含国家
+      getCountries({ includeContinent: true }) // 获取所有国家数据，包含大洲信息
+    }
+  }, [getContinents, getCountries, options])
 
   // 按大洲组织国家列表
   const countryOptions = useMemo(() => {
-    // 创建一个Map，将国家按大洲ID分组
-    const countriesByContinent = new Map<string, CountryWithContinentDto[]>()
+    const sourceCountries = options || countries
 
-    countries.forEach(country => {
-      if (country.continentId) {
+    // 如果是外部传入的options，则直接返回，不需要按大洲分组
+    if (options) {
+      return options.map(country => (
+        <Option
+          key={country.id}
+          value={country.id}
+          label={country.cnName}
+          data-en-name={country.enName} // 添加英文名作为data属性
+        >
+          <div className="flex items-center">
+            <span>{country.cnName}</span>
+            <span className="ml-2 text-xs text-gray-400">({country.enName})</span>
+          </div>
+        </Option>
+      ))
+    }
+
+    // --- 以下是用于处理内部获取的数据 ---
+    const countriesByContinent = new Map<string, CountryWithContinentDto[]>()
+    sourceCountries.forEach(country => {
+      // 类型守卫，确保country是CountryWithContinentDto类型
+      if ('continentId' in country && country.continentId) {
         if (!countriesByContinent.has(country.continentId)) {
           countriesByContinent.set(country.continentId, [])
         }
@@ -42,7 +75,6 @@ const CountrySelect = ({ value, onChange, disabled, style }: CountrySelectProps)
       }
     })
 
-    // 返回按大洲分组的国家选项
     return continents.map(continent => (
       <OptGroup
         key={continent.id}
@@ -63,9 +95,9 @@ const CountrySelect = ({ value, onChange, disabled, style }: CountrySelectProps)
         ))}
       </OptGroup>
     ))
-  }, [continents, countries])
+  }, [continents, countries, options])
 
-  if (countriesLoading || continentsLoading) {
+  if (!options && (countriesLoading || continentsLoading)) {
     return (
       <Skeleton.Input
         active
@@ -77,7 +109,9 @@ const CountrySelect = ({ value, onChange, disabled, style }: CountrySelectProps)
   return (
     <Select
       showSearch
-      placeholder="请选择国家"
+      mode={mode}
+      placeholder={placeholder}
+      allowClear={mode === 'multiple'}
       style={{ width: '100%', ...style }}
       value={value}
       onChange={onChange}

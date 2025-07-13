@@ -32,7 +32,7 @@ import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import useIndicatorStore from '@/stores/indicatorStore'
 
-const { Text } = Typography
+const { Text, Title } = Typography
 
 const ModifyPageSkeleton = () => (
   <div className="space-y-6">
@@ -156,11 +156,6 @@ export const Component = () => {
       form.setFieldsValue(initialValues)
     }
   }, [detailData, form, isEdit])
-
-  // 处理国家变化
-  const handleCountryChange = (value: string) => {
-    setSelectedCountry(value)
-  }
 
   // 封装保存逻辑，以便复用
   const doSave = async (dataToSave: CreateIndicatorValuesDto) => {
@@ -324,7 +319,7 @@ export const Component = () => {
                                   <InputNumber
                                     placeholder="请输入指标值"
                                     style={{ width: '100%' }}
-                                    precision={2}
+                                    precision={4}
                                   />
                                 </Form.Item>
                               </div>
@@ -359,9 +354,14 @@ export const Component = () => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-6 flex items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
-        <div className="mb-1 text-2xl text-gray-100">数据{isEdit ? '编辑' : '录入'}</div>
+    <div className="w-full max-w-7xl">
+      <div className="mb-2 flex items-center justify-between">
+        <Title
+          level={2}
+          className="!mb-0"
+        >
+          数据{isEdit ? '编辑' : '录入'}
+        </Title>
       </div>
 
       <div className="mb-6 rounded-lg bg-white p-6 pt-4 shadow-sm">
@@ -371,7 +371,9 @@ export const Component = () => {
               <div className="mb-1 text-sm text-gray-500">当前选择国家</div>
               <CountrySelect
                 value={selectedCountry}
-                onChange={handleCountryChange}
+                onChange={val => {
+                  setSelectedCountry(val as string)
+                }}
                 disabled={isEdit}
               />
             </div>

@@ -32,6 +32,12 @@ http.interceptors.request.use(
 // 响应拦截器
 http.interceptors.response.use(
   response => {
+    // 检查响应数据是否为Blob类型（文件下载）
+    if (response.data instanceof Blob) {
+      // 如果是文件流，则直接返回整个响应体，由调用方处理
+      return response
+    }
+
     // 处理响应数据
     const { status, data } = response
     const { code, msg } = data // 解构后端返回的 code, msg, data

@@ -120,6 +120,30 @@ export type CheckExistingDataResDto = {
   count: number; // 存在的指标值数量
 };
 
+/**
+ * 导出数据相关类型
+ */
+export enum ExportFormat {
+  XLSX = 'xlsx',
+  CSV = 'csv',
+  JSON = 'json',
+}
+
+/**
+ * 导出格式选项 - 用于前端渲染
+ */
+export const ExportFormatOptions = [
+  { value: ExportFormat.CSV, label: 'CSV' },
+  { value: ExportFormat.XLSX, label: 'XLSX (Excel)' },
+  { value: ExportFormat.JSON, label: 'JSON' },
+];
+
+export type ExportDataReqDto = {
+  year: Date; // 年份
+  countryIds: string[]; // 国家ID数组
+  format: ExportFormat; // 导出格式
+};
+
 /*
  * ==================== 指标管理模块 ====================
  */

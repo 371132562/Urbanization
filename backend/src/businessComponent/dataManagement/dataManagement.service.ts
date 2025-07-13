@@ -12,9 +12,12 @@ import {
   TopIndicatorItem,
   YearData,
   CountryYearQueryDto,
+  ExportDataReqDto,
+  ExportFormat,
 } from '../../../types/dto';
 import { IndicatorValue, Country } from '@prisma/client';
 import * as dayjs from 'dayjs';
+import * as xlsx from 'xlsx';
 
 @Injectable()
 export class DataManagementService {
@@ -467,5 +470,163 @@ export class DataManagementService {
       exists,
       count,
     };
+  }
+
+  /**
+   * 导出特定年份和多个国家的数据
+   * @param params 导出参数，包含年份、国家ID数组和格式
+   * @returns 包含文件Buffer、MIME类型和文件名的对象
+   */
+  async exportData(
+    params: ExportDataReqDto,
+  ): Promise<{ buffer: Buffer; mime: string; fileName: string }> {
+    const { year, countryIds, format } = params;
+    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearValue = dayjs(yearDate).year();
+
+    this.logger.log(
+      `开始导出 ${yearValue} 年 ${countryIds.length} 个国家的数据，格式为 ${format}`,
+    );
+
+    // 步骤1: 获取所有三级指标定义作为表头
+    const indicators = await this.prisma.detailedIndicator.findMany({
+      where: { delete: 0 },
+      orderBy: { createTime: 'asc' }, // 保证每次导出的指标顺序一致
+    });
+    this.logger.log(`成功获取 ${indicators.length} 个三级指标作为表头`);
+
+    // 步骤2: 获取所有请求的国家信息
+    const countries = await this.prisma.country.findMany({
+      where: {
+        id: { in: countryIds },
+        delete: 0,
+      },
+    });
+    // 创建国家ID到国家实体的映射，方便快速查找中文名
+    const countryMap = new Map(countries.map((c) => [c.id, c]));
+    this.logger.log(`成功获取 ${countries.length} 个请求的国家信息`);
+
+    // 步骤3: 一次性获取所有相关指标值
+    const values = await this.prisma.indicatorValue.findMany({
+      where: {
+        countryId: { in: countryIds },
+        year: yearDate,
+        delete: 0,
+      },
+    });
+    this.logger.log(`查询到 ${values.length} 条相关指标值`);
+
+    // 步骤4: 将指标值处理成快速查找的嵌套Map: Map<countryId, Map<indicatorId, value>>
+    const valuesMap = new Map<string, Map<string, number>>();
+    for (const value of values) {
+      if (!valuesMap.has(value.countryId)) {
+        valuesMap.set(value.countryId, new Map());
+      }
+      if (value.value !== null) {
+        // 将Decimal类型转为number
+        valuesMap
+          .get(value.countryId)!
+          .set(value.detailedIndicatorId, value.value.toNumber());
+      }
+    }
+
+    // 步骤5: 构建表头行
+    const header = ['国家'];
+    for (const indicator of indicators) {
+      const unit = indicator.unit ? `(${indicator.unit})` : '';
+      header.push(`${indicator.indicatorCnName}${unit}`);
+    }
+
+    // 步骤6: 构建数据行
+    const dataRows: (string | number | null)[][] = [];
+    for (const countryId of countryIds) {
+      const country = countryMap.get(countryId);
+      if (!country) continue; // 如果某个ID无效，则跳过
+
+      const row: (string | number | null)[] = [country.cnName];
+      const countryValues =
+        valuesMap.get(countryId) || new Map<string, number>();
+
+      for (const indicator of indicators) {
+        const value = countryValues.get(indicator.id);
+        // 如果找不到值，则用null填充
+        row.push(value !== undefined ? value : null);
+      }
+      dataRows.push(row);
+    }
+    this.logger.log(`成功构建 ${dataRows.length} 行导出数据`);
+
+    // 步骤7: 调用辅助方法生成文件
+    const { buffer, mime, fileName } = this._generateFileBuffer(
+      header,
+      dataRows,
+      format,
+      yearValue,
+    );
+
+    this.logger.log(`成功生成 ${fileName}`);
+    return { buffer, mime, fileName };
+  }
+
+  /**
+   * 根据数据、格式和年份生成文件Buffer (私有辅助方法)
+   * @param header 表头数组
+   * @param dataRows 数据行数组
+   * @param format 文件格式
+   * @param year 年份
+   * @returns 包含文件Buffer、MIME类型和文件名的对象
+   * @private
+   */
+  private _generateFileBuffer(
+    header: string[],
+    dataRows: (string | number | null)[][],
+    format: ExportFormat,
+    year: number,
+  ): { buffer: Buffer; mime: string; fileName: string } {
+    const timestamp = dayjs().format('YYYY_MM_DD_HH_mm_ss');
+    const fileName = `${year}_城镇化指标数据_${timestamp}.${format}`;
+    let buffer: Buffer;
+    let mime: string;
+
+    if (format === ExportFormat.JSON) {
+      // 对于JSON，将其转换为对象数组以便阅读
+      const jsonData: { [key: string]: string | number | null }[] =
+        dataRows.map(
+          (
+            row: (string | number | null)[],
+          ): { [key: string]: string | number | null } => {
+            const obj: { [key: string]: string | number | null } = {};
+            header.forEach((h: string, i: number) => {
+              obj[h] = row[i];
+            });
+            return obj;
+          },
+        );
+      buffer = Buffer.from(JSON.stringify(jsonData, null, 2));
+      mime = 'application/json';
+    } else {
+      // 对于xlsx和csv，使用aoa_to_sheet
+      const worksheet = xlsx.utils.aoa_to_sheet([header, ...dataRows]);
+      if (format === ExportFormat.CSV) {
+        const csvOutput = xlsx.utils.sheet_to_csv(worksheet);
+        // buffer = Buffer.from(csvOutput, 'utf8');
+        // 添加BOM以防止Excel打开CSV时中文乱码
+        const bom = Buffer.from([0xef, 0xbb, 0xbf]);
+        buffer = Buffer.concat([bom, Buffer.from(csvOutput)]);
+        mime = 'text/csv;charset=utf-8;';
+      } else {
+        // xlsx
+        const workbook = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(workbook, worksheet, 'Data');
+        buffer = xlsx.write(workbook, {
+          type: 'buffer',
+          bookType: 'xlsx',
+        }) as Buffer;
+        mime =
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      }
+    }
+
+    return { buffer, mime, fileName };
   }
 }

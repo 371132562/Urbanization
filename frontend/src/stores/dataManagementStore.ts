@@ -6,6 +6,7 @@ import type {
   CountryYearQueryDto,
   CreateIndicatorValuesDto,
   DataManagementListDto,
+  ExportDataReqDto,
   TopIndicatorItem,
   YearData
 } from 'urbanization-backend/types/dto'
@@ -16,6 +17,7 @@ import {
   dataManagementCreate,
   dataManagementDelete,
   dataManagementDetail,
+  dataManagementExport,
   dataManagementList
 } from '@/services/apis'
 import http from '@/services/base.ts'
@@ -26,11 +28,13 @@ type DataManagementStore = {
   detailData: CountryDetailResDto | null
   detailLoading: boolean
   saveLoading: boolean
+  exportLoading: boolean
   getDataManagementList: () => Promise<void>
   getDataManagementDetail: (params: CountryDetailReqDto) => Promise<void>
   saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<boolean>
   deleteData: (params: CountryYearQueryDto) => Promise<boolean>
   checkDataManagementExistingData: (params: CountryYearQueryDto) => Promise<CheckExistingDataResDto>
+  exportData: (params: ExportDataReqDto) => Promise<boolean>
   resetDetailData: () => void
   initializeNewData: (indicatorHierarchy: TopIndicatorItem[]) => void
   filteredDataByCountry: (term: string, data: DataManagementListDto) => DataManagementListDto
@@ -42,6 +46,7 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
   detailData: null,
   detailLoading: false,
   saveLoading: false,
+  exportLoading: false,
 
   // 获取数据管理列表
   getDataManagementList: async () => {
@@ -103,6 +108,53 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     } catch (error) {
       console.error('Failed to check existing data:', error)
       throw error
+    }
+  },
+
+  // 导出数据
+  exportData: async (params: ExportDataReqDto): Promise<boolean> => {
+    set({ exportLoading: true })
+    try {
+      const response = await http.post(dataManagementExport, params, {
+        responseType: 'blob' // 告诉axios期望接收二进制数据
+      })
+
+      // 从响应头中获取文件名
+      const contentDisposition = response.headers['content-disposition']
+      let fileName = '导出数据.xlsx' // 默认文件名
+      if (contentDisposition) {
+        // 优先匹配 filename* (RFC 5987), 处理UTF-8编码的文件名
+        const fileNameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+        if (fileNameStarMatch && fileNameStarMatch[1]) {
+          fileName = decodeURIComponent(fileNameStarMatch[1])
+        } else {
+          // 其次匹配 filename (传统方式)
+          const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+          if (fileNameMatch && fileNameMatch[1]) {
+            fileName = decodeURIComponent(fileNameMatch[1])
+          }
+        }
+      }
+
+      // 创建一个blob URL并触发下载
+      // response.data 本身就是一个Blob对象，不需要再次包装，否则会丢失MIME类型
+      const url = window.URL.createObjectURL(response.data)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', fileName)
+      document.body.appendChild(link)
+      link.click()
+
+      // 清理
+      link.parentNode?.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      set({ exportLoading: false })
+      return true
+    } catch (error) {
+      console.error('Failed to export data:', error)
+      set({ exportLoading: false })
+      return false
     }
   },
 

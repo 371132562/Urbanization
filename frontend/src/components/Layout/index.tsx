@@ -121,7 +121,7 @@ export const Component: FC = () => {
             <div className="mb-3">
               <Breadcrumb items={breadcrumbItems} />
             </div>
-            <div className="flex-grow overflow-y-auto rounded-lg bg-white p-6 shadow-md">
+            <div className="flex flex-grow justify-center overflow-y-auto rounded-lg bg-white p-6 shadow-md">
               <ErrorBoundary FallbackComponent={ErrorPage}>{outlet}</ErrorBoundary>
             </div>
           </Content>

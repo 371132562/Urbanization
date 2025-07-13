@@ -154,7 +154,7 @@ const DataManagement = () => {
   }
 
   return (
-    <div>
+    <div className="w-full max-w-7xl">
       <div className="mb-8 flex">
         <FeatureButton
           className="mr-6"
@@ -162,6 +162,9 @@ const DataManagement = () => {
           title="基础数据导出"
           description="导出系统中的基础数据，支持多种格式"
           actionText="立即导出"
+          onClick={() => {
+            navigate('/dataManagement/export')
+          }}
         />
         <FeatureButton
           icon={<FormOutlined className="text-[28px] text-blue-500" />}
