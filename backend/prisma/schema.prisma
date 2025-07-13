@@ -23,8 +23,8 @@ model Continent {
   delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
-  @@index([cnName])
-  @@index([enName])
+  @@index([cnName, delete])
+  @@index([enName, delete])
 }
 
 // 国家字典表
@@ -41,8 +41,8 @@ model Country {
   delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
-  @@index([cnName])
-  @@index([enName])
+  @@index([cnName, delete])
+  @@index([enName, delete])
 }
 
 // 一级维度/指标
@@ -58,9 +58,8 @@ model TopIndicator {
  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
  
   @@index([id])
-  @@index([indicatorCnName])
-  @@index([indicatorEnName])
-  @@index([weight])
+  @@index([indicatorCnName, delete])
+  @@index([indicatorEnName, delete])
 }
 
 // 二级要素/指标
@@ -78,9 +77,8 @@ model SecondaryIndicator {
   delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
-  @@index([indicatorCnName])
-  @@index([indicatorEnName])
-  @@index([weight])
+  @@index([indicatorCnName, delete])
+  @@index([indicatorEnName, delete])
 }
 
 // 三级指标
@@ -99,9 +97,8 @@ model DetailedIndicator {
   delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
-  @@index([indicatorCnName])
-  @@index([indicatorEnName])
-  @@index([weight])
+  @@index([indicatorCnName, delete])
+  @@index([indicatorEnName, delete])
 }
 
 // 指标值表，存储各国各年的三级指标具体数值
@@ -117,8 +114,8 @@ model IndicatorValue {
   updateTime DateTime @updatedAt
   delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
-  @@unique([countryId, year, detailedIndicatorId], name: "countryYearIndicator") // 复合唯一约束，确保一个国家一年一个指标只有一个值
   @@index([countryId, year])
+  @@index([countryId, year, delete])
 }
 
 // 世界地图城镇化展示表
@@ -131,6 +128,8 @@ model UrbanizationWorldMap {
   updateTime DateTime @updatedAt
   delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
+  @@index([id])
+  @@index([countryId, delete])
 }
 
 // 文章管理表

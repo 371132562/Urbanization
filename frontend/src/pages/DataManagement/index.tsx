@@ -4,7 +4,7 @@ import { useDebounce } from 'ahooks'
 import { Button, Collapse, Input, message, Popconfirm, Skeleton, Space, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { NavLink, useNavigate } from 'react-router'
 import type { CountryData, YearData } from 'urbanization-backend/types/dto'
 
 import FeatureButton from '@/components/FeatureButton'
@@ -118,14 +118,15 @@ const DataManagement = () => {
       key: 'action',
       render: (_: any, record: CountryData) => (
         <Space>
-          <Button
-            color="primary"
-            variant="outlined"
-          >
-            <Link to={`/dataManagement/modify/${record.id}/${dayjs(record.year).format('YYYY')}`}>
+          <NavLink to={`/dataManagement/modify/${record.id}/${dayjs(record.year).format('YYYY')}`}>
+            <Button
+              color="primary"
+              variant="outlined"
+            >
               编辑
-            </Link>
-          </Button>
+            </Button>
+          </NavLink>
+
           <Popconfirm
             title="确定删除这条数据吗？"
             onConfirm={() => handleDelete(record)}

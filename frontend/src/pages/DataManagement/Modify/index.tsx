@@ -7,10 +7,10 @@ import {
   InputNumber,
   message,
   Modal,
-  Select,
   Skeleton,
   Space,
   theme,
+  Tooltip,
   Typography
 } from 'antd'
 import dayjs from 'dayjs'
@@ -18,22 +18,21 @@ import customParseFormat from 'dayjs/plugin/customParseFormat'
 
 dayjs.extend(customParseFormat)
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import type {
-  CountryWithContinentDto,
   CreateIndicatorValuesDto,
   DetailedIndicatorItem,
   SecondaryIndicatorItem,
   TopIndicatorItem
 } from 'urbanization-backend/types/dto'
 
+import CountrySelect from '@/components/CountrySelect'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import useIndicatorStore from '@/stores/indicatorStore'
 
 const { Text } = Typography
-const { Option, OptGroup } = Select
 
 const ModifyPageSkeleton = () => (
   <div className="space-y-6">
@@ -108,21 +107,10 @@ export const Component = () => {
   const initializeNewData = useDataManagementStore(state => state.initializeNewData)
 
   // --- CountryAndContinent Store ---
-  const continents = useCountryAndContinentStore(state => state.continents)
   const countries = useCountryAndContinentStore(state => state.countries)
-  const continentsLoading = useCountryAndContinentStore(state => state.continentsLoading)
-  const countriesLoading = useCountryAndContinentStore(state => state.countriesLoading)
-  const getContinents = useCountryAndContinentStore(state => state.getContinents)
-  const getCountries = useCountryAndContinentStore(state => state.getCountries)
 
   // --- Indicator Store ---
   const indicatorHierarchy = useIndicatorStore(state => state.indicatorHierarchy)
-
-  // 加载大洲和国家数据
-  useEffect(() => {
-    getContinents(true) // 获取大洲数据，并包含国家
-    getCountries({ includeContinent: true }) // 获取所有国家数据，包含大洲信息
-  }, [])
 
   // 组件加载或参数变化时获取详情数据
   useEffect(() => {
@@ -168,43 +156,6 @@ export const Component = () => {
       form.setFieldsValue(initialValues)
     }
   }, [detailData, form, isEdit])
-
-  // 按大洲组织国家列表
-  const countryOptions = useMemo(() => {
-    // 创建一个Map，将国家按大洲ID分组
-    const countriesByContinent = new Map<string, CountryWithContinentDto[]>()
-
-    countries.forEach(country => {
-      if (country.continentId) {
-        if (!countriesByContinent.has(country.continentId)) {
-          countriesByContinent.set(country.continentId, [])
-        }
-        countriesByContinent.get(country.continentId)!.push(country)
-      }
-    })
-
-    // 返回按大洲分组的国家选项
-    return continents.map(continent => (
-      <OptGroup
-        key={continent.id}
-        label={continent.cnName}
-      >
-        {(countriesByContinent.get(continent.id) || []).map(country => (
-          <Option
-            key={country.id}
-            value={country.id}
-            label={country.cnName}
-            data-en-name={country.enName} // 添加英文名作为data属性
-          >
-            <div className="flex items-center">
-              <span>{country.cnName}</span>
-              <span className="ml-2 text-xs text-gray-400">({country.enName})</span>
-            </div>
-          </Option>
-        ))}
-      </OptGroup>
-    ))
-  }, [continents, countries])
 
   // 处理国家变化
   const handleCountryChange = (value: string) => {
@@ -418,31 +369,11 @@ export const Component = () => {
           <div className="flex flex-wrap items-end gap-4">
             <div className="min-w-80">
               <div className="mb-1 text-sm text-gray-500">当前选择国家</div>
-              {countriesLoading || continentsLoading ? (
-                <Skeleton.Input
-                  active
-                  style={{ width: '100%', height: 32 }}
-                />
-              ) : (
-                <Select
-                  showSearch
-                  placeholder="请选择国家"
-                  style={{ width: '100%' }}
-                  value={selectedCountry}
-                  onChange={handleCountryChange}
-                  disabled={isEdit}
-                  filterOption={(input, option) => {
-                    const label = option?.label?.toString().toLowerCase() || ''
-                    const enName = option?.['data-en-name']?.toLowerCase() || ''
-                    const search = input.toLowerCase()
-                    return label.includes(search) || enName.includes(search)
-                  }}
-                  optionFilterProp="label"
-                  className="text-left"
-                >
-                  {countryOptions}
-                </Select>
-              )}
+              <CountrySelect
+                value={selectedCountry}
+                onChange={handleCountryChange}
+                disabled={isEdit}
+              />
             </div>
 
             <div className="min-w-40">
@@ -461,14 +392,20 @@ export const Component = () => {
 
           <Space>
             <Button onClick={() => navigate('/dataManagement')}>返回</Button>
-            <Button
-              type="primary"
-              onClick={handleSave}
-              loading={saveLoading}
-              disabled={isEdit ? !detailData : !selectedCountry || !selectedYear} // 新建模式下，如果没有选择国家和年份，禁用保存按钮
+            <Tooltip
+              title={!isEdit && (!selectedCountry || !selectedYear) ? '请选择国家和年份' : ''}
             >
-              保存
-            </Button>
+              <span>
+                <Button
+                  type="primary"
+                  onClick={handleSave}
+                  loading={saveLoading}
+                  disabled={isEdit ? true : !selectedCountry || !selectedYear} // 新建模式下，如果没有选择国家和年份，禁用保存按钮
+                >
+                  保存
+                </Button>
+              </span>
+            </Tooltip>
           </Space>
         </div>
       </div>

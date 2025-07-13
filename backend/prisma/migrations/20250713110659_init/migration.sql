@@ -142,9 +142,6 @@ CREATE INDEX "TopIndicator_indicatorCnName_idx" ON "TopIndicator"("indicatorCnNa
 CREATE INDEX "TopIndicator_indicatorEnName_idx" ON "TopIndicator"("indicatorEnName");
 
 -- CreateIndex
-CREATE INDEX "TopIndicator_weight_idx" ON "TopIndicator"("weight");
-
--- CreateIndex
 CREATE UNIQUE INDEX "SecondaryIndicator_indicatorCnName_key" ON "SecondaryIndicator"("indicatorCnName");
 
 -- CreateIndex
@@ -158,9 +155,6 @@ CREATE INDEX "SecondaryIndicator_indicatorCnName_idx" ON "SecondaryIndicator"("i
 
 -- CreateIndex
 CREATE INDEX "SecondaryIndicator_indicatorEnName_idx" ON "SecondaryIndicator"("indicatorEnName");
-
--- CreateIndex
-CREATE INDEX "SecondaryIndicator_weight_idx" ON "SecondaryIndicator"("weight");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DetailedIndicator_indicatorCnName_key" ON "DetailedIndicator"("indicatorCnName");
@@ -178,16 +172,16 @@ CREATE INDEX "DetailedIndicator_indicatorCnName_idx" ON "DetailedIndicator"("ind
 CREATE INDEX "DetailedIndicator_indicatorEnName_idx" ON "DetailedIndicator"("indicatorEnName");
 
 -- CreateIndex
-CREATE INDEX "DetailedIndicator_weight_idx" ON "DetailedIndicator"("weight");
-
--- CreateIndex
 CREATE INDEX "IndicatorValue_countryId_year_idx" ON "IndicatorValue"("countryId", "year");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "IndicatorValue_countryId_year_detailedIndicatorId_key" ON "IndicatorValue"("countryId", "year", "detailedIndicatorId");
+CREATE UNIQUE INDEX "UrbanizationWorldMap_countryId_key" ON "UrbanizationWorldMap"("countryId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UrbanizationWorldMap_countryId_key" ON "UrbanizationWorldMap"("countryId");
+CREATE INDEX "UrbanizationWorldMap_id_idx" ON "UrbanizationWorldMap"("id");
+
+-- CreateIndex
+CREATE INDEX "UrbanizationWorldMap_countryId_idx" ON "UrbanizationWorldMap"("countryId");
 
 -- CreateIndex
 CREATE INDEX "Article_id_idx" ON "Article"("id");
