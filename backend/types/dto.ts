@@ -2,9 +2,17 @@ import {
   TopIndicator,
   SecondaryIndicator,
   DetailedIndicator,
+  Continent,
+  Country,
 } from '@prisma/client';
 
-export {};
+export {
+  TopIndicator,
+  SecondaryIndicator,
+  DetailedIndicator,
+  Continent,
+  Country,
+};
 
 export type DataManagementListItem = {
   year: Date;
@@ -124,3 +132,52 @@ export type SecondaryIndicatorListResDto = SecondaryIndicatorDto[];
  * 三级指标查询响应
  */
 export type DetailedIndicatorListResDto = DetailedIndicatorDto[];
+
+/**
+ * 国家DTO
+ */
+export type CountryDto = Country;
+
+/**
+ * 包含国家列表的大洲DTO
+ */
+export type ContinentWithCountriesDto = Continent & {
+  Country?: CountryDto[];
+};
+
+/**
+ * 大洲DTO
+ */
+export type ContinentDto = Continent;
+
+/**
+ * 查询大洲请求参数
+ */
+export type QueryContinentReqDto = {
+  includeCountries?: boolean; // 是否包含国家，默认为false
+};
+
+/**
+ * 查询国家请求参数
+ */
+export type QueryCountryReqDto = {
+  continentId?: string; // 可选的大洲ID，如果提供则筛选该大洲下的国家
+  includeContinent?: boolean; // 是否包含大洲信息，默认为false
+};
+
+/**
+ * 包含大洲信息的国家DTO
+ */
+export type CountryWithContinentDto = Country & {
+  continent?: ContinentDto;
+};
+
+/**
+ * 大洲查询响应
+ */
+export type ContinentListResDto = ContinentWithCountriesDto[];
+
+/**
+ * 国家查询响应
+ */
+export type CountryListResDto = CountryWithContinentDto[];

@@ -1,10 +1,10 @@
 /* 数据管理列表页 */
-import { DownloadOutlined, FormOutlined } from '@ant-design/icons'
+import { DownloadOutlined, FormOutlined, PlusOutlined } from '@ant-design/icons'
 import { useDebounce } from 'ahooks'
 import { Button, Collapse, Input, Spin, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import type { CountryData, YearData } from 'urbanization-backend/types/dto'
 
 import FeatureButton from '@/components/FeatureButton'
@@ -22,6 +22,7 @@ const DataManagement = () => {
   } = useDataManagementStore()
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 })
+  const navigate = useNavigate()
 
   useEffect(() => {
     getDataManagementList()
@@ -59,9 +60,9 @@ const DataManagement = () => {
       key: 'action',
       render: (_: any, record: CountryData) => (
         <Button type="link">
-          <NavLink to={`/dataManagement/modify/${record.id}/${dayjs(record.year).format('YYYY')}`}>
+          <Link to={`/dataManagement/modify/${record.id}/${dayjs(record.year).format('YYYY')}`}>
             编辑
-          </NavLink>
+          </Link>
         </Button>
       )
     }
@@ -95,10 +96,13 @@ const DataManagement = () => {
           description="手动录入和编辑系统基础数据"
           actionText="开始录入"
           color="#34C759"
+          onClick={() => {
+            navigate('/dataManagement/create')
+          }}
         />
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 flex justify-between">
         <Search
           placeholder="按国家名称搜索"
           allowClear
@@ -112,21 +116,21 @@ const DataManagement = () => {
         defaultActiveKey={filteredData[0]?.year.toString()}
       >
         {filteredData.map((yearData: YearData) => (
-        <Panel
+          <Panel
             header={
               <span className="text-base font-semibold">
                 {dayjs(yearData.year).format('YYYY')}年
               </span>
             }
             key={yearData.year.toString()}
-        >
-          <Table
+          >
+            <Table
               columns={countryTableColumns}
               dataSource={yearData.data}
               rowKey="id"
-            pagination={false}
-          />
-        </Panel>
+              pagination={false}
+            />
+          </Panel>
         ))}
       </Collapse>
     </div>

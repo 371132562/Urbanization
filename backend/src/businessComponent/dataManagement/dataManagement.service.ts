@@ -11,6 +11,7 @@ import {
   YearData,
 } from '../../../types/dto';
 import { IndicatorValue, Country } from '@prisma/client';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class DataManagementService {
@@ -43,7 +44,8 @@ export class DataManagementService {
 
     // 遍历所有指标值，进行分组
     for (const iv of indicatorValues) {
-      const year = iv.year.getFullYear();
+      // 统一处理年份，只保留年份信息
+      const year = dayjs(iv.year).year();
       const countryId = iv.country.id;
 
       // 如果年份不存在，则在 Map 中创建一个新的条目
@@ -66,7 +68,7 @@ export class DataManagementService {
     const result: DataManagementListDto = [];
     for (const [year, countryMap] of groupedByCountryYear.entries()) {
       const yearData: YearData = {
-        year: new Date(year, 0, 1), // 转换为 Date 类型，表示该年的1月1日
+        year: dayjs().year(year).startOf('year').toDate(), // 统一使用年初日期
         data: [],
       };
       // 遍历每个国家/地区的数据
@@ -84,7 +86,7 @@ export class DataManagementService {
           id,
           cnName,
           enName,
-          year: values[0].year, // 使用原始的年份数据
+          year: dayjs(values[0].year).startOf('year').toDate(), // 统一使用年初日期
           isComplete,
           createTime: createTime,
           updateTime: updateTime,
@@ -105,16 +107,17 @@ export class DataManagementService {
    * @returns 国家详细指标数据，包括所有三级指标及其层级关系
    */
   async detail(params: CountryDetailReqDto): Promise<CountryDetailResDto> {
+    // 步骤1: 准备参数和基础数据
     const { countryId, year } = params;
-    // 确保 year 是 Date 类型
-    const yearDate = year instanceof Date ? year : new Date(year);
-    const yearValue = yearDate.getFullYear();
+    // 统一使用dayjs处理年份，只保留年份信息，忽略月日和具体时间
+    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearValue = dayjs(yearDate).year();
 
     this.logger.log(
       `获取国家ID为 ${countryId} 在 ${yearValue} 年的详细指标数据`,
     );
 
-    // 查询国家信息
+    // 步骤2: 获取国家基本信息
     const country = await this.prisma.country.findUnique({
       where: { id: countryId },
     });
@@ -124,97 +127,79 @@ export class DataManagementService {
       throw new NotFoundException(`未找到ID为 ${countryId} 的国家`);
     }
 
-    // 获取年份的起始和结束时间
-    const startDate = new Date(yearValue, 0, 1);
-    const endDate = new Date(yearValue, 11, 31);
+    // 步骤3: 获取指定年份的指标数据
 
-    // 查询该国家在指定年份的所有指标值
+    // 获取该国家在指定年份的所有指标值
     const indicatorValues = await this.prisma.indicatorValue.findMany({
       where: {
         countryId,
-        year: {
-          gte: startDate,
-          lte: endDate,
-        },
+        year: yearDate, // 直接使用精确匹配
       },
-      include: {
-        detailedIndicator: true,
-      },
+      include: { detailedIndicator: true },
     });
 
-    // 查询所有三级指标，以确保返回完整的69个指标（包括没有值的指标）
+    // 获取所有三级指标定义(包括没有值的指标)
     const allDetailedIndicators = await this.prisma.detailedIndicator.findMany({
       include: {
         SecondaryIndicator: {
-          include: {
-            topIndicator: true,
-          },
+          include: { topIndicator: true },
         },
       },
     });
 
-    // 将所有指标值转换为 DetailedIndicatorItem 格式
-    const detailedIndicatorMap = new Map<string, DetailedIndicatorItem>();
+    // 步骤4: 构建指标数据结构
+    // 4.1 创建指标值快速查找表
+    const indicatorValuesMap = new Map<string, IndicatorValue>();
+    indicatorValues.forEach((iv) => {
+      indicatorValuesMap.set(iv.detailedIndicatorId, iv);
+    });
 
-    // 首先处理有实际值的指标
-    for (const iv of indicatorValues) {
-      const detailedIndicator = iv.detailedIndicator;
+    // 4.2 创建一级和二级指标容器
+    const topIndicators = new Map<string, TopIndicatorItem>();
+    const secondaryIndicators = new Map<string, SecondaryIndicatorItem>();
 
-      detailedIndicatorMap.set(detailedIndicator.id, {
-        id: detailedIndicator.id,
-        cnName: detailedIndicator.indicatorCnName,
-        enName: detailedIndicator.indicatorEnName,
-        unit: detailedIndicator.unit,
-        value: iv.value !== null ? iv.value.toNumber() : null,
-      });
-    }
-
-    // 然后处理所有三级指标，确保即使没有值的指标也会被包含
+    // 4.3 处理所有指标，构建层级关系
     for (const indicator of allDetailedIndicators) {
-      // 如果该指标已经在 Map 中存在（说明它有实际值），就跳过它
-      if (detailedIndicatorMap.has(indicator.id)) continue;
-
-      detailedIndicatorMap.set(indicator.id, {
-        id: indicator.id,
-        cnName: indicator.indicatorCnName,
-        enName: indicator.indicatorEnName,
-        unit: indicator.unit,
-        value: null, // 默认为 null，因为这个指标没有实际值
-      });
-    }
-
-    // 构建层次结构
-    // 1. 创建一级指标 Map
-    const topIndicatorMap = new Map<string, TopIndicatorItem>();
-    // 2. 创建二级指标 Map
-    const secondaryIndicatorMap = new Map<string, SecondaryIndicatorItem>();
-
-    // 遍历所有三级指标，构建层次结构
-    for (const indicator of allDetailedIndicators) {
+      // 跳过没有二级指标关联的三级指标
       if (!indicator.SecondaryIndicator) continue;
-
-      const detailedIndicator = detailedIndicatorMap.get(indicator.id);
-      if (!detailedIndicator) continue;
 
       const secondaryIndicator = indicator.SecondaryIndicator;
       const topIndicator = secondaryIndicator.topIndicator;
 
+      // 如果没有一级指标关联，跳过
+      if (!topIndicator) continue;
+
+      // 处理三级指标
+      const indicatorValue = indicatorValuesMap.get(indicator.id);
+      const detailedIndicator: DetailedIndicatorItem = {
+        id: indicator.id,
+        cnName: indicator.indicatorCnName,
+        enName: indicator.indicatorEnName,
+        unit: indicator.unit,
+        value:
+          indicatorValue && indicatorValue.value !== null
+            ? indicatorValue.value.toNumber()
+            : null,
+      };
+
       // 处理二级指标
-      if (!secondaryIndicatorMap.has(secondaryIndicator.id)) {
-        secondaryIndicatorMap.set(secondaryIndicator.id, {
+      if (!secondaryIndicators.has(secondaryIndicator.id)) {
+        secondaryIndicators.set(secondaryIndicator.id, {
           id: secondaryIndicator.id,
           cnName: secondaryIndicator.indicatorCnName,
           enName: secondaryIndicator.indicatorEnName,
           detailedIndicators: [],
         });
       }
-      secondaryIndicatorMap
-        .get(secondaryIndicator.id)
-        ?.detailedIndicators.push(detailedIndicator);
+
+      // 将三级指标添加到二级指标中
+      secondaryIndicators
+        .get(secondaryIndicator.id)!
+        .detailedIndicators.push(detailedIndicator);
 
       // 处理一级指标
-      if (!topIndicatorMap.has(topIndicator.id)) {
-        topIndicatorMap.set(topIndicator.id, {
+      if (!topIndicators.has(topIndicator.id)) {
+        topIndicators.set(topIndicator.id, {
           id: topIndicator.id,
           cnName: topIndicator.indicatorCnName,
           enName: topIndicator.indicatorEnName,
@@ -223,43 +208,54 @@ export class DataManagementService {
       }
     }
 
-    // 将二级指标添加到对应的一级指标中
-    for (const [
-      secondaryId,
-      secondaryItem,
-    ] of secondaryIndicatorMap.entries()) {
-      const secondaryIndicator = allDetailedIndicators.find(
-        (di) =>
-          di.SecondaryIndicator && di.SecondaryIndicator.id === secondaryId,
-      )?.SecondaryIndicator;
+    // 步骤5: 将二级指标关联到一级指标
+    // 5.1 预先建立二级指标到一级指标的映射关系
+    const secondaryToTopMap = new Map<string, string>();
+    allDetailedIndicators.forEach((di) => {
+      if (di.SecondaryIndicator?.topIndicator) {
+        secondaryToTopMap.set(
+          di.SecondaryIndicator.id,
+          di.SecondaryIndicator.topIndicator.id,
+        );
+      }
+    });
 
-      if (secondaryIndicator && secondaryIndicator.topIndicator) {
-        const topIndicatorId = secondaryIndicator.topIndicator.id;
-        const topIndicator = topIndicatorMap.get(topIndicatorId);
-        if (topIndicator) {
-          topIndicator.secondaryIndicators.push(secondaryItem);
+    // 5.2 使用映射关系将二级指标添加到对应的一级指标中
+    for (const [secondaryId, secondaryItem] of secondaryIndicators.entries()) {
+      const topIndicatorId = secondaryToTopMap.get(secondaryId);
+      if (topIndicatorId) {
+        const topItem = topIndicators.get(topIndicatorId);
+        if (topItem) {
+          topItem.secondaryIndicators.push(secondaryItem);
         }
       }
     }
 
-    // 检查数据是否完整（是否所有指标都有值）
-    const isComplete = Array.from(detailedIndicatorMap.values()).every(
-      (item) => item.value !== null,
-    );
+    // 步骤6: 检查数据完整性
+    // 计算应有的指标总数和实际有值的指标数
+    const totalIndicators = allDetailedIndicators.length;
+    const validIndicators = indicatorValues.filter(
+      (iv) => iv.value !== null,
+    ).length;
 
-    // 构建响应对象
+    // 数据完整意味着所有指标都有值
+    const isComplete = totalIndicators === validIndicators;
+
+    // 步骤7: 构建最终返回结果
     const response: CountryDetailResDto = {
       countryId,
       cnName: country.cnName,
       enName: country.enName,
-      year: yearDate, // 使用转换后的 yearDate
-      indicators: Array.from(topIndicatorMap.values()),
+      year: yearDate,
+      indicators: Array.from(topIndicators.values()),
       isComplete,
     };
 
     this.logger.log(
-      `成功获取国家 ${country.cnName} 在 ${yearValue} 年的详细指标数据，共 ${Array.from(detailedIndicatorMap.values()).length} 个三级指标，${response.indicators.length} 个一级指标`,
+      `成功获取国家 ${country.cnName} 在 ${yearValue} 年的详细指标数据，` +
+        `共 ${totalIndicators} 个三级指标，${response.indicators.length} 个一级指标`,
     );
+
     return response;
   }
 }

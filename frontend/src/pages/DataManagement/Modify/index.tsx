@@ -1,34 +1,43 @@
 import {
   Button,
   Collapse,
+  CollapseProps,
   DatePicker,
   Form,
   InputNumber,
   message,
+  Select,
   Space,
   Spin,
   Typography
 } from 'antd'
 import dayjs from 'dayjs'
-import { useEffect, useState } from 'react'
+import customParseFormat from 'dayjs/plugin/customParseFormat'
+
+dayjs.extend(customParseFormat)
+
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import type {
   CountryDetailResDto,
+  CountryWithContinentDto,
   DetailedIndicatorItem,
   SecondaryIndicatorItem,
   TopIndicatorItem
 } from 'urbanization-backend/types/dto'
 
+import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
 
 const { Text } = Typography
-const { Panel } = Collapse
+const { Option, OptGroup } = Select
 
 export const Component = () => {
   const { countryId, year } = useParams<{ countryId?: string; year?: string }>()
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [selectedYear, setSelectedYear] = useState<dayjs.Dayjs | null>(year ? dayjs(year) : null)
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(countryId || null)
   const isEdit = !!countryId && !!year
 
   const {
@@ -40,12 +49,28 @@ export const Component = () => {
     resetDetailData
   } = useDataManagementStore()
 
+  const {
+    continents,
+    countries,
+    continentsLoading,
+    countriesLoading,
+    getContinents,
+    getCountries
+  } = useCountryAndContinentStore()
+
+  // 加载大洲和国家数据
+  useEffect(() => {
+    getContinents(true) // 获取大洲数据，并包含国家
+    getCountries({ includeContinent: true }) // 获取所有国家数据，包含大洲信息
+  }, [getContinents, getCountries])
+
   // 组件加载或参数变化时获取详情数据
   useEffect(() => {
     if (isEdit) {
+      console.log(dayjs(parseInt(year as string), 'YYYY'))
       getDataManagementDetail({
         countryId,
-        year: new Date(parseInt(year as string), 0, 1)
+        year: dayjs(year, 'YYYY').startOf('year').toDate()
       })
     } else {
       resetDetailData()
@@ -77,34 +102,78 @@ export const Component = () => {
     }
   }, [detailData, form])
 
+  // 按大洲组织国家列表
+  const countryOptions = useMemo(() => {
+    // 创建一个Map，将国家按大洲ID分组
+    const countriesByContinent = new Map<string, CountryWithContinentDto[]>()
+
+    countries.forEach(country => {
+      if (country.continentId) {
+        if (!countriesByContinent.has(country.continentId)) {
+          countriesByContinent.set(country.continentId, [])
+        }
+        countriesByContinent.get(country.continentId)!.push(country)
+      }
+    })
+
+    // 返回按大洲分组的国家选项
+    return continents.map(continent => (
+      <OptGroup
+        key={continent.id}
+        label={continent.cnName}
+      >
+        {(countriesByContinent.get(continent.id) || []).map(country => (
+          <Option
+            key={country.id}
+            value={country.id}
+            label={country.cnName}
+          >
+            <div className="flex items-center">
+              <span>{country.cnName}</span>
+              <span className="ml-2 text-xs text-gray-400">({country.enName})</span>
+            </div>
+          </Option>
+        ))}
+      </OptGroup>
+    ))
+  }, [continents, countries])
+
+  // 处理国家变化
+  const handleCountryChange = (value: string) => {
+    setSelectedCountry(value)
+  }
+
   // 保存数据
   const handleSave = async () => {
     try {
       const values = await form.validateFields()
 
-      if (!detailData && !selectedYear) {
-        message.error('请选择年份')
+      if (!isEdit && (!selectedCountry || !selectedYear)) {
+        message.error(!selectedCountry ? '请选择国家' : '请选择年份')
         return
       }
 
       // 构建保存的数据
       const saveData: CountryDetailResDto = {
-        countryId: detailData?.countryId || '',
-        cnName: detailData?.cnName || '',
-        enName: detailData?.enName || '',
-        year: detailData?.year || new Date(selectedYear!.year(), 0, 1),
+        countryId: isEdit ? detailData!.countryId : selectedCountry!,
+        cnName: isEdit ? detailData!.cnName : '',
+        enName: isEdit ? detailData!.enName : '',
+        year: isEdit ? detailData!.year : selectedYear!.startOf('year').toDate(),
         isComplete: true, // 由后端计算
-        indicators:
-          detailData?.indicators.map(topIndicator => ({
-            ...topIndicator,
-            secondaryIndicators: topIndicator.secondaryIndicators.map(secondaryIndicator => ({
-              ...secondaryIndicator,
-              detailedIndicators: secondaryIndicator.detailedIndicators.map(detailedIndicator => ({
-                ...detailedIndicator,
-                value: values[`indicator_${detailedIndicator.id}`]
+        indicators: isEdit
+          ? detailData!.indicators.map(topIndicator => ({
+              ...topIndicator,
+              secondaryIndicators: topIndicator.secondaryIndicators.map(secondaryIndicator => ({
+                ...secondaryIndicator,
+                detailedIndicators: secondaryIndicator.detailedIndicators.map(
+                  detailedIndicator => ({
+                    ...detailedIndicator,
+                    value: values[`indicator_${detailedIndicator.id}`]
+                  })
+                )
               }))
             }))
-          })) || []
+          : [] // 新建模式下没有indicators数据
       }
 
       await saveDataManagementDetail(saveData)
@@ -118,15 +187,7 @@ export const Component = () => {
 
   // 渲染表单项
   const renderFormItems = () => {
-    if (!detailData && !isEdit) {
-      return (
-        <div className="flex h-40 items-center justify-center rounded-lg bg-gray-50">
-          <Text type="secondary">请先选择年份</Text>
-        </div>
-      )
-    }
-
-    if (!detailData?.indicators?.length) {
+    if (isEdit && !detailData?.indicators?.length) {
       return (
         <div className="flex h-40 items-center justify-center rounded-lg bg-gray-50">
           <Text type="secondary">暂无指标数据</Text>
@@ -146,25 +207,17 @@ export const Component = () => {
             </div>
             <div className="divide-y divide-gray-100">
               {topIndicator.secondaryIndicators.map(
-                (secondaryIndicator: SecondaryIndicatorItem) => (
-                  <div
-                    key={secondaryIndicator.id}
-                    className="border-t border-gray-200"
-                  >
-                    <Collapse
-                      defaultActiveKey={[secondaryIndicator.id]}
-                      bordered={false}
-                      className="bg-white"
-                    >
-                      <Panel
-                        header={
-                          <h4 className="text-base font-medium text-gray-700">
-                            {secondaryIndicator.cnName}
-                          </h4>
-                        }
-                        key={secondaryIndicator.id}
-                        className="border-0"
-                      >
+                (secondaryIndicator: SecondaryIndicatorItem) => {
+                  // 为每个二级指标创建一个collapse items
+                  const collapseItems: CollapseProps['items'] = [
+                    {
+                      key: secondaryIndicator.id,
+                      label: (
+                        <h4 className="text-base font-medium text-gray-700">
+                          {secondaryIndicator.cnName}
+                        </h4>
+                      ),
+                      children: (
                         <div className="grid grid-cols-1 gap-4 px-2 md:grid-cols-2 xl:grid-cols-3">
                           {secondaryIndicator.detailedIndicators.map(
                             (detailedIndicator: DetailedIndicatorItem) => (
@@ -204,10 +257,25 @@ export const Component = () => {
                             )
                           )}
                         </div>
-                      </Panel>
-                    </Collapse>
-                  </div>
-                )
+                      ),
+                      className: 'border-0'
+                    }
+                  ]
+
+                  return (
+                    <div
+                      key={secondaryIndicator.id}
+                      className="border-t border-gray-200"
+                    >
+                      <Collapse
+                        defaultActiveKey={[secondaryIndicator.id]}
+                        bordered={false}
+                        className="bg-white"
+                        items={collapseItems}
+                      />
+                    </div>
+                  )
+                }
               )}
             </div>
           </div>
@@ -218,41 +286,65 @@ export const Component = () => {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-6 flex flex-col items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
-        <div>
-          <div className="mb-1 text-2xl text-gray-100">{isEdit ? '编辑' : '录入'}数据</div>
-          {detailData && (
-            <div className="text-lg font-medium text-gray-100">
-              {detailData.cnName}
-              <span className="ml-2 text-sm text-gray-300">({detailData.enName})</span>
-            </div>
-          )}
-        </div>
+      <div className="mb-6 flex items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
+        <div className="mb-1 text-2xl text-gray-100">{isEdit ? '编辑' : '录入'}数据</div>
+        {detailData && (
+          <div className="text-2xl font-medium text-gray-100">
+            {/* {detailData.cnName}
+            <span className="ml-2 text-sm text-gray-300">({detailData.enName})</span> */}
+          </div>
+        )}
       </div>
 
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <DatePicker
-            picker="year"
-            placeholder="请选择年份"
-            value={selectedYear}
-            onChange={value => setSelectedYear(value)}
-            disabled={isEdit}
-            allowClear={false}
-            className="w-40"
-          />
+      <div className="mb-6 rounded-lg bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="min-w-64">
+              <div className="mb-1 text-sm text-gray-500">当前选择国家</div>
+              <Select
+                showSearch
+                placeholder="请选择国家"
+                style={{ width: '100%' }}
+                value={selectedCountry}
+                onChange={handleCountryChange}
+                loading={countriesLoading || continentsLoading}
+                disabled={isEdit}
+                filterOption={(input, option) =>
+                  option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+                }
+                optionFilterProp="label"
+                className="text-left"
+              >
+                {countryOptions}
+              </Select>
+            </div>
+
+            <div className="min-w-40">
+              <div className="mb-1 text-sm text-gray-500">当前选择年份</div>
+              <DatePicker
+                picker="year"
+                placeholder="请选择年份"
+                value={selectedYear}
+                onChange={value => setSelectedYear(value)}
+                disabled={isEdit}
+                allowClear={false}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+
+          <Space>
+            <Button onClick={() => navigate('/dataManagement')}>返回</Button>
+            <Button
+              type="primary"
+              onClick={handleSave}
+              loading={saveLoading}
+              disabled={isEdit ? !detailData : !selectedCountry || !selectedYear}
+            >
+              保存
+            </Button>
+          </Space>
         </div>
-        <Space>
-          <Button onClick={() => navigate('/dataManagement')}>返回</Button>
-          <Button
-            color="primary"
-            variant="outlined"
-            onClick={handleSave}
-            loading={saveLoading}
-          >
-            保存
-          </Button>
-        </Space>
       </div>
 
       <div>
