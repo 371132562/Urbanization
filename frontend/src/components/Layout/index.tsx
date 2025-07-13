@@ -1,19 +1,26 @@
 import { UserOutlined } from '@ant-design/icons' // 导入图标
 import { Breadcrumb, Layout, Menu, MenuProps } from 'antd'
-import { FC, useMemo, useState } from 'react'
+import { FC, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { Link, useLocation, useNavigate, useOutlet } from 'react-router'
 
 import ErrorPage from '@/components/Error'
 import { getBreadcrumbItems, sideRoutes, topRoutes } from '@/router/routesConfig'
+import useIndicatorStore from '@/stores/indicatorStore'
 
 const { Header, Sider, Content, Footer } = Layout
 
 export const Component: FC = () => {
   const outlet = useOutlet()
   const navigate = useNavigate()
+  const getIndicatorHierarchy = useIndicatorStore(state => state.getIndicatorHierarchy)
   const [collapsed, setCollapsed] = useState(false)
   const { pathname } = useLocation()
+
+  // 全局获取一次指标数据
+  useEffect(() => {
+    getIndicatorHierarchy()
+  }, [getIndicatorHierarchy])
 
   const handleMenuClick: MenuProps['onClick'] = e => {
     navigate(e.key)

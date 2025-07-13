@@ -54,6 +54,7 @@ export const Component = () => {
   const checkDataManagementExistingData = useDataManagementStore(
     state => state.checkDataManagementExistingData
   )
+  const initializeNewData = useDataManagementStore(state => state.initializeNewData)
 
   // --- CountryAndContinent Store ---
   const continents = useCountryAndContinentStore(state => state.continents)
@@ -65,15 +66,12 @@ export const Component = () => {
 
   // --- Indicator Store ---
   const indicatorHierarchy = useIndicatorStore(state => state.indicatorHierarchy)
-  const indicatorLoading = useIndicatorStore(state => state.loading)
-  const getIndicatorHierarchy = useIndicatorStore(state => state.getIndicatorHierarchy)
 
   // 加载大洲和国家数据
   useEffect(() => {
     getContinents(true) // 获取大洲数据，并包含国家
     getCountries({ includeContinent: true }) // 获取所有国家数据，包含大洲信息
-    getIndicatorHierarchy() // 获取所有三级指标，用于新建时初始化数据
-  }, [getContinents, getCountries, getIndicatorHierarchy])
+  }, [getContinents, getCountries])
 
   // 组件加载或参数变化时获取详情数据
   useEffect(() => {
@@ -85,36 +83,26 @@ export const Component = () => {
     } else {
       // 新建模式下，使用获取到的指标层级来初始化detailData
       if (indicatorHierarchy.length > 0) {
-        // 深拷贝并转换指标层级，为每个三级指标添加 value 属性
-        const initialIndicators = indicatorHierarchy.map(top => ({
-          ...top,
-          secondaryIndicators: top.secondaryIndicators.map(sec => ({
-            ...sec,
-            detailedIndicators: sec.detailedIndicators.map(det => ({
-              ...det
-            }))
-          }))
-        }))
-
+        // 调用 store action 来初始化数据
+        initializeNewData(indicatorHierarchy)
         // 设置form的初始值
-        form.setFieldsValue(initialValuesFromIndicators(initialIndicators))
-
-        // 为了渲染方便，将初始化的数据存入detailData
-        useDataManagementStore.setState({
-          detailData: {
-            countryId: '',
-            year: dayjs().startOf('year').toDate(),
-            indicators: initialIndicators,
-            isComplete: false
-          }
-        })
+        form.setFieldsValue(initialValuesFromIndicators(indicatorHierarchy))
       }
     }
 
     return () => {
       resetDetailData()
     }
-  }, [countryId, year, isEdit, getDataManagementDetail, resetDetailData, indicatorHierarchy, form])
+  }, [
+    countryId,
+    year,
+    isEdit,
+    getDataManagementDetail,
+    resetDetailData,
+    indicatorHierarchy,
+    form,
+    initializeNewData
+  ])
 
   // 辅助函数：从指标结构生成表单初始值
   const initialValuesFromIndicators = (indicators: TopIndicatorItem[]) => {
@@ -122,7 +110,8 @@ export const Component = () => {
     indicators.forEach(topIndicator => {
       topIndicator.secondaryIndicators.forEach(secondaryIndicator => {
         secondaryIndicator.detailedIndicators.forEach(detailedIndicator => {
-          initialValues[`indicator_${detailedIndicator.id}`] = detailedIndicator.value
+          // 使用 enName 作为 key
+          initialValues[detailedIndicator.enName] = detailedIndicator.value
         })
       })
     })
@@ -132,20 +121,8 @@ export const Component = () => {
   // 详情数据加载后，设置表单值
   useEffect(() => {
     if (isEdit && detailData) {
-      // 设置表单初始值
-      const initialValues: Record<string, number | null> = {}
-
-      // 遍历三级层次结构，设置所有三级指标的值
-      detailData.indicators.forEach((topIndicator: TopIndicatorItem) => {
-        topIndicator.secondaryIndicators.forEach((secondaryIndicator: SecondaryIndicatorItem) => {
-          secondaryIndicator.detailedIndicators.forEach(
-            (detailedIndicator: DetailedIndicatorItem) => {
-              initialValues[`indicator_${detailedIndicator.id}`] = detailedIndicator.value
-            }
-          )
-        })
-      })
-
+      // 设置表单初始值，key为enName
+      const initialValues = initialValuesFromIndicators(detailData.indicators)
       form.setFieldsValue(initialValues)
     }
   }, [detailData, form, isEdit])
@@ -202,24 +179,25 @@ export const Component = () => {
         return
       }
 
-      const indicatorsToSave: CreateIndicatorValuesDto['indicators'] = []
-
-      // 遍历所有三级指标（无论是编辑模式的detailData还是新建模式的详细指标列表）
-      // 确保从正确的来源获取所有可能的指标ID
-      const sourceIndicators = isEdit
-        ? detailData?.indicators
-        : useDataManagementStore.getState().detailData?.indicators
-
-      sourceIndicators?.forEach(topIndicator => {
-        topIndicator.secondaryIndicators.forEach(secondaryIndicator => {
-          secondaryIndicator.detailedIndicators.forEach(detailedIndicator => {
-            indicatorsToSave.push({
-              detailedIndicatorId: detailedIndicator.id,
-              value: values[`indicator_${detailedIndicator.id}`]
-            })
+      // 使用 indicatorHierarchy 作为唯一数据源来创建 enName -> id 的映射表
+      if (!indicatorHierarchy) {
+        message.error('指标层级数据加载失败，无法保存')
+        return
+      }
+      const enNameToIdMap = new Map<string, string>()
+      indicatorHierarchy.forEach(top => {
+        top.secondaryIndicators.forEach(sec => {
+          sec.detailedIndicators.forEach(det => {
+            enNameToIdMap.set(det.enName, det.id)
           })
         })
       })
+
+      // 直接遍历表单返回的值，构造要保存的数据
+      const indicatorsToSave = Object.entries(values).map(([enName, value]) => ({
+        detailedIndicatorId: enNameToIdMap.get(enName)!,
+        value: value as number | null
+      }))
 
       const dataToSave: CreateIndicatorValuesDto = {
         countryId: selectedCountry,
@@ -290,11 +268,7 @@ export const Component = () => {
 
   // 渲染表单项
   const renderFormItems = () => {
-    // 在新建模式下，如果没有初始化数据，则显示暂无
-    if (
-      (isEdit && !detailData?.indicators?.length) ||
-      (!isEdit && !useDataManagementStore.getState().detailData?.indicators?.length)
-    ) {
+    if (!detailData?.indicators?.length) {
       return (
         <div className="flex h-40 items-center justify-center rounded-lg bg-gray-50">
           <Text type="secondary">暂无指标数据</Text>
@@ -302,11 +276,9 @@ export const Component = () => {
       )
     }
 
-    const dataToRender = isEdit ? detailData : useDataManagementStore.getState().detailData
-
     return (
       <div className="space-y-6">
-        {dataToRender?.indicators.map((topIndicator: TopIndicatorItem) => (
+        {detailData.indicators.map((topIndicator: TopIndicatorItem) => (
           <div
             key={topIndicator.id}
             className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow"
@@ -349,9 +321,7 @@ export const Component = () => {
                                       </div>
                                     </div>
                                   }
-                                  name={`indicator_${detailedIndicator.id}`}
-                                  rules={[{ required: false, message: '请输入指标值' }]} // 值可以为空，所以required: false
-                                  className="mb-0"
+                                  name={detailedIndicator.enName} // 使用 enName 作为 name
                                   labelCol={{ span: 24 }}
                                   wrapperCol={{ span: 24 }}
                                 >
@@ -359,7 +329,6 @@ export const Component = () => {
                                     placeholder="请输入指标值"
                                     style={{ width: '100%' }}
                                     precision={2}
-                                    className="mt-1"
                                   />
                                 </Form.Item>
                               </div>
@@ -394,7 +363,7 @@ export const Component = () => {
   }
 
   return (
-    <Spin spinning={detailLoading || saveLoading || indicatorLoading}>
+    <Spin spinning={detailLoading || saveLoading}>
       <div className="mx-auto max-w-7xl px-4 py-6">
         <div className="mb-6 flex items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
           <div className="mb-1 text-2xl text-gray-100">数据{isEdit ? '编辑' : '录入'}</div>

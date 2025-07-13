@@ -6,6 +6,7 @@ import type {
   CountryDetailResDto,
   CreateIndicatorValuesDto,
   DataManagementListDto,
+  TopIndicatorItem,
   YearData
 } from 'urbanization-backend/types/dto'
 import { create } from 'zustand'
@@ -31,6 +32,7 @@ type DataManagementStore = {
     params: CheckExistingDataDto
   ) => Promise<CheckExistingDataResDto>
   resetDetailData: () => void
+  initializeNewData: (indicatorHierarchy: TopIndicatorItem[]) => void
   filteredDataByCountry: (term: string, data: DataManagementListDto) => DataManagementListDto
 }
 
@@ -96,6 +98,31 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
   // 重置详情数据
   resetDetailData: () => {
     set({ detailData: null })
+  },
+
+  // 为新建模式初始化 detailData
+  initializeNewData: (indicatorHierarchy: TopIndicatorItem[]) => {
+    // 深拷贝并转换指标层级，为每个三级指标添加 value 属性
+    const initialIndicators = indicatorHierarchy.map(top => ({
+      ...top,
+      secondaryIndicators: top.secondaryIndicators.map(sec => ({
+        ...sec,
+        detailedIndicators: sec.detailedIndicators.map(det => ({
+          ...det,
+          value: null // 确保所有值都初始化为null
+        }))
+      }))
+    }))
+
+    // 为了渲染方便，将初始化的数据存入detailData
+    set({
+      detailData: {
+        countryId: '',
+        year: new Date(), // 使用当前时间作为默认年份
+        indicators: initialIndicators,
+        isComplete: false
+      }
+    })
   },
 
   // 按国家名称过滤数据
