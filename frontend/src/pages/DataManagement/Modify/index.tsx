@@ -6,9 +6,11 @@ import {
   Form,
   InputNumber,
   message,
+  Modal,
   Select,
   Space,
   Spin,
+  theme,
   Typography
 } from 'antd'
 import dayjs from 'dayjs'
@@ -19,8 +21,8 @@ dayjs.extend(customParseFormat)
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import type {
-  CountryDetailResDto,
   CountryWithContinentDto,
+  CreateIndicatorValuesDto,
   DetailedIndicatorItem,
   SecondaryIndicatorItem,
   TopIndicatorItem
@@ -28,11 +30,13 @@ import type {
 
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
+import useIndicatorStore from '@/stores/indicatorStore'
 
 const { Text } = Typography
 const { Option, OptGroup } = Select
 
 export const Component = () => {
+  const { token } = theme.useToken()
   const { countryId, year } = useParams<{ countryId?: string; year?: string }>()
   const navigate = useNavigate()
   const [form] = Form.useForm()
@@ -40,50 +44,94 @@ export const Component = () => {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(countryId || null)
   const isEdit = !!countryId && !!year
 
-  const {
-    detailData,
-    detailLoading,
-    saveLoading,
-    getDataManagementDetail,
-    saveDataManagementDetail,
-    resetDetailData
-  } = useDataManagementStore()
+  // --- DataManagement Store ---
+  const detailData = useDataManagementStore(state => state.detailData)
+  const detailLoading = useDataManagementStore(state => state.detailLoading)
+  const saveLoading = useDataManagementStore(state => state.saveLoading)
+  const getDataManagementDetail = useDataManagementStore(state => state.getDataManagementDetail)
+  const saveDataManagementDetail = useDataManagementStore(state => state.saveDataManagementDetail)
+  const resetDetailData = useDataManagementStore(state => state.resetDetailData)
+  const checkDataManagementExistingData = useDataManagementStore(
+    state => state.checkDataManagementExistingData
+  )
 
-  const {
-    continents,
-    countries,
-    continentsLoading,
-    countriesLoading,
-    getContinents,
-    getCountries
-  } = useCountryAndContinentStore()
+  // --- CountryAndContinent Store ---
+  const continents = useCountryAndContinentStore(state => state.continents)
+  const countries = useCountryAndContinentStore(state => state.countries)
+  const continentsLoading = useCountryAndContinentStore(state => state.continentsLoading)
+  const countriesLoading = useCountryAndContinentStore(state => state.countriesLoading)
+  const getContinents = useCountryAndContinentStore(state => state.getContinents)
+  const getCountries = useCountryAndContinentStore(state => state.getCountries)
+
+  // --- Indicator Store ---
+  const indicatorHierarchy = useIndicatorStore(state => state.indicatorHierarchy)
+  const indicatorLoading = useIndicatorStore(state => state.loading)
+  const getIndicatorHierarchy = useIndicatorStore(state => state.getIndicatorHierarchy)
 
   // 加载大洲和国家数据
   useEffect(() => {
     getContinents(true) // 获取大洲数据，并包含国家
     getCountries({ includeContinent: true }) // 获取所有国家数据，包含大洲信息
-  }, [getContinents, getCountries])
+    getIndicatorHierarchy() // 获取所有三级指标，用于新建时初始化数据
+  }, [getContinents, getCountries, getIndicatorHierarchy])
 
   // 组件加载或参数变化时获取详情数据
   useEffect(() => {
     if (isEdit) {
-      console.log(dayjs(parseInt(year as string), 'YYYY'))
       getDataManagementDetail({
         countryId,
         year: dayjs(year, 'YYYY').startOf('year').toDate()
       })
     } else {
-      resetDetailData()
+      // 新建模式下，使用获取到的指标层级来初始化detailData
+      if (indicatorHierarchy.length > 0) {
+        // 深拷贝并转换指标层级，为每个三级指标添加 value 属性
+        const initialIndicators = indicatorHierarchy.map(top => ({
+          ...top,
+          secondaryIndicators: top.secondaryIndicators.map(sec => ({
+            ...sec,
+            detailedIndicators: sec.detailedIndicators.map(det => ({
+              ...det
+            }))
+          }))
+        }))
+
+        // 设置form的初始值
+        form.setFieldsValue(initialValuesFromIndicators(initialIndicators))
+
+        // 为了渲染方便，将初始化的数据存入detailData
+        useDataManagementStore.setState({
+          detailData: {
+            countryId: '',
+            year: dayjs().startOf('year').toDate(),
+            indicators: initialIndicators,
+            isComplete: false
+          }
+        })
+      }
     }
 
     return () => {
       resetDetailData()
     }
-  }, [countryId, year, isEdit, getDataManagementDetail, resetDetailData])
+  }, [countryId, year, isEdit, getDataManagementDetail, resetDetailData, indicatorHierarchy, form])
+
+  // 辅助函数：从指标结构生成表单初始值
+  const initialValuesFromIndicators = (indicators: TopIndicatorItem[]) => {
+    const initialValues: Record<string, number | null> = {}
+    indicators.forEach(topIndicator => {
+      topIndicator.secondaryIndicators.forEach(secondaryIndicator => {
+        secondaryIndicator.detailedIndicators.forEach(detailedIndicator => {
+          initialValues[`indicator_${detailedIndicator.id}`] = detailedIndicator.value
+        })
+      })
+    })
+    return initialValues
+  }
 
   // 详情数据加载后，设置表单值
   useEffect(() => {
-    if (detailData) {
+    if (isEdit && detailData) {
       // 设置表单初始值
       const initialValues: Record<string, number | null> = {}
 
@@ -100,7 +148,7 @@ export const Component = () => {
 
       form.setFieldsValue(initialValues)
     }
-  }, [detailData, form])
+  }, [detailData, form, isEdit])
 
   // 按大洲组织国家列表
   const countryOptions = useMemo(() => {
@@ -127,6 +175,7 @@ export const Component = () => {
             key={country.id}
             value={country.id}
             label={country.cnName}
+            data-en-name={country.enName} // 添加英文名作为data属性
           >
             <div className="flex items-center">
               <span>{country.cnName}</span>
@@ -148,37 +197,91 @@ export const Component = () => {
     try {
       const values = await form.validateFields()
 
-      if (!isEdit && (!selectedCountry || !selectedYear)) {
+      if (!selectedCountry || !selectedYear) {
         message.error(!selectedCountry ? '请选择国家' : '请选择年份')
         return
       }
 
-      // 构建保存的数据
-      const saveData: CountryDetailResDto = {
-        countryId: isEdit ? detailData!.countryId : selectedCountry!,
-        cnName: isEdit ? detailData!.cnName : '',
-        enName: isEdit ? detailData!.enName : '',
-        year: isEdit ? detailData!.year : selectedYear!.startOf('year').toDate(),
-        isComplete: true, // 由后端计算
-        indicators: isEdit
-          ? detailData!.indicators.map(topIndicator => ({
-              ...topIndicator,
-              secondaryIndicators: topIndicator.secondaryIndicators.map(secondaryIndicator => ({
-                ...secondaryIndicator,
-                detailedIndicators: secondaryIndicator.detailedIndicators.map(
-                  detailedIndicator => ({
-                    ...detailedIndicator,
-                    value: values[`indicator_${detailedIndicator.id}`]
-                  })
-                )
-              }))
-            }))
-          : [] // 新建模式下没有indicators数据
+      const indicatorsToSave: CreateIndicatorValuesDto['indicators'] = []
+
+      // 遍历所有三级指标（无论是编辑模式的detailData还是新建模式的详细指标列表）
+      // 确保从正确的来源获取所有可能的指标ID
+      const sourceIndicators = isEdit
+        ? detailData?.indicators
+        : useDataManagementStore.getState().detailData?.indicators
+
+      sourceIndicators?.forEach(topIndicator => {
+        topIndicator.secondaryIndicators.forEach(secondaryIndicator => {
+          secondaryIndicator.detailedIndicators.forEach(detailedIndicator => {
+            indicatorsToSave.push({
+              detailedIndicatorId: detailedIndicator.id,
+              value: values[`indicator_${detailedIndicator.id}`]
+            })
+          })
+        })
+      })
+
+      const dataToSave: CreateIndicatorValuesDto = {
+        countryId: selectedCountry,
+        year: selectedYear.startOf('year').toDate(),
+        indicators: indicatorsToSave
       }
 
-      await saveDataManagementDetail(saveData)
-      message.success('保存成功')
-      navigate('/dataManagement')
+      if (!isEdit) {
+        // 新建模式下，检查数据是否存在
+        const { exists } = await checkDataManagementExistingData({
+          countryId: selectedCountry,
+          year: selectedYear.startOf('year').toDate()
+        })
+
+        if (exists) {
+          const countryInfo = countries.find(c => c.id === selectedCountry)
+          const yearString = selectedYear.format('YYYY')
+
+          Modal.confirm({
+            title: '数据覆盖确认',
+            content: (
+              <div>
+                检测到国家{' '}
+                <Text
+                  style={{ color: token.colorPrimary }}
+                  strong
+                >
+                  {countryInfo?.cnName} ({countryInfo?.enName})
+                </Text>{' '}
+                在{' '}
+                <Text
+                  style={{ color: token.colorPrimary }}
+                  strong
+                >
+                  {yearString}
+                </Text>{' '}
+                年的数据已存在，确认要覆盖吗？
+              </div>
+            ),
+            okText: '确认覆盖',
+            cancelText: '取消',
+            async onOk() {
+              await saveDataManagementDetail(dataToSave)
+              message.success('保存成功')
+              navigate('/dataManagement')
+            },
+            onCancel() {
+              message.info('已取消保存')
+            }
+          })
+        } else {
+          // 不存在，直接保存
+          await saveDataManagementDetail(dataToSave)
+          message.success('保存成功')
+          navigate('/dataManagement')
+        }
+      } else {
+        // 编辑模式，直接保存
+        await saveDataManagementDetail(dataToSave)
+        message.success('保存成功')
+        navigate('/dataManagement')
+      }
     } catch (error) {
       console.error('保存失败:', error)
       message.error('保存失败，请重试')
@@ -187,7 +290,11 @@ export const Component = () => {
 
   // 渲染表单项
   const renderFormItems = () => {
-    if (isEdit && !detailData?.indicators?.length) {
+    // 在新建模式下，如果没有初始化数据，则显示暂无
+    if (
+      (isEdit && !detailData?.indicators?.length) ||
+      (!isEdit && !useDataManagementStore.getState().detailData?.indicators?.length)
+    ) {
       return (
         <div className="flex h-40 items-center justify-center rounded-lg bg-gray-50">
           <Text type="secondary">暂无指标数据</Text>
@@ -195,9 +302,11 @@ export const Component = () => {
       )
     }
 
+    const dataToRender = isEdit ? detailData : useDataManagementStore.getState().detailData
+
     return (
       <div className="space-y-6">
-        {detailData.indicators.map((topIndicator: TopIndicatorItem) => (
+        {dataToRender?.indicators.map((topIndicator: TopIndicatorItem) => (
           <div
             key={topIndicator.id}
             className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow"
@@ -241,7 +350,7 @@ export const Component = () => {
                                     </div>
                                   }
                                   name={`indicator_${detailedIndicator.id}`}
-                                  rules={[{ required: false, message: '请输入指标值' }]}
+                                  rules={[{ required: false, message: '请输入指标值' }]} // 值可以为空，所以required: false
                                   className="mb-0"
                                   labelCol={{ span: 24 }}
                                   wrapperCol={{ span: 24 }}
@@ -285,82 +394,81 @@ export const Component = () => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-6 flex items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
-        <div className="mb-1 text-2xl text-gray-100">{isEdit ? '编辑' : '录入'}数据</div>
-        {detailData && (
-          <div className="text-2xl font-medium text-gray-100">
-            {/* {detailData.cnName}
-            <span className="ml-2 text-sm text-gray-300">({detailData.enName})</span> */}
-          </div>
-        )}
-      </div>
+    <Spin spinning={detailLoading || saveLoading || indicatorLoading}>
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="mb-6 flex items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
+          <div className="mb-1 text-2xl text-gray-100">数据{isEdit ? '编辑' : '录入'}</div>
+        </div>
 
-      <div className="mb-6 rounded-lg bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-end justify-between">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="min-w-64">
-              <div className="mb-1 text-sm text-gray-500">当前选择国家</div>
-              <Select
-                showSearch
-                placeholder="请选择国家"
-                style={{ width: '100%' }}
-                value={selectedCountry}
-                onChange={handleCountryChange}
-                loading={countriesLoading || continentsLoading}
-                disabled={isEdit}
-                filterOption={(input, option) =>
-                  option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
-                }
-                optionFilterProp="label"
-                className="text-left"
+        <div className="mb-6 rounded-lg bg-white p-6 pt-4 shadow-sm">
+          <div className="flex flex-wrap items-end justify-between">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="min-w-80">
+                <div className="mb-1 text-sm text-gray-500">当前选择国家</div>
+                <Select
+                  showSearch
+                  placeholder="请选择国家"
+                  style={{ width: '100%' }}
+                  value={selectedCountry}
+                  onChange={handleCountryChange}
+                  loading={countriesLoading || continentsLoading}
+                  disabled={isEdit}
+                  filterOption={(input, option) => {
+                    const label = option?.label?.toString().toLowerCase() || ''
+                    const enName = option?.['data-en-name']?.toLowerCase() || ''
+                    const search = input.toLowerCase()
+                    return label.includes(search) || enName.includes(search)
+                  }}
+                  optionFilterProp="label"
+                  className="text-left"
+                >
+                  {countryOptions}
+                </Select>
+              </div>
+
+              <div className="min-w-40">
+                <div className="mb-1 text-sm text-gray-500">当前选择年份</div>
+                <DatePicker
+                  picker="year"
+                  placeholder="请选择年份"
+                  value={selectedYear}
+                  onChange={value => setSelectedYear(value)}
+                  disabled={isEdit}
+                  allowClear={false}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+
+            <Space>
+              <Button onClick={() => navigate('/dataManagement')}>返回</Button>
+              <Button
+                type="primary"
+                onClick={handleSave}
+                loading={saveLoading}
+                disabled={isEdit ? !detailData : !selectedCountry || !selectedYear} // 新建模式下，如果没有选择国家和年份，禁用保存按钮
               >
-                {countryOptions}
-              </Select>
-            </div>
-
-            <div className="min-w-40">
-              <div className="mb-1 text-sm text-gray-500">当前选择年份</div>
-              <DatePicker
-                picker="year"
-                placeholder="请选择年份"
-                value={selectedYear}
-                onChange={value => setSelectedYear(value)}
-                disabled={isEdit}
-                allowClear={false}
-                style={{ width: '100%' }}
-              />
-            </div>
+                保存
+              </Button>
+            </Space>
           </div>
+        </div>
 
-          <Space>
-            <Button onClick={() => navigate('/dataManagement')}>返回</Button>
-            <Button
-              type="primary"
-              onClick={handleSave}
-              loading={saveLoading}
-              disabled={isEdit ? !detailData : !selectedCountry || !selectedYear}
+        <div>
+          {detailLoading ? (
+            <div className="flex h-80 items-center justify-center rounded-lg bg-white p-6 shadow-sm">
+              <Spin size="large" />
+            </div>
+          ) : (
+            <Form
+              form={form}
+              layout="vertical"
             >
-              保存
-            </Button>
-          </Space>
+              {renderFormItems()}
+            </Form>
+          )}
         </div>
       </div>
-
-      <div>
-        {detailLoading ? (
-          <div className="flex h-80 items-center justify-center rounded-lg bg-white p-6 shadow-sm">
-            <Spin size="large" />
-          </div>
-        ) : (
-          <Form
-            form={form}
-            layout="vertical"
-          >
-            {renderFormItems()}
-          </Form>
-        )}
-      </div>
-    </div>
+    </Spin>
   )
 }

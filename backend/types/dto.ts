@@ -1,3 +1,4 @@
+/* 所有需要用到的类型都放在这里 并按照业务逻辑分类 */
 import {
   TopIndicator,
   SecondaryIndicator,
@@ -6,6 +7,7 @@ import {
   Country,
 } from '@prisma/client';
 
+// 导出Prisma模型类型
 export {
   TopIndicator,
   SecondaryIndicator,
@@ -14,6 +16,13 @@ export {
   Country,
 };
 
+/*
+ * ==================== 数据管理模块 ====================
+ */
+
+/**
+ * 数据管理列表相关类型
+ */
 export type DataManagementListItem = {
   year: Date;
 };
@@ -50,7 +59,7 @@ export type CountryDetailReqDto = {
 };
 
 /**
- * 详细指标数据项
+ * 指标层级结构类型
  */
 export type DetailedIndicatorItem = {
   id: string; // 指标ID
@@ -60,9 +69,6 @@ export type DetailedIndicatorItem = {
   value: number | null; // 指标值，可能为空
 };
 
-/**
- * 二级指标项及其包含的三级指标
- */
 export type SecondaryIndicatorItem = {
   id: string; // 二级指标ID
   cnName: string; // 二级指标中文名称
@@ -70,9 +76,6 @@ export type SecondaryIndicatorItem = {
   detailedIndicators: DetailedIndicatorItem[]; // 包含的三级指标
 };
 
-/**
- * 一级指标项及其包含的二级指标
- */
 export type TopIndicatorItem = {
   id: string; // 一级指标ID
   cnName: string; // 一级指标中文名称
@@ -85,12 +88,41 @@ export type TopIndicatorItem = {
  */
 export type CountryDetailResDto = {
   countryId: string; // 国家ID
-  cnName: string; // 国家中文名
-  enName: string; // 国家英文名
   year: Date; // 年份
   indicators: TopIndicatorItem[]; // 一级指标数据列表
   isComplete: boolean; // 数据是否完整
 };
+
+/**
+ * 创建或更新指标值相关类型
+ */
+export type IndicatorValueItem = {
+  detailedIndicatorId: string; // 三级指标ID
+  value: number | null; // 指标值，允许为null
+};
+
+export type CreateIndicatorValuesDto = {
+  countryId: string; // 国家ID
+  year: Date; // 年份
+  indicators: IndicatorValueItem[]; // 指标值数组
+};
+
+/**
+ * 检查数据是否存在相关类型
+ */
+export type CheckExistingDataDto = {
+  countryId: string; // 国家ID
+  year: Date; // 年份
+};
+
+export type CheckExistingDataResDto = {
+  exists: boolean; // 是否存在数据
+  count: number; // 存在的指标值数量
+};
+
+/*
+ * ==================== 指标管理模块 ====================
+ */
 
 /**
  * 查询指标请求参数 - 用于一级和二级指标查询
@@ -100,84 +132,51 @@ export type QueryIndicatorReqDto = {
 };
 
 /**
- * 三级指标响应项
+ * 指标查询响应类型
  */
-export type DetailedIndicatorDto = DetailedIndicator;
-
-/**
- * 二级指标响应项
- */
-export type SecondaryIndicatorDto = SecondaryIndicator & {
-  detailedIndicators?: DetailedIndicatorDto[];
+export type DetailedIndicatorDto = DetailedIndicator & {
+  SecondaryIndicator?: SecondaryIndicator & {
+    topIndicator?: TopIndicator;
+  };
 };
 
 /**
- * 一级指标响应项
+ * 统一指标层级结构响应DTO
  */
-export type TopIndicatorDto = TopIndicator & {
-  secondaryIndicators?: SecondaryIndicatorDto[];
-};
+export type IndicatorHierarchyResDto = TopIndicatorItem[];
+
+/*
+ * ==================== 国家和大洲管理模块 ====================
+ */
 
 /**
- * 一级指标查询响应
- */
-export type TopIndicatorListResDto = TopIndicatorDto[];
-
-/**
- * 二级指标查询响应
- */
-export type SecondaryIndicatorListResDto = SecondaryIndicatorDto[];
-
-/**
- * 三级指标查询响应
- */
-export type DetailedIndicatorListResDto = DetailedIndicatorDto[];
-
-/**
- * 国家DTO
+ * 国家和大洲DTO类型
  */
 export type CountryDto = Country;
+export type ContinentDto = Continent;
 
-/**
- * 包含国家列表的大洲DTO
- */
 export type ContinentWithCountriesDto = Continent & {
   Country?: CountryDto[];
 };
 
-/**
- * 大洲DTO
- */
-export type ContinentDto = Continent;
+export type CountryWithContinentDto = Country & {
+  continent?: ContinentDto;
+};
 
 /**
- * 查询大洲请求参数
+ * 查询参数类型
  */
 export type QueryContinentReqDto = {
   includeCountries?: boolean; // 是否包含国家，默认为false
 };
 
-/**
- * 查询国家请求参数
- */
 export type QueryCountryReqDto = {
   continentId?: string; // 可选的大洲ID，如果提供则筛选该大洲下的国家
   includeContinent?: boolean; // 是否包含大洲信息，默认为false
 };
 
 /**
- * 包含大洲信息的国家DTO
- */
-export type CountryWithContinentDto = Country & {
-  continent?: ContinentDto;
-};
-
-/**
- * 大洲查询响应
+ * 查询响应类型
  */
 export type ContinentListResDto = ContinentWithCountriesDto[];
-
-/**
- * 国家查询响应
- */
 export type CountryListResDto = CountryWithContinentDto[];

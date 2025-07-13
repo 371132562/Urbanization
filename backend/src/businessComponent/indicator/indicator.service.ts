@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import {
-  DetailedIndicatorListResDto,
-  QueryIndicatorReqDto,
-  SecondaryIndicatorListResDto,
-  TopIndicatorListResDto,
-} from '../../../types/dto';
+import { IndicatorHierarchyResDto } from '../../../types/dto'; // 使用正确的路径
+
+import { PrismaService } from '../../../prisma/prisma.service'; // 使用正确的路径
 
 interface ErrorWithMessage {
   message: string;
@@ -19,84 +15,53 @@ export class IndicatorService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * 获取所有一级指标
-   * @param params 查询参数，包含是否包含子指标
-   * @returns {Promise<TopIndicatorListResDto>} 一级指标列表
+   * 获取所有指标的层级结构（一级 -> 二级 -> 三级），并按创建时间升序排序
+   * @returns {Promise<IndicatorHierarchyResDto>} 指标层级结构列表
    */
-  async getTopIndicators(
-    params: QueryIndicatorReqDto,
-  ): Promise<TopIndicatorListResDto> {
-    const { includeChildren = false } = params;
-    this.logger.log(`获取一级指标，includeChildren=${includeChildren}`);
+  async getIndicatorsHierarchy(): Promise<IndicatorHierarchyResDto> {
+    this.logger.log('Fetching indicator hierarchy');
 
     try {
-      // 根据是否包含子指标执行不同查询
-      if (includeChildren) {
-        // 包含子指标的查询
-        return await this.prisma.topIndicator.findMany({
-          include: {
-            secondaryIndicator: {
-              include: {
-                detailedIndicator: true,
+      const topIndicators = await this.prisma.topIndicator.findMany({
+        orderBy: { createTime: 'asc' }, // Order by creation time
+        include: {
+          secondaryIndicator: {
+            orderBy: { createTime: 'asc' }, // Order by creation time
+            include: {
+              detailedIndicator: {
+                orderBy: { createTime: 'asc' }, // Order by creation time
               },
             },
           },
-        });
-      } else {
-        // 不包含子指标的查询
-        return await this.prisma.topIndicator.findMany();
-      }
+        },
+      });
+
+      // Map Prisma result to the DTO
+      const result: IndicatorHierarchyResDto = topIndicators.map((top) => ({
+        id: top.id,
+        cnName: top.indicatorCnName,
+        enName: top.indicatorEnName,
+        secondaryIndicators: top.secondaryIndicator.map((secondary) => ({
+          id: secondary.id,
+          cnName: secondary.indicatorCnName,
+          enName: secondary.indicatorEnName,
+          detailedIndicators: secondary.detailedIndicator.map((detailed) => ({
+            id: detailed.id,
+            cnName: detailed.indicatorCnName,
+            enName: detailed.indicatorEnName,
+            unit: detailed.unit,
+            value: null,
+          })),
+        })),
+      }));
+
+      return result;
     } catch (error) {
       const err = error as ErrorWithMessage;
-      this.logger.error(`获取一级指标失败: ${err.message}`, err.stack);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取所有二级指标
-   * @param params 查询参数，包含是否包含子指标
-   * @returns {Promise<SecondaryIndicatorListResDto>} 二级指标列表
-   */
-  async getSecondaryIndicators(
-    params: QueryIndicatorReqDto,
-  ): Promise<SecondaryIndicatorListResDto> {
-    const { includeChildren = false } = params;
-    this.logger.log(`获取二级指标，includeChildren=${includeChildren}`);
-
-    try {
-      // 根据是否包含子指标执行不同查询
-      if (includeChildren) {
-        // 包含子指标的查询
-        return await this.prisma.secondaryIndicator.findMany({
-          include: {
-            detailedIndicator: true,
-          },
-        });
-      } else {
-        // 不包含子指标的查询
-        return await this.prisma.secondaryIndicator.findMany();
-      }
-    } catch (error) {
-      const err = error as ErrorWithMessage;
-      this.logger.error(`获取二级指标失败: ${err.message}`, err.stack);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取所有三级指标
-   * @returns {Promise<DetailedIndicatorListResDto>} 三级指标列表
-   */
-  async getDetailedIndicators(): Promise<DetailedIndicatorListResDto> {
-    this.logger.log('获取所有三级指标');
-
-    try {
-      // 查询所有三级指标
-      return await this.prisma.detailedIndicator.findMany();
-    } catch (error) {
-      const err = error as ErrorWithMessage;
-      this.logger.error(`获取三级指标失败: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to fetch indicator hierarchy: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }

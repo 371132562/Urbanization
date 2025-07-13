@@ -1,14 +1,21 @@
 import type {
+  CheckExistingDataDto,
+  CheckExistingDataResDto,
   CountryData,
   CountryDetailReqDto,
   CountryDetailResDto,
+  CreateIndicatorValuesDto,
   DataManagementListDto,
-  DetailedIndicatorItem,
   YearData
 } from 'urbanization-backend/types/dto'
 import { create } from 'zustand'
 
-import { dataManagementDetail, dataManagementList } from '@/services/apis'
+import {
+  dataManagementCheckExistingData,
+  dataManagementCreate,
+  dataManagementDetail,
+  dataManagementList
+} from '@/services/apis'
 import http from '@/services/base.ts'
 
 type DataManagementStore = {
@@ -19,7 +26,10 @@ type DataManagementStore = {
   saveLoading: boolean
   getDataManagementList: () => Promise<void>
   getDataManagementDetail: (params: CountryDetailReqDto) => Promise<void>
-  saveDataManagementDetail: (data: CountryDetailResDto) => Promise<void>
+  saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<void>
+  checkDataManagementExistingData: (
+    params: CheckExistingDataDto
+  ) => Promise<CheckExistingDataResDto>
   resetDetailData: () => void
   filteredDataByCountry: (term: string, data: DataManagementListDto) => DataManagementListDto
 }
@@ -56,17 +66,30 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
   },
 
   // 保存指标数据（新建或编辑）
-  saveDataManagementDetail: async (data: CountryDetailResDto) => {
+  saveDataManagementDetail: async (data: CreateIndicatorValuesDto) => {
     set({ saveLoading: true })
     try {
-      // 这里可以根据需要区分新建和编辑的接口
-      await http.post('/dataManagement/save', data)
+      await http.post(dataManagementCreate, data)
       set({ saveLoading: false })
       return Promise.resolve()
     } catch (error) {
       console.error('Failed to save data:', error)
       set({ saveLoading: false })
       return Promise.reject(error)
+    }
+  },
+
+  // 检查特定国家和年份是否已有指标数据
+  checkDataManagementExistingData: async (params: CheckExistingDataDto) => {
+    try {
+      const response = await http.post<CheckExistingDataResDto>(
+        dataManagementCheckExistingData,
+        params
+      )
+      return response.data
+    } catch (error) {
+      console.error('Failed to check existing data:', error)
+      throw error
     }
   },
 

@@ -1,9 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
+  CheckExistingDataDto,
+  CheckExistingDataResDto,
   CountryData,
   CountryDetailReqDto,
   CountryDetailResDto,
+  CreateIndicatorValuesDto,
   DataManagementListDto,
   DetailedIndicatorItem,
   SecondaryIndicatorItem,
@@ -96,9 +99,107 @@ export class DataManagementService {
       result.push(yearData);
     }
 
-    // 按年份升序排序，使用 getTime() 进行比较
+    // 按年份降序排序，最新的年份在前
     this.logger.log('指标数据处理完成并按年份排序。');
-    return result.sort((a, b) => a.year.getTime() - b.year.getTime());
+    return result.sort((a, b) => b.year.getTime() - a.year.getTime());
+  }
+
+  /**
+   * 创建或更新指标值数据
+   * @param data 创建指标值的请求数据
+   * @returns 创建或更新的指标值数量
+   */
+  async create(data: CreateIndicatorValuesDto): Promise<{ count: number }> {
+    // 步骤1: 准备参数和基础数据
+    const { countryId, year, indicators } = data;
+    // 统一使用dayjs处理年份，只保留年份信息
+    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearValue = dayjs(yearDate).year();
+
+    this.logger.log(
+      `准备为国家ID ${countryId} 在 ${yearValue} 年创建/更新 ${indicators.length} 个指标值`,
+    );
+
+    // 步骤2: 验证国家是否存在
+    const country = await this.prisma.country.findUnique({
+      where: { id: countryId },
+    });
+
+    if (!country) {
+      this.logger.error(`未找到ID为 ${countryId} 的国家`);
+      throw new NotFoundException(`未找到ID为 ${countryId} 的国家`);
+    }
+
+    // 步骤3: 检查该国家该年份是否已有数据
+    const existingCount = await this.prisma.indicatorValue.count({
+      where: {
+        countryId,
+        year: yearDate,
+      },
+    });
+
+    // 步骤4: 处理指标值数据，将空值转换为null
+    const processedData = indicators.map((indicator) => {
+      const { detailedIndicatorId, value } = indicator;
+
+      // 处理空值：undefined、null、空字符串或NaN都转为null
+      let processedValue: number | null = null;
+
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'number') {
+          processedValue = isNaN(value) ? null : value;
+        } else if (typeof value === 'string') {
+          if (value !== '') {
+            const numValue = Number(value);
+            processedValue = isNaN(numValue) ? null : numValue;
+          }
+        }
+      }
+
+      return {
+        detailedIndicatorId,
+        countryId,
+        year: yearDate,
+        value: processedValue,
+        createTime: new Date(),
+        updateTime: new Date(),
+      };
+    });
+
+    // 步骤5: 执行数据库操作
+    const result = await this.prisma.$transaction(async (prisma) => {
+      let count = 0;
+
+      // 如果已存在数据，先删除所有现有数据
+      if (existingCount > 0) {
+        await prisma.indicatorValue.deleteMany({
+          where: {
+            countryId,
+            year: yearDate,
+          },
+        });
+
+        this.logger.log(
+          `已删除国家 ${country.cnName} 在 ${yearValue} 年的 ${existingCount} 条现有数据`,
+        );
+      }
+
+      // 批量创建新数据
+      if (processedData.length > 0) {
+        const result = await prisma.indicatorValue.createMany({
+          data: processedData,
+        });
+        count = result.count;
+      }
+
+      return { count };
+    });
+
+    this.logger.log(
+      `成功为国家 ${country.cnName} 在 ${yearValue} 年创建了 ${result.count} 个指标值数据`,
+    );
+
+    return { count: result.count };
   }
 
   /**
@@ -241,21 +342,62 @@ export class DataManagementService {
     // 数据完整意味着所有指标都有值
     const isComplete = totalIndicators === validIndicators;
 
-    // 步骤7: 构建最终返回结果
-    const response: CountryDetailResDto = {
-      countryId,
-      cnName: country.cnName,
-      enName: country.enName,
+    // 步骤7: 构建并返回响应数据
+    return {
+      countryId: country.id,
       year: yearDate,
-      indicators: Array.from(topIndicators.values()),
+      indicators:
+        topIndicators.size > 0 ? Array.from(topIndicators.values()) : [],
       isComplete,
     };
+  }
+
+  /**
+   * 检查特定国家和年份是否已有指标数据
+   * @param params 检查参数，包含国家ID和年份
+   * @returns 是否存在数据及数据数量
+   */
+  async checkExistingData(
+    params: CheckExistingDataDto,
+  ): Promise<CheckExistingDataResDto> {
+    const { countryId, year } = params;
+    // 统一使用dayjs处理年份，只保留年份信息
+    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearValue = dayjs(yearDate).year();
 
     this.logger.log(
-      `成功获取国家 ${country.cnName} 在 ${yearValue} 年的详细指标数据，` +
-        `共 ${totalIndicators} 个三级指标，${response.indicators.length} 个一级指标`,
+      `检查国家ID ${countryId} 在 ${yearValue} 年是否已有指标数据`,
     );
 
-    return response;
+    // 验证国家是否存在
+    const country = await this.prisma.country.findUnique({
+      where: { id: countryId },
+    });
+
+    if (!country) {
+      this.logger.error(`未找到ID为 ${countryId} 的国家`);
+      throw new NotFoundException(`未找到ID为 ${countryId} 的国家`);
+    }
+
+    // 查询该国家该年份的指标值数量
+    const count = await this.prisma.indicatorValue.count({
+      where: {
+        countryId,
+        year: yearDate,
+      },
+    });
+
+    const exists = count > 0;
+
+    this.logger.log(
+      `国家 ${country.cnName} 在 ${yearValue} 年${
+        exists ? `已有 ${count} 条` : '没有'
+      }指标数据`,
+    );
+
+    return {
+      exists,
+      count,
+    };
   }
 }

@@ -1,5 +1,5 @@
 /* 数据管理列表页 */
-import { DownloadOutlined, FormOutlined, PlusOutlined } from '@ant-design/icons'
+import { DownloadOutlined, FormOutlined } from '@ant-design/icons'
 import { useDebounce } from 'ahooks'
 import { Button, Collapse, Input, Spin, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
@@ -14,12 +14,11 @@ const { Panel } = Collapse
 const { Search } = Input
 
 const DataManagement = () => {
-  const {
-    data,
-    listLoading: loading,
-    getDataManagementList,
-    filteredDataByCountry
-  } = useDataManagementStore()
+  const data = useDataManagementStore(state => state.data)
+  const loading = useDataManagementStore(state => state.listLoading)
+  const getDataManagementList = useDataManagementStore(state => state.getDataManagementList)
+  const filteredDataByCountry = useDataManagementStore(state => state.filteredDataByCountry)
+
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 })
   const navigate = useNavigate()

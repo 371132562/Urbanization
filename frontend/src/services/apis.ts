@@ -1,10 +1,10 @@
 export const dataManagementList = '/dataManagement/list'
 export const dataManagementDetail = '/dataManagement/detail'
+export const dataManagementCreate = '/dataManagement/create'
+export const dataManagementCheckExistingData = '/dataManagement/checkExistingData'
 
 // 指标API
-export const indicatorTopList = '/indicator/topIndicators'
-export const indicatorSecondaryList = '/indicator/secondaryIndicators'
-export const indicatorDetailedList = '/indicator/detailedIndicators'
+export const indicatorHierarchy = '/indicator/indicatorsHierarchy'
 
 // 国家与大洲API
 export const continentList = '/countryAndContinent/continents'
