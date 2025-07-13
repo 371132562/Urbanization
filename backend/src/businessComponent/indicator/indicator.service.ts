@@ -23,12 +23,15 @@ export class IndicatorService {
 
     try {
       const topIndicators = await this.prisma.topIndicator.findMany({
+        where: { delete: 0 },
         orderBy: { createTime: 'asc' }, // Order by creation time
         include: {
           secondaryIndicator: {
+            where: { delete: 0 },
             orderBy: { createTime: 'asc' }, // Order by creation time
             include: {
               detailedIndicator: {
+                where: { delete: 0 },
                 orderBy: { createTime: 'asc' }, // Order by creation time
               },
             },

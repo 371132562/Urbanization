@@ -34,13 +34,18 @@ export class CountryAndContinentService {
       if (includeCountries) {
         // 包含国家的查询
         return await this.prisma.continent.findMany({
+          where: { delete: 0 },
           include: {
-            Country: true,
+            country: {
+              where: {
+                delete: 0,
+              },
+            },
           },
         });
       } else {
         // 不包含国家的查询
-        return await this.prisma.continent.findMany();
+        return await this.prisma.continent.findMany({ where: { delete: 0 } });
       }
     } catch (error) {
       const err = error as ErrorWithMessage;
@@ -62,7 +67,7 @@ export class CountryAndContinentService {
 
     try {
       // 构建查询条件
-      const where = continentId ? { continentId } : {};
+      const where = continentId ? { continentId, delete: 0 } : { delete: 0 };
 
       // 根据是否包含大洲信息执行不同查询
       if (includeContinent) {

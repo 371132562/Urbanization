@@ -30,6 +30,12 @@ export class DataManagementService {
     this.logger.log('从数据库获取所有指标数据。');
     // 从数据库查询所有指标值，并包含关联的国家信息
     const indicatorValues = await this.prisma.indicatorValue.findMany({
+      where: {
+        delete: 0,
+        country: {
+          delete: 0,
+        },
+      },
       include: {
         country: true,
       },
@@ -121,8 +127,8 @@ export class DataManagementService {
     );
 
     // 步骤2: 验证国家是否存在
-    const country = await this.prisma.country.findUnique({
-      where: { id: countryId },
+    const country = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
     });
 
     if (!country) {
@@ -135,6 +141,7 @@ export class DataManagementService {
       where: {
         countryId,
         year: yearDate,
+        delete: 0,
       },
     });
 
@@ -172,10 +179,14 @@ export class DataManagementService {
 
       // 如果已存在数据，先删除所有现有数据
       if (existingCount > 0) {
-        await prisma.indicatorValue.deleteMany({
+        await prisma.indicatorValue.updateMany({
           where: {
             countryId,
             year: yearDate,
+            delete: 0,
+          },
+          data: {
+            delete: 1,
           },
         });
 
@@ -219,8 +230,8 @@ export class DataManagementService {
     );
 
     // 步骤2: 获取国家基本信息
-    const country = await this.prisma.country.findUnique({
-      where: { id: countryId },
+    const country = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
     });
 
     if (!country) {
@@ -235,12 +246,25 @@ export class DataManagementService {
       where: {
         countryId,
         year: yearDate, // 直接使用精确匹配
+        delete: 0,
+        detailedIndicator: {
+          delete: 0,
+        },
       },
       include: { detailedIndicator: true },
     });
 
     // 获取所有三级指标定义(包括没有值的指标)
     const allDetailedIndicators = await this.prisma.detailedIndicator.findMany({
+      where: {
+        delete: 0,
+        SecondaryIndicator: {
+          delete: 0,
+          topIndicator: {
+            delete: 0,
+          },
+        },
+      },
       include: {
         SecondaryIndicator: {
           include: { topIndicator: true },
@@ -370,8 +394,8 @@ export class DataManagementService {
     );
 
     // 验证国家是否存在
-    const country = await this.prisma.country.findUnique({
-      where: { id: countryId },
+    const country = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
     });
 
     if (!country) {
@@ -384,6 +408,7 @@ export class DataManagementService {
       where: {
         countryId,
         year: yearDate,
+        delete: 0,
       },
     });
 

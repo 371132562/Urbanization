@@ -17,10 +17,10 @@ model Continent {
   id      String    @id @default(uuid()) // 主键ID（UUID）
   cnName  String    @unique // 大洲中文名
   enName  String    @unique // 大洲英文名
-  Country Country[] // 关联到国家表
-
+  country Country[] // 关联到国家表
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
+  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
   @@index([cnName])
@@ -38,6 +38,7 @@ model Country {
   indicatorValues      IndicatorValue[] // 关联到指标数值表
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
+  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
   @@index([cnName])
@@ -54,7 +55,8 @@ model TopIndicator {
   secondaryIndicator SecondaryIndicator[] // 关联到二级指标
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
-
+ delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+ 
   @@index([id])
   @@index([indicatorCnName])
   @@index([indicatorEnName])
@@ -73,7 +75,8 @@ model SecondaryIndicator {
   detailedIndicator DetailedIndicator[] // 关联到三级指标
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
-  
+  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+
   @@index([id])
   @@index([indicatorCnName])
   @@index([indicatorEnName])
@@ -93,6 +96,7 @@ model DetailedIndicator {
   IndicatorValue       IndicatorValue[] // 关联到指标数值表
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
+  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
   @@index([indicatorCnName])
@@ -111,6 +115,7 @@ model IndicatorValue {
   detailedIndicator   DetailedIndicator @relation(fields: [detailedIndicatorId], references: [id]) // 所属三级指标
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
+  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@unique([countryId, year, detailedIndicatorId], name: "countryYearIndicator") // 复合唯一约束，确保一个国家一年一个指标只有一个值
   @@index([countryId, year])
@@ -124,6 +129,8 @@ model UrbanizationWorldMap {
   urbanization Boolean @default(false) // 是否城镇化
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
+  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+
 }
 
 // 文章管理表
@@ -131,7 +138,9 @@ model Article {
   id      String @id @default(uuid()) // 主键ID
   title   String // 文章标题
   content String // 文章内容
-  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
+  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+
+  @@index([id])
 }
