@@ -2,6 +2,7 @@ export const dataManagementList = '/dataManagement/list'
 export const dataManagementDetail = '/dataManagement/detail'
 export const dataManagementCreate = '/dataManagement/create'
 export const dataManagementCheckExistingData = '/dataManagement/checkExistingData'
+export const dataManagementDelete = '/dataManagement/delete'
 
 // 指标API
 export const indicatorHierarchy = '/indicator/indicatorsHierarchy'

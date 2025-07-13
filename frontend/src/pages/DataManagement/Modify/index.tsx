@@ -8,8 +8,8 @@ import {
   message,
   Modal,
   Select,
+  Skeleton,
   Space,
-  Spin,
   theme,
   Typography
 } from 'antd'
@@ -34,6 +34,57 @@ import useIndicatorStore from '@/stores/indicatorStore'
 
 const { Text } = Typography
 const { Option, OptGroup } = Select
+
+const ModifyPageSkeleton = () => (
+  <div className="space-y-6">
+    {[...Array(3)].map((_, topIndex) => (
+      <div
+        key={topIndex}
+        className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow"
+      >
+        <div className="bg-gray-800 px-6 py-3">
+          <Skeleton.Input
+            style={{ width: '200px' }}
+            active
+            size="small"
+          />
+        </div>
+        <div className="divide-y divide-gray-100">
+          {[...Array(2)].map((_, secIndex) => (
+            <div
+              key={secIndex}
+              className="p-6"
+            >
+              <Skeleton.Input
+                style={{ width: '150px', marginBottom: '1rem' }}
+                active
+                size="small"
+              />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {[...Array(3)].map((_, itemIndex) => (
+                  <div
+                    key={itemIndex}
+                    className="rounded-md p-3"
+                  >
+                    <Skeleton
+                      active
+                      title={false}
+                      paragraph={{ rows: 2 }}
+                    />
+                    <Skeleton.Input
+                      style={{ width: '100%', marginTop: '8px' }}
+                      active
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+)
 
 export const Component = () => {
   const { token } = theme.useToken()
@@ -71,7 +122,7 @@ export const Component = () => {
   useEffect(() => {
     getContinents(true) // 获取大洲数据，并包含国家
     getCountries({ includeContinent: true }) // 获取所有国家数据，包含大洲信息
-  }, [getContinents, getCountries])
+  }, [])
 
   // 组件加载或参数变化时获取详情数据
   useEffect(() => {
@@ -93,16 +144,7 @@ export const Component = () => {
     return () => {
       resetDetailData()
     }
-  }, [
-    countryId,
-    year,
-    isEdit,
-    getDataManagementDetail,
-    resetDetailData,
-    indicatorHierarchy,
-    form,
-    initializeNewData
-  ])
+  }, [countryId, year, isEdit, isEdit ? null : indicatorHierarchy])
 
   // 辅助函数：从指标结构生成表单初始值
   const initialValuesFromIndicators = (indicators: TopIndicatorItem[]) => {
@@ -167,6 +209,17 @@ export const Component = () => {
   // 处理国家变化
   const handleCountryChange = (value: string) => {
     setSelectedCountry(value)
+  }
+
+  // 封装保存逻辑，以便复用
+  const doSave = async (dataToSave: CreateIndicatorValuesDto) => {
+    const success = await saveDataManagementDetail(dataToSave)
+    if (success) {
+      message.success('保存成功')
+      navigate('/dataManagement')
+    } else {
+      message.error('保存失败')
+    }
   }
 
   // 保存数据
@@ -240,29 +293,21 @@ export const Component = () => {
             okText: '确认覆盖',
             cancelText: '取消',
             async onOk() {
-              await saveDataManagementDetail(dataToSave)
-              message.success('保存成功')
-              navigate('/dataManagement')
-            },
-            onCancel() {
-              message.info('已取消保存')
+              await doSave(dataToSave)
             }
           })
         } else {
-          // 不存在，直接保存
-          await saveDataManagementDetail(dataToSave)
-          message.success('保存成功')
-          navigate('/dataManagement')
+          // 如果数据不存在，直接保存
+          await doSave(dataToSave)
         }
       } else {
-        // 编辑模式，直接保存
-        await saveDataManagementDetail(dataToSave)
-        message.success('保存成功')
-        navigate('/dataManagement')
+        // 编辑模式下直接保存
+        await doSave(dataToSave)
       }
     } catch (error) {
-      console.error('保存失败:', error)
-      message.error('保存失败，请重试')
+      // Antd Form.validateFields() 会在校验失败时抛出错误
+      console.error('表单校验失败:', error)
+      message.error('表单校验失败，请检查输入')
     }
   }
 
@@ -363,24 +408,28 @@ export const Component = () => {
   }
 
   return (
-    <Spin spinning={detailLoading || saveLoading}>
-      <div className="mx-auto max-w-7xl px-4 py-6">
-        <div className="mb-6 flex items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
-          <div className="mb-1 text-2xl text-gray-100">数据{isEdit ? '编辑' : '录入'}</div>
-        </div>
+    <div className="mx-auto max-w-7xl px-4 py-6">
+      <div className="mb-6 flex items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
+        <div className="mb-1 text-2xl text-gray-100">数据{isEdit ? '编辑' : '录入'}</div>
+      </div>
 
-        <div className="mb-6 rounded-lg bg-white p-6 pt-4 shadow-sm">
-          <div className="flex flex-wrap items-end justify-between">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="min-w-80">
-                <div className="mb-1 text-sm text-gray-500">当前选择国家</div>
+      <div className="mb-6 rounded-lg bg-white p-6 pt-4 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="min-w-80">
+              <div className="mb-1 text-sm text-gray-500">当前选择国家</div>
+              {countriesLoading || continentsLoading ? (
+                <Skeleton.Input
+                  active
+                  style={{ width: '100%', height: 32 }}
+                />
+              ) : (
                 <Select
                   showSearch
                   placeholder="请选择国家"
                   style={{ width: '100%' }}
                   value={selectedCountry}
                   onChange={handleCountryChange}
-                  loading={countriesLoading || continentsLoading}
                   disabled={isEdit}
                   filterOption={(input, option) => {
                     const label = option?.label?.toString().toLowerCase() || ''
@@ -393,51 +442,49 @@ export const Component = () => {
                 >
                   {countryOptions}
                 </Select>
-              </div>
-
-              <div className="min-w-40">
-                <div className="mb-1 text-sm text-gray-500">当前选择年份</div>
-                <DatePicker
-                  picker="year"
-                  placeholder="请选择年份"
-                  value={selectedYear}
-                  onChange={value => setSelectedYear(value)}
-                  disabled={isEdit}
-                  allowClear={false}
-                  style={{ width: '100%' }}
-                />
-              </div>
+              )}
             </div>
 
-            <Space>
-              <Button onClick={() => navigate('/dataManagement')}>返回</Button>
-              <Button
-                type="primary"
-                onClick={handleSave}
-                loading={saveLoading}
-                disabled={isEdit ? !detailData : !selectedCountry || !selectedYear} // 新建模式下，如果没有选择国家和年份，禁用保存按钮
-              >
-                保存
-              </Button>
-            </Space>
+            <div className="min-w-40">
+              <div className="mb-1 text-sm text-gray-500">当前选择年份</div>
+              <DatePicker
+                picker="year"
+                placeholder="请选择年份"
+                value={selectedYear}
+                onChange={value => setSelectedYear(value)}
+                disabled={isEdit}
+                allowClear={false}
+                style={{ width: '100%' }}
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          {detailLoading ? (
-            <div className="flex h-80 items-center justify-center rounded-lg bg-white p-6 shadow-sm">
-              <Spin size="large" />
-            </div>
-          ) : (
-            <Form
-              form={form}
-              layout="vertical"
+          <Space>
+            <Button onClick={() => navigate('/dataManagement')}>返回</Button>
+            <Button
+              type="primary"
+              onClick={handleSave}
+              loading={saveLoading}
+              disabled={isEdit ? !detailData : !selectedCountry || !selectedYear} // 新建模式下，如果没有选择国家和年份，禁用保存按钮
             >
-              {renderFormItems()}
-            </Form>
-          )}
+              保存
+            </Button>
+          </Space>
         </div>
       </div>
-    </Spin>
+
+      <div>
+        {detailLoading ? (
+          <ModifyPageSkeleton />
+        ) : (
+          <Form
+            form={form}
+            layout="vertical"
+          >
+            {renderFormItems()}
+          </Form>
+        )}
+      </div>
+    </div>
   )
 }

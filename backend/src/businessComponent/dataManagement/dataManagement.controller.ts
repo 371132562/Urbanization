@@ -1,12 +1,11 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { DataManagementService } from './dataManagement.service';
 import {
-  CheckExistingDataDto,
-  CheckExistingDataResDto,
   CountryDetailReqDto,
   CountryDetailResDto,
   CreateIndicatorValuesDto,
   DataManagementListDto,
+  CountryYearQueryDto,
 } from '../../../types/dto';
 
 @Controller('dataManagement')
@@ -46,15 +45,13 @@ export class DataManagementController {
     return this.dataManagementService.detail(params);
   }
 
-  /**
-   * 检查特定国家和年份是否已有指标数据
-   * @param params 检查参数，包含国家ID和年份
-   * @returns {Promise<CheckExistingDataResDto>} 是否存在数据及数据数量
-   */
+  @Post('delete')
+  delete(@Body() params: CountryYearQueryDto) {
+    return this.dataManagementService.delete(params);
+  }
+
   @Post('checkExistingData')
-  async checkExistingData(
-    @Body() params: CheckExistingDataDto,
-  ): Promise<CheckExistingDataResDto> {
+  checkExistingData(@Body() params: CountryYearQueryDto) {
     return this.dataManagementService.checkExistingData(params);
   }
 }

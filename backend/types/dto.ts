@@ -110,7 +110,7 @@ export type CreateIndicatorValuesDto = {
 /**
  * 检查数据是否存在相关类型
  */
-export type CheckExistingDataDto = {
+export type CountryYearQueryDto = {
   countryId: string; // 国家ID
   year: Date; // 年份
 };

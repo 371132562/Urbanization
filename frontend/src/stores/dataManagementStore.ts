@@ -1,9 +1,9 @@
 import type {
-  CheckExistingDataDto,
   CheckExistingDataResDto,
   CountryData,
   CountryDetailReqDto,
   CountryDetailResDto,
+  CountryYearQueryDto,
   CreateIndicatorValuesDto,
   DataManagementListDto,
   TopIndicatorItem,
@@ -14,6 +14,7 @@ import { create } from 'zustand'
 import {
   dataManagementCheckExistingData,
   dataManagementCreate,
+  dataManagementDelete,
   dataManagementDetail,
   dataManagementList
 } from '@/services/apis'
@@ -27,10 +28,9 @@ type DataManagementStore = {
   saveLoading: boolean
   getDataManagementList: () => Promise<void>
   getDataManagementDetail: (params: CountryDetailReqDto) => Promise<void>
-  saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<void>
-  checkDataManagementExistingData: (
-    params: CheckExistingDataDto
-  ) => Promise<CheckExistingDataResDto>
+  saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<boolean>
+  deleteData: (params: CountryYearQueryDto) => Promise<boolean>
+  checkDataManagementExistingData: (params: CountryYearQueryDto) => Promise<CheckExistingDataResDto>
   resetDetailData: () => void
   initializeNewData: (indicatorHierarchy: TopIndicatorItem[]) => void
   filteredDataByCountry: (term: string, data: DataManagementListDto) => DataManagementListDto
@@ -68,21 +68,32 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
   },
 
   // 保存指标数据（新建或编辑）
-  saveDataManagementDetail: async (data: CreateIndicatorValuesDto) => {
+  saveDataManagementDetail: async (data: CreateIndicatorValuesDto): Promise<boolean> => {
     set({ saveLoading: true })
     try {
       await http.post(dataManagementCreate, data)
       set({ saveLoading: false })
-      return Promise.resolve()
+      return true
     } catch (error) {
       console.error('Failed to save data:', error)
       set({ saveLoading: false })
-      return Promise.reject(error)
+      return false
+    }
+  },
+
+  // 删除特定国家和年份的数据
+  deleteData: async (params: CountryYearQueryDto): Promise<boolean> => {
+    try {
+      await http.post(dataManagementDelete, params)
+      return true
+    } catch (error) {
+      console.error('Failed to delete data:', error)
+      return false
     }
   },
 
   // 检查特定国家和年份是否已有指标数据
-  checkDataManagementExistingData: async (params: CheckExistingDataDto) => {
+  checkDataManagementExistingData: async (params: CountryYearQueryDto) => {
     try {
       const response = await http.post<CheckExistingDataResDto>(
         dataManagementCheckExistingData,

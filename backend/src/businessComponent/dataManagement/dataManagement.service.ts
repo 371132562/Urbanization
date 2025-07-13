@@ -1,7 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
-  CheckExistingDataDto,
   CheckExistingDataResDto,
   CountryData,
   CountryDetailReqDto,
@@ -12,6 +11,7 @@ import {
   SecondaryIndicatorItem,
   TopIndicatorItem,
   YearData,
+  CountryYearQueryDto,
 } from '../../../types/dto';
 import { IndicatorValue, Country } from '@prisma/client';
 import * as dayjs from 'dayjs';
@@ -377,12 +377,55 @@ export class DataManagementService {
   }
 
   /**
+   * 删除特定国家和年份的指标数据（逻辑删除）
+   * @param params 删除参数，包含国家ID和年份
+   * @returns 删除的记录数
+   */
+  async delete(params: CountryYearQueryDto): Promise<{ count: number }> {
+    const { countryId, year } = params;
+    // 统一使用dayjs处理年份，只保留年份信息
+    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearValue = dayjs(yearDate).year();
+
+    this.logger.log(`准备删除国家ID ${countryId} 在 ${yearValue} 年的指标数据`);
+
+    // 1. 验证国家是否存在
+    const country = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
+    });
+
+    if (!country) {
+      this.logger.error(`未找到ID为 ${countryId} 的国家`);
+      throw new NotFoundException(`未找到ID为 ${countryId} 的国家`);
+    }
+
+    // 2. 执行逻辑删除
+    const result = await this.prisma.indicatorValue.updateMany({
+      where: {
+        countryId,
+        year: yearDate,
+        delete: 0, // 只删除未被删除的记录
+      },
+      data: {
+        delete: 1, // 设置删除标记
+        updateTime: new Date(),
+      },
+    });
+
+    this.logger.log(
+      `成功为国家 ${country.cnName} 在 ${yearValue} 年删除了 ${result.count} 条指标数据`,
+    );
+
+    return { count: result.count };
+  }
+
+  /**
    * 检查特定国家和年份是否已有指标数据
    * @param params 检查参数，包含国家ID和年份
    * @returns 是否存在数据及数据数量
    */
   async checkExistingData(
-    params: CheckExistingDataDto,
+    params: CountryYearQueryDto,
   ): Promise<CheckExistingDataResDto> {
     const { countryId, year } = params;
     // 统一使用dayjs处理年份，只保留年份信息
