@@ -1,6 +1,45 @@
-import { createBrowserRouter, Navigate } from 'react-router'
+import { createBrowserRouter, Navigate, RouteObject } from 'react-router'
 
 import ErrorPage from '@/components/Error'
+
+import { RouteItem, sideRoutes, topRoutes } from './router/routesConfig.tsx'
+
+// 根据路由配置生成路由
+const generateRoutes = (): RouteObject[] => {
+  const generateChildrenRoutes = (routes: RouteItem[]): RouteObject[] => {
+    return routes.flatMap(route => {
+      const result: RouteObject[] = []
+
+      // 添加主路由
+      if (route.component) {
+        result.push({
+          path: route.path,
+          lazy: () => import(/* @vite-ignore */ route.component as string)
+        })
+      }
+
+      // 添加子路由
+      if (route.children) {
+        result.push(...generateChildrenRoutes(route.children))
+      }
+
+      return result
+    })
+  }
+
+  // 合并顶部和侧边栏路由
+  const allRoutes = [...generateChildrenRoutes(topRoutes), ...generateChildrenRoutes(sideRoutes)]
+
+  // 去重
+  const pathMap = new Map<string, RouteObject>()
+  allRoutes.forEach(route => {
+    if (route.path && !pathMap.has(route.path)) {
+      pathMap.set(route.path, route)
+    }
+  })
+
+  return Array.from(pathMap.values())
+}
 
 const router = createBrowserRouter([
   {
@@ -12,56 +51,7 @@ const router = createBrowserRouter([
     lazy: () => import('./components/Layout'),
     // 将错误元素放在布局路由上，它可以捕获所有子路由的渲染错误
     errorElement: <ErrorPage />,
-    children: [
-      {
-        path: '/home',
-        lazy: () => import('./pages/Home')
-      },
-      {
-        path: '/comprehensiveEvaluation',
-        lazy: () => import('./pages/ComprehensiveEvaluation')
-      },
-      {
-        path: '/urbanizationProcess',
-        lazy: () => import('./pages/UrbanizationProcess')
-      },
-      {
-        path: '/humanDynamics',
-        lazy: () => import('./pages/HumanDynamics')
-      },
-      {
-        path: '/materialDynamics',
-        lazy: () => import('./pages/MaterialDynamics')
-      },
-      {
-        path: '/spatialDynamics',
-        lazy: () => import('./pages/SpatialDynamics')
-      },
-      {
-        path: '/dataManagement',
-        lazy: () => import('./pages/DataManagement')
-      },
-      {
-        path: '/dataManagement/modify/:countryId/:year',
-        lazy: () => import('./pages/DataManagement/Modify')
-      },
-      {
-        path: '/map/urbanizationRate',
-        lazy: () => import('./pages/Map/UrbanizationRate')
-      },
-      {
-        path: '/map/mapEdit',
-        lazy: () => import('./pages/Map/MapEdit')
-      },
-      {
-        path: '/evaluationModel',
-        lazy: () => import('./pages/EvaluationModel')
-      },
-      {
-        path: '/articleManagement',
-        lazy: () => import('./pages/ArticleManagement')
-      }
-    ]
+    children: generateRoutes()
   }
 ])
 

@@ -1,22 +1,11 @@
-import {
-  BarChartOutlined,
-  CalculatorOutlined,
-  DatabaseOutlined,
-  EnvironmentOutlined,
-  FileTextOutlined,
-  GlobalOutlined,
-  GoldOutlined,
-  HomeOutlined,
-  RiseOutlined,
-  TeamOutlined,
-  UserOutlined
-} from '@ant-design/icons' // 导入图标
-import { Layout, Menu, MenuProps } from 'antd'
+import { UserOutlined } from '@ant-design/icons' // 导入图标
+import { Breadcrumb, Layout, Menu, MenuProps } from 'antd'
 import { FC, useMemo, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-import { useLocation, useNavigate, useOutlet } from 'react-router'
+import { Link, useLocation, useNavigate, useOutlet } from 'react-router'
 
 import ErrorPage from '@/components/Error'
+import { getBreadcrumbItems, sideRoutes, topRoutes } from '@/router/routesConfig'
 
 const { Header, Sider, Content, Footer } = Layout
 
@@ -46,55 +35,39 @@ export const Component: FC = () => {
     return []
   }, [pathname])
 
-  const topMenuItems: MenuProps['items'] = [
-    { key: '/home', label: '首页', icon: <HomeOutlined /> },
-    {
-      key: '/comprehensiveEvaluation',
-      label: '综合评价',
-      icon: <BarChartOutlined />
-    },
-    {
-      key: '/urbanizationProcess',
-      label: '城镇化进程',
-      icon: <RiseOutlined />
-    },
-    { key: '/humanDynamics', label: '人性动力', icon: <TeamOutlined /> },
-    { key: '/materialDynamics', label: '物性动力', icon: <GoldOutlined /> },
-    { key: '/spatialDynamics', label: '空间动力', icon: <GlobalOutlined /> }
-  ]
+  // 根据路由配置生成顶部菜单项
+  const topMenuItems: MenuProps['items'] = topRoutes.map(route => ({
+    key: route.path,
+    label: route.title,
+    icon: route.icon
+  }))
 
-  const menuItems: MenuProps['items'] = [
-    {
-      key: '/dataManagement',
-      icon: <DatabaseOutlined />,
-      label: '数据管理'
-    },
-    {
-      key: '/map',
-      icon: <EnvironmentOutlined />,
-      label: '地图功能',
-      children: [
-        {
-          key: '/map/urbanizationRate',
-          label: '城镇化率'
-        },
-        {
-          key: '/map/mapEdit',
-          label: '地图修改'
-        }
-      ]
-    },
-    {
-      key: '/evaluationModel',
-      icon: <CalculatorOutlined />,
-      label: '评估模型'
-    },
-    {
-      key: '/articleManagement',
-      icon: <FileTextOutlined />,
-      label: '文章管理'
+  // 根据路由配置生成侧边菜单项
+  const menuItems: MenuProps['items'] = sideRoutes.map(route => {
+    const item: any = {
+      key: route.path,
+      icon: route.icon,
+      label: route.title
     }
-  ]
+
+    if (route.children && route.children.filter(child => !child.hideInMenu).length > 0) {
+      item.children = route.children
+        .filter(child => !child.hideInMenu)
+        .map(child => ({
+          key: child.path,
+          label: child.title
+        }))
+    }
+
+    return item
+  })
+
+  // 获取面包屑项
+  const breadcrumbItems = useMemo(() => {
+    return getBreadcrumbItems(pathname).map(item => ({
+      title: item.path === pathname ? item.title : <Link to={item.path}>{item.title}</Link>
+    }))
+  }, [pathname])
 
   return (
     <Layout className="h-screen w-full">
@@ -136,7 +109,11 @@ export const Component: FC = () => {
           />
         </Sider>
         <Layout>
-          <Content className="!flex flex-grow flex-col bg-gray-100 p-8 pb-2 pt-10">
+          <Content className="!flex flex-grow flex-col bg-gray-100 p-8 pb-2 pt-6">
+            {/* 添加面包屑导航 */}
+            <div className="mb-3">
+              <Breadcrumb items={breadcrumbItems} />
+            </div>
             <div className="flex-grow overflow-y-auto rounded-lg bg-white p-6 shadow-md">
               <ErrorBoundary FallbackComponent={ErrorPage}>{outlet}</ErrorBoundary>
             </div>

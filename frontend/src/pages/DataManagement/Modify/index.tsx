@@ -220,7 +220,7 @@ export const Component = () => {
     <div className="mx-auto max-w-7xl px-4 py-6">
       <div className="mb-6 flex flex-col items-start justify-between rounded-lg bg-gray-800 p-6 shadow-sm sm:flex-row sm:items-center">
         <div>
-          <div className="mb-1 text-2xl text-gray-100">{isEdit ? '编辑' : '新建'}数据</div>
+          <div className="mb-1 text-2xl text-gray-100">{isEdit ? '编辑' : '录入'}数据</div>
           {detailData && (
             <div className="text-lg font-medium text-gray-100">
               {detailData.cnName}
