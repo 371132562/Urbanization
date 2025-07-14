@@ -204,3 +204,33 @@ export type QueryCountryReqDto = {
  */
 export type ContinentListResDto = ContinentWithCountriesDto[];
 export type CountryListResDto = CountryWithContinentDto[];
+
+/**
+ * 世界地图城镇化数据响应DTO
+ */
+export type UrbanizationWorldMapDataItem = {
+  id: string;
+  countryId: string;
+  urbanization: boolean;
+  createTime: Date;
+  updateTime: Date;
+  country: {
+    cnName: string;
+    enName: string;
+    continent: {
+      id: string;
+      cnName: string;
+      enName: string;
+    };
+  };
+};
+
+export type UrbanizationWorldMapDataDto = UrbanizationWorldMapDataItem[];
+
+/**
+ * 批量更新国家城镇化状态 DTO
+ */
+export class UrbanizationUpdateDto {
+  countryId: string;
+  urbanization: boolean;
+}

@@ -5,6 +5,8 @@ import {
   CountryListResDto,
   QueryContinentReqDto,
   QueryCountryReqDto,
+  UrbanizationUpdateDto,
+  UrbanizationWorldMapDataDto,
 } from '../../../types/dto';
 
 @Controller('countryAndContinent')
@@ -35,5 +37,26 @@ export class CountryAndContinentController {
     @Body() params: QueryCountryReqDto,
   ): Promise<CountryListResDto> {
     return this.countryAndContinentService.getCountries(params);
+  }
+
+  /**
+   * 获取所有世界地图城镇化数据
+   * @returns {Promise<UrbanizationWorldMapDataDto>} 世界地图城镇化数据列表
+   */
+  @Post('urbanizationMap')
+  async getUrbanizationWorldMapData(): Promise<UrbanizationWorldMapDataDto> {
+    return this.countryAndContinentService.getUrbanizationWorldMapData();
+  }
+
+  /**
+   * 批量更新国家城镇化状态
+   * @param updates 更新数据数组
+   * @returns {Promise<{count: number}>} 更新计数
+   */
+  @Post('urbanizationUpdate')
+  async batchUpdateUrbanization(
+    @Body() updates: UrbanizationUpdateDto[],
+  ): Promise<{ count: number }> {
+    return this.countryAndContinentService.batchUpdateUrbanization(updates);
   }
 }

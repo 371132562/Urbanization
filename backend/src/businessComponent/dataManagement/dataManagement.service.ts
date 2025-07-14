@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   CheckExistingDataResDto,
@@ -18,6 +18,8 @@ import {
 import { IndicatorValue, Country } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import * as xlsx from 'xlsx';
+import { BusinessException } from '../../exceptions/businessException';
+import { ErrorCode } from '../../../types/response';
 
 @Injectable()
 export class DataManagementService {
@@ -43,6 +45,13 @@ export class DataManagementService {
         country: true,
       },
     });
+
+    if (!indicatorValues || indicatorValues.length === 0) {
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        '未找到任何指标数据',
+      );
+    }
 
     // 定义一个包含国家信息的指标值类型，方便后续处理
     type IndicatorValueWithCountry = IndicatorValue & { country: Country };
@@ -136,7 +145,10 @@ export class DataManagementService {
 
     if (!country) {
       this.logger.error(`未找到ID为 ${countryId} 的国家`);
-      throw new NotFoundException(`未找到ID为 ${countryId} 的国家`);
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到ID为 ${countryId} 的国家`,
+      );
     }
 
     // 步骤3: 检查该国家该年份是否已有数据
@@ -239,7 +251,10 @@ export class DataManagementService {
 
     if (!country) {
       this.logger.error(`未找到ID为 ${countryId} 的国家`);
-      throw new NotFoundException(`未找到ID为 ${countryId} 的国家`);
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到ID为 ${countryId} 的国家`,
+      );
     }
 
     // 步骤3: 获取指定年份的指标数据
@@ -256,6 +271,13 @@ export class DataManagementService {
       },
       include: { detailedIndicator: true },
     });
+
+    if (!indicatorValues || indicatorValues.length === 0) {
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到国家 ${country.cnName} 在 ${yearValue} 年的指标数据`,
+      );
+    }
 
     // 获取所有三级指标定义(包括没有值的指标)
     const allDetailedIndicators = await this.prisma.detailedIndicator.findMany({
@@ -380,46 +402,52 @@ export class DataManagementService {
   }
 
   /**
-   * 删除特定国家和年份的指标数据（逻辑删除）
-   * @param params 删除参数，包含国家ID和年份
+   * 根据国家和年份删除所有相关指标数据
+   * @param params 包含国家ID和年份的请求参数
    * @returns 删除的记录数
    */
   async delete(params: CountryYearQueryDto): Promise<{ count: number }> {
     const { countryId, year } = params;
-    // 统一使用dayjs处理年份，只保留年份信息
     const yearDate = dayjs(year).startOf('year').toDate();
     const yearValue = dayjs(yearDate).year();
 
-    this.logger.log(`准备删除国家ID ${countryId} 在 ${yearValue} 年的指标数据`);
+    this.logger.log(
+      `准备删除国家ID ${countryId} 在 ${yearValue} 年的所有指标数据`,
+    );
 
-    // 1. 验证国家是否存在
-    const country = await this.prisma.country.findFirst({
-      where: { id: countryId, delete: 0 },
-    });
-
-    if (!country) {
-      this.logger.error(`未找到ID为 ${countryId} 的国家`);
-      throw new NotFoundException(`未找到ID为 ${countryId} 的国家`);
-    }
-
-    // 2. 执行逻辑删除
-    const result = await this.prisma.indicatorValue.updateMany({
+    // 步骤1: 检查数据是否存在
+    const existingCount = await this.prisma.indicatorValue.count({
       where: {
         countryId,
         year: yearDate,
-        delete: 0, // 只删除未被删除的记录
+        delete: 0,
+      },
+    });
+
+    if (existingCount === 0) {
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到国家ID ${countryId} 在 ${yearValue} 年的数据，无需删除`,
+      );
+    }
+
+    // 步骤2: 执行软删除
+    const { count } = await this.prisma.indicatorValue.updateMany({
+      where: {
+        countryId,
+        year: yearDate,
+        delete: 0,
       },
       data: {
-        delete: 1, // 设置删除标记
-        updateTime: new Date(),
+        delete: 1,
       },
     });
 
     this.logger.log(
-      `成功为国家 ${country.cnName} 在 ${yearValue} 年删除了 ${result.count} 条指标数据`,
+      `成功软删除了国家ID ${countryId} 在 ${yearValue} 年的 ${count} 条指标数据`,
     );
 
-    return { count: result.count };
+    return { count };
   }
 
   /**
@@ -446,7 +474,10 @@ export class DataManagementService {
 
     if (!country) {
       this.logger.error(`未找到ID为 ${countryId} 的国家`);
-      throw new NotFoundException(`未找到ID为 ${countryId} 的国家`);
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到ID为 ${countryId} 的国家`,
+      );
     }
 
     // 查询该国家该年份的指标值数量

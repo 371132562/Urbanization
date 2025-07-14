@@ -17,11 +17,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "chcp 65001 && cross-env LOG_LEVEL=debug node prisma/seed.js"
+    "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "prisma": {
-    "seed": "npm run seed"
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

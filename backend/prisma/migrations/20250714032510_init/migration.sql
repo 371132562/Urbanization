@@ -106,10 +106,10 @@ CREATE UNIQUE INDEX "Continent_enName_key" ON "Continent"("enName");
 CREATE INDEX "Continent_id_idx" ON "Continent"("id");
 
 -- CreateIndex
-CREATE INDEX "Continent_cnName_idx" ON "Continent"("cnName");
+CREATE INDEX "Continent_cnName_delete_idx" ON "Continent"("cnName", "delete");
 
 -- CreateIndex
-CREATE INDEX "Continent_enName_idx" ON "Continent"("enName");
+CREATE INDEX "Continent_enName_delete_idx" ON "Continent"("enName", "delete");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Country_cnName_key" ON "Country"("cnName");
@@ -121,10 +121,10 @@ CREATE UNIQUE INDEX "Country_enName_key" ON "Country"("enName");
 CREATE INDEX "Country_id_idx" ON "Country"("id");
 
 -- CreateIndex
-CREATE INDEX "Country_cnName_idx" ON "Country"("cnName");
+CREATE INDEX "Country_cnName_delete_idx" ON "Country"("cnName", "delete");
 
 -- CreateIndex
-CREATE INDEX "Country_enName_idx" ON "Country"("enName");
+CREATE INDEX "Country_enName_delete_idx" ON "Country"("enName", "delete");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TopIndicator_indicatorCnName_key" ON "TopIndicator"("indicatorCnName");
@@ -136,10 +136,10 @@ CREATE UNIQUE INDEX "TopIndicator_indicatorEnName_key" ON "TopIndicator"("indica
 CREATE INDEX "TopIndicator_id_idx" ON "TopIndicator"("id");
 
 -- CreateIndex
-CREATE INDEX "TopIndicator_indicatorCnName_idx" ON "TopIndicator"("indicatorCnName");
+CREATE INDEX "TopIndicator_indicatorCnName_delete_idx" ON "TopIndicator"("indicatorCnName", "delete");
 
 -- CreateIndex
-CREATE INDEX "TopIndicator_indicatorEnName_idx" ON "TopIndicator"("indicatorEnName");
+CREATE INDEX "TopIndicator_indicatorEnName_delete_idx" ON "TopIndicator"("indicatorEnName", "delete");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SecondaryIndicator_indicatorCnName_key" ON "SecondaryIndicator"("indicatorCnName");
@@ -151,10 +151,10 @@ CREATE UNIQUE INDEX "SecondaryIndicator_indicatorEnName_key" ON "SecondaryIndica
 CREATE INDEX "SecondaryIndicator_id_idx" ON "SecondaryIndicator"("id");
 
 -- CreateIndex
-CREATE INDEX "SecondaryIndicator_indicatorCnName_idx" ON "SecondaryIndicator"("indicatorCnName");
+CREATE INDEX "SecondaryIndicator_indicatorCnName_delete_idx" ON "SecondaryIndicator"("indicatorCnName", "delete");
 
 -- CreateIndex
-CREATE INDEX "SecondaryIndicator_indicatorEnName_idx" ON "SecondaryIndicator"("indicatorEnName");
+CREATE INDEX "SecondaryIndicator_indicatorEnName_delete_idx" ON "SecondaryIndicator"("indicatorEnName", "delete");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DetailedIndicator_indicatorCnName_key" ON "DetailedIndicator"("indicatorCnName");
@@ -166,13 +166,16 @@ CREATE UNIQUE INDEX "DetailedIndicator_indicatorEnName_key" ON "DetailedIndicato
 CREATE INDEX "DetailedIndicator_id_idx" ON "DetailedIndicator"("id");
 
 -- CreateIndex
-CREATE INDEX "DetailedIndicator_indicatorCnName_idx" ON "DetailedIndicator"("indicatorCnName");
+CREATE INDEX "DetailedIndicator_indicatorCnName_delete_idx" ON "DetailedIndicator"("indicatorCnName", "delete");
 
 -- CreateIndex
-CREATE INDEX "DetailedIndicator_indicatorEnName_idx" ON "DetailedIndicator"("indicatorEnName");
+CREATE INDEX "DetailedIndicator_indicatorEnName_delete_idx" ON "DetailedIndicator"("indicatorEnName", "delete");
 
 -- CreateIndex
 CREATE INDEX "IndicatorValue_countryId_year_idx" ON "IndicatorValue"("countryId", "year");
+
+-- CreateIndex
+CREATE INDEX "IndicatorValue_countryId_year_delete_idx" ON "IndicatorValue"("countryId", "year", "delete");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UrbanizationWorldMap_countryId_key" ON "UrbanizationWorldMap"("countryId");
@@ -181,7 +184,7 @@ CREATE UNIQUE INDEX "UrbanizationWorldMap_countryId_key" ON "UrbanizationWorldMa
 CREATE INDEX "UrbanizationWorldMap_id_idx" ON "UrbanizationWorldMap"("id");
 
 -- CreateIndex
-CREATE INDEX "UrbanizationWorldMap_countryId_idx" ON "UrbanizationWorldMap"("countryId");
+CREATE INDEX "UrbanizationWorldMap_countryId_delete_idx" ON "UrbanizationWorldMap"("countryId", "delete");
 
 -- CreateIndex
 CREATE INDEX "Article_id_idx" ON "Article"("id");

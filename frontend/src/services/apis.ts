@@ -11,3 +11,5 @@ export const indicatorHierarchy = '/indicator/indicatorsHierarchy'
 // 国家与大洲API
 export const continentList = '/countryAndContinent/continents'
 export const countryList = '/countryAndContinent/countries'
+export const urbanizationMap = '/countryAndContinent/urbanizationMap'
+export const urbanizationUpdate = '/countryAndContinent/urbanizationUpdate'

@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { IndicatorHierarchyResDto } from '../../../types/dto'; // 使用正确的路径
 
 import { PrismaService } from '../../../prisma/prisma.service'; // 使用正确的路径
+import { BusinessException } from '../../exceptions/businessException';
+import { ErrorCode } from '../../../types/response';
 
 interface ErrorWithMessage {
   message: string;
@@ -39,6 +41,13 @@ export class IndicatorService {
         },
       });
 
+      if (!topIndicators || topIndicators.length === 0) {
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          '未找到任何指标层级数据',
+        );
+      }
+
       // Map Prisma result to the DTO
       const result: IndicatorHierarchyResDto = topIndicators.map((top) => ({
         id: top.id,
@@ -60,6 +69,9 @@ export class IndicatorService {
 
       return result;
     } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
       const err = error as ErrorWithMessage;
       this.logger.error(
         `Failed to fetch indicator hierarchy: ${err.message}`,

@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate, useOutlet } from 'react-router'
 
 import ErrorPage from '@/components/Error'
 import { getBreadcrumbItems, sideRoutes, topRoutes } from '@/router/routesConfig'
+import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useIndicatorStore from '@/stores/indicatorStore'
 
 const { Header, Sider, Content, Footer } = Layout
@@ -14,13 +15,15 @@ export const Component: FC = () => {
   const outlet = useOutlet()
   const navigate = useNavigate()
   const getIndicatorHierarchy = useIndicatorStore(state => state.getIndicatorHierarchy)
+  const getCountries = useCountryAndContinentStore(state => state.getCountries)
   const [collapsed, setCollapsed] = useState(false)
   const { pathname } = useLocation()
 
   // 全局获取一次指标数据
   useEffect(() => {
     getIndicatorHierarchy()
-  }, [getIndicatorHierarchy])
+    getCountries()
+  }, [])
 
   const handleMenuClick: MenuProps['onClick'] = e => {
     navigate(e.key)
@@ -126,7 +129,7 @@ export const Component: FC = () => {
             </div>
           </Content>
           <Footer>
-            <div className="flex w-full justify-center">帮助与支持 如需帮助请联系XXXXXX</div>
+            <div className="flex w-full justify-center">帮助与支持 如需帮助请联系 1234567890</div>
           </Footer>
         </Layout>
       </Layout>
