@@ -90,7 +90,12 @@ const DataManagement = () => {
       title: '国家',
       dataIndex: 'cnName',
       key: 'cnName',
-      render: (_: any, record: CountryData) => `${record.cnName} (${record.enName})`
+      render: (_: any, record: CountryData) => (
+        <div className="flex flex-col">
+          <span className="truncate font-medium">{record.cnName}</span>
+          <span className="truncate text-xs text-gray-500">{record.enName}</span>
+        </div>
+      )
     },
     {
       title: '数据完整性',

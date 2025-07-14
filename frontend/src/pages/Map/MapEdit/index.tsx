@@ -1,5 +1,5 @@
 import type { TableProps } from 'antd'
-import { Button, Col, Collapse, message, Row, Select, Skeleton, Table, Tag } from 'antd'
+import { Button, Col, Collapse, Input, message, Row, Select, Skeleton, Table, Tag } from 'antd'
 import { FC, useEffect, useMemo, useState } from 'react'
 import type { UrbanizationUpdateDto } from 'urbanization-backend/types/dto'
 
@@ -25,6 +25,7 @@ const MapEdit: FC = () => {
   )
 
   const [editedData, setEditedData] = useState<Record<string, boolean>>({})
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     getUrbanizationMapData()
@@ -63,6 +64,23 @@ const MapEdit: FC = () => {
     [urbanizationMapData, editedData]
   )
 
+  const filteredGroupedData = useMemo(() => {
+    if (!searchTerm) {
+      return groupedData
+    }
+
+    return groupedData
+      .map(group => {
+        const filteredCountries = group.countries.filter(
+          country =>
+            country.cnName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            country.enName.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        return { ...group, countries: filteredCountries }
+      })
+      .filter(group => group.countries.length > 0)
+  }, [groupedData, searchTerm])
+
   const urbanizationTooltipFormatter = useMemo(
     () => createUrbanizationTooltipFormatter(nameMap, valueMap),
     [nameMap, valueMap]
@@ -73,13 +91,19 @@ const MapEdit: FC = () => {
       title: '国家',
       dataIndex: 'cnName',
       key: 'cnName',
-      width: '40%'
+      width: '45%',
+      render: (_, record) => (
+        <div className="flex flex-col">
+          <span className="truncate font-medium">{record.cnName}</span>
+          <span className="truncate text-xs text-gray-500">{record.enName}</span>
+        </div>
+      )
     },
     {
       title: '当前状态',
       dataIndex: 'urbanization',
       key: 'urbanization',
-      width: '30%',
+      width: '25%',
       render: (isUrbanized: boolean) => (
         <Tag color={isUrbanized ? 'green' : 'red'}>{isUrbanized ? '是' : '否'}</Tag>
       )
@@ -90,7 +114,7 @@ const MapEdit: FC = () => {
       width: '30%',
       render: (_, record: CountryRowData) => (
         <Select
-          value={record.urbanization}
+          value={editedData[record.countryId]}
           style={{ width: '100%' }}
           onChange={value => handleUrbanizationChange(record.countryId, value)}
           options={[
@@ -116,7 +140,12 @@ const MapEdit: FC = () => {
             className="flex h-full flex-col overflow-y-auto pr-2"
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold" />
+              <Input.Search
+                placeholder="搜索国家"
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ width: 240 }}
+                allowClear
+              />
               <Button
                 type="primary"
                 onClick={handleSave}
@@ -126,8 +155,11 @@ const MapEdit: FC = () => {
                 保存更改
               </Button>
             </div>
-            <Collapse accordion>
-              {groupedData.map(({ continent, countries }) => (
+            <Collapse
+              accordion
+              key={searchTerm ? 'search-mode' : 'normal-mode'}
+            >
+              {filteredGroupedData.map(({ continent, countries }) => (
                 <Collapse.Panel
                   header={`${continent} (${countries.length})`}
                   key={continent}
@@ -137,6 +169,7 @@ const MapEdit: FC = () => {
                     dataSource={countries}
                     pagination={false}
                     size="small"
+                    rowKey="countryId"
                   />
                 </Collapse.Panel>
               ))}
