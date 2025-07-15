@@ -40,14 +40,69 @@ function RichEditor({
   // --- 编辑器配置 ---
 
   // 工具栏配置，可以根据需求自定义
-  const toolbarConfig: Partial<IToolbarConfig> = {}
+  const toolbarConfig: Partial<IToolbarConfig> = {
+    excludeKeys: ['group-video', 'insertImage']
+  }
 
   // 编辑器核心配置
   const editorConfig: Partial<IEditorConfig> = {
     placeholder,
     readOnly,
     // 确保编辑器失去焦点时，也能触发 onChange
-    onBlur: editor => onChange(editor.getHtml())
+    onBlur: editor => onChange(editor.getHtml()),
+    MENU_CONF: {
+      uploadImage: {
+        server:
+          '//' +
+          location.hostname +
+          import.meta.env.VITE_IMAGES_PORT +
+          import.meta.env.VITE_API_BASE_URL +
+          '/upload',
+
+        timeout: 10 * 1000, // 5s
+
+        fieldName: 'file',
+        // meta: { token: 'xxx', a: 100 },
+        // metaWithUrl: true, // join params to url
+        // headers: { Accept: 'text/x-json' },
+
+        maxFileSize: 10 * 1024 * 1024, // 10M
+
+        base64LimitSize: 5 * 1024 // insert base64 format, if file's size less than 5kb
+
+        // onBeforeUpload(file) {
+        //   console.log('onBeforeUpload', file)
+
+        //   return file // will upload this file
+        //   // return false // prevent upload
+        // },
+        // onProgress(progress) {
+        //   console.log('onProgress', progress)
+        // },
+        // onSuccess(file, res) {
+        //   console.log('onSuccess', file, res)
+        // },
+        // onFailed(file, res) {
+        //   alert(res.message)
+        //   console.log('onFailed', file, res)
+        // },
+        // onError(file, err, res) {
+        //   alert(err.message)
+        //   console.error('onError', file, err, res)
+        // }
+      },
+      insertImage: {
+        parseImageSrc: (src: string) => {
+          return (
+            '//' +
+            location.hostname +
+            import.meta.env.VITE_IMAGES_PORT +
+            import.meta.env.VITE_IMAGES_BASE_URL +
+            src
+          )
+        }
+      }
+    }
   }
 
   // --- 生命周期管理 ---
@@ -61,22 +116,6 @@ function RichEditor({
       setEditor(null)
     }
   }, [editor]) // 依赖于 editor 实例
-
-  // --- 日志：组件挂载和卸载 ---
-  useEffect(() => {
-    console.log('[RichEditor] 组件挂载，初始 value:', value)
-    return () => {
-      if (editor == null) return
-      editor.destroy()
-      setEditor(null)
-      console.log('[RichEditor] 组件卸载')
-    }
-  }, [])
-
-  // --- 日志：每次 value 变化时 ---
-  useEffect(() => {
-    console.log('[RichEditor] value 变化:', value)
-  }, [value])
 
   return (
     // 编辑器容器，设置边框和 z-index 以保证工具栏在页面上正常显示

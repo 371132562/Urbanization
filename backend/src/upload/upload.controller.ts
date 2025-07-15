@@ -6,7 +6,9 @@ import {
   UploadedFile, // 导入 UploadedFile
   BadRequestException,
   Body,
+  Res, // 导入 Res
 } from '@nestjs/common';
+import { Response } from 'express'; // 导入 Response
 import { FileInterceptor } from '@nestjs/platform-express'; // 导入 FileInterceptor
 import { multerOptions } from '../utils/file-upload.utils';
 import { UploadService } from './upload.service';
@@ -17,21 +19,36 @@ export class UploadController {
 
   @Post()
   @UseInterceptors(FileInterceptor('file', multerOptions)) // 'file' 是表单字段名
-  async uploadImage(@UploadedFile() file: Express.Multer.File) {
-    // 基本校验
-    if (!file) {
-      throw new BadRequestException('没有文件被上传。');
+  uploadImage(@UploadedFile() file: Express.Multer.File, @Res() res: Response) {
+    try {
+      // 基本校验
+      if (!file) {
+        // 直接返回 wangeditor 要求的失败格式
+        return res.status(200).json({
+          errno: 1, // 只要不等于 0 就行
+          message: '没有文件被上传',
+        });
+      }
+
+      // 注意：service 层可以保持不变，因为 controller 需要根据 wangeditor 的要求来定制响应
+      const result = this.uploadService.processUploadedFile(file);
+
+      // 直接返回 wangeditor 要求的成功格式
+      return res.status(200).json({
+        errno: 0, // 注意：值是数字，不能是字符串
+        data: {
+          url: result.url, // 图片 src ，现在只返回文件名
+          alt: file.originalname, // 图片描述文字，非必须
+          // href: "zzz" // 图片的链接，非必须
+        },
+      });
+    } catch (error) {
+      // 捕获所有潜在错误，包括 fileFilter 的错误
+      return res.status(200).json({
+        errno: 1, // 只要不等于 0 就行
+        message: (error as Error).message || '上传失败',
+      });
     }
-
-    // 调用服务处理文件信息
-    const result = await this.uploadService.processUploadedFile(file);
-
-    return {
-      originalName: Buffer.from(file.originalname, 'latin1').toString('utf-8'),
-      filename: file.filename,
-      path: file.path, // 文件在服务器上的物理路径
-      url: result.url, // 获取可访问的 URL
-    };
   }
 
   @Post('delete') // 完整路由 /upload/:filename (删除)
