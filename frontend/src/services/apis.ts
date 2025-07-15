@@ -17,3 +17,7 @@ export const urbanizationUpdate = '/countryAndContinent/urbanizationUpdate'
 
 // 文章管理API
 export const articleList = '/article/list'
+export const articleCreate = '/article/create'
+export const articleUpdate = '/article/update'
+export const articleDelete = '/article/delete'
+export const articleDetail = '/article/detail'

@@ -232,10 +232,10 @@ export type UrbanizationWorldMapDataDto = UrbanizationWorldMapDataItem[];
 /**
  * 批量更新国家城镇化状态 DTO
  */
-export class UrbanizationUpdateDto {
+export type UrbanizationUpdateDto = {
   countryId: string;
   urbanization: boolean;
-}
+};
 
 /*
  * ==================== 文章管理模块 ====================
@@ -251,6 +251,43 @@ export type ArticleListDto = {
 };
 
 /**
- * 文章详情
+ * 文章列表返回 DTO
  */
-export type ArticleDetailDto = Article;
+export type ArticleItem = {
+  id: string;
+  title: string;
+  content: string;
+  createTime: Date;
+  updateTime: Date;
+};
+
+export type ArticleListResponse = {
+  list: ArticleItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/**
+ * 创建文章 DTO
+ */
+export type CreateArticleDto = {
+  title: string;
+  content: string;
+};
+
+/**
+ * 更新文章 DTO
+ */
+export type UpdateArticleDto = {
+  id: string;
+  title?: string;
+  content?: string;
+};
+
+/**
+ * 删除文章 DTO
+ */
+export type DeleteArticleDto = {
+  id: string;
+};

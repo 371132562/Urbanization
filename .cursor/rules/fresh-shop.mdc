@@ -38,7 +38,7 @@ rules:
       - 样式方案优先级：Ant Design > Tailwind CSS > CSS Modules
       - 避免使用全局样式
       - 保持全局风格一致性
-      - 以移动端为主要设计目标
+      - 加载效果优先使用骨架屏
 
   - title: 状态管理与API调用
     body: |
@@ -52,7 +52,7 @@ rules:
   - title: 后端开发规范
     body: |
       - 接口必须统一使用POST方法
-      - 业务错误需返回合适的Error信息
+      - 业务错误需返回合适的Error信息，优先使用自定义的BusinessException搭配ErrorCode
       - 新增错误类型时在ErrorCode中定义
       - 遵循NestJS最佳实践
       - 使用Prisma处理数据库操作

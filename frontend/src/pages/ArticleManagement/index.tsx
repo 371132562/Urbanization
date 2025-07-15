@@ -1,24 +1,26 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { Button, Input, message, Pagination, Skeleton, Space, Table } from 'antd'
+import { Button, Input, message, Modal, Pagination, Skeleton, Space, Table } from 'antd'
 import dayjs from 'dayjs'
 import { FC, useEffect } from 'react'
-import type { Article } from 'urbanization-backend/types/dto'
+import { useNavigate } from 'react-router'
+import type { ArticleItem } from 'urbanization-backend/types/dto'
 
 import useArticleStore from '@/stores/articleStore'
 
 const { Search } = Input
 
 const ArticleManagement: FC = () => {
-  const {
-    articles,
-    total,
-    currentPage,
-    pageSize,
-    loading,
-    searchTitle,
-    getArticleList,
-    setSearchTitle
-  } = useArticleStore()
+  const articles = useArticleStore(state => state.articles)
+  const total = useArticleStore(state => state.total)
+  const currentPage = useArticleStore(state => state.currentPage)
+  const pageSize = useArticleStore(state => state.pageSize)
+  const loading = useArticleStore(state => state.loading)
+  const searchTitle = useArticleStore(state => state.searchTitle)
+  const getArticleList = useArticleStore(state => state.getArticleList)
+  const setSearchTitle = useArticleStore(state => state.setSearchTitle)
+  const deleteArticle = useArticleStore(state => state.deleteArticle)
+
+  const navigate = useNavigate()
 
   // 组件加载时获取文章列表
   useEffect(() => {
@@ -38,7 +40,30 @@ const ArticleManagement: FC = () => {
 
   // 处理新增文章
   const handleAddArticle = () => {
-    message.info('新增文章功能正在开发中')
+    navigate('/article/create')
+  }
+
+  // 处理编辑文章
+  const handleEdit = (id: string) => {
+    navigate(`/article/edit/${id}`)
+  }
+
+  // 处理删除文章
+  const handleDelete = (record: ArticleItem) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `您确定要删除文章《${record.title}》吗？此操作不可撤销。`,
+      okText: '确认',
+      cancelText: '取消',
+      onOk: async () => {
+        const success = await deleteArticle(record.id)
+        if (success) {
+          message.success('文章删除成功')
+        } else {
+          message.error('文章删除失败')
+        }
+      }
+    })
   }
 
   // 表格列定义
@@ -68,17 +93,13 @@ const ArticleManagement: FC = () => {
         <Space>
           <Button
             type="primary"
-            onClick={() => {
-              message.info(`编辑文章: ${record.title}`)
-            }}
+            onClick={() => handleEdit(record.id)}
           >
             编辑
           </Button>
           <Button
             danger
-            onClick={() => {
-              message.info(`删除文章: ${record.title}`)
-            }}
+            onClick={() => handleDelete(record)}
           >
             删除
           </Button>

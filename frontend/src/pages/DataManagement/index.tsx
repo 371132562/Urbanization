@@ -188,7 +188,7 @@ const DataManagement = () => {
           placeholder="按国家名称搜索"
           allowClear
           onChange={e => setSearchTerm(e.target.value)}
-          className="w-80"
+          style={{ width: 300 }}
         />
       </div>
 

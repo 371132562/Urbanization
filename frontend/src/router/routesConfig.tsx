@@ -100,10 +100,24 @@ export const sideRoutes: RouteItem[] = [
     component: './pages/EvaluationModel'
   },
   {
-    path: '/articleManagement',
+    path: '/article',
     title: '文章管理',
     icon: <FileTextOutlined />,
-    component: './pages/ArticleManagement'
+    component: './pages/ArticleManagement',
+    children: [
+      {
+        path: '/article/create',
+        title: '新增文章',
+        component: './pages/ArticleManagement/Modify',
+        hideInMenu: true
+      },
+      {
+        path: '/article/edit/:id',
+        title: '编辑文章',
+        component: './pages/ArticleManagement/Modify',
+        hideInMenu: true
+      }
+    ]
   }
 ]
 
