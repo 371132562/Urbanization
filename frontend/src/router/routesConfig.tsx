@@ -137,9 +137,11 @@ export const getAllRoutes = (): RouteItem[] => {
 }
 
 // 根据路径获取面包屑项
-export const getBreadcrumbItems = (pathname: string): { path: string; title: string }[] => {
+export const getBreadcrumbItems = (
+  pathname: string
+): { path: string; title: string; component: string | undefined }[] => {
   const allRoutes = getAllRoutes()
-  const result: { path: string; title: string }[] = []
+  const result: { path: string; title: string; component: string | undefined }[] = []
 
   // 构建路径映射表
   const pathMap = new Map<string, RouteItem>()
@@ -171,7 +173,8 @@ export const getBreadcrumbItems = (pathname: string): { path: string; title: str
     if (matchingRoute && !matchingRoute.hideInBreadcrumb) {
       result.push({
         path: currentPath,
-        title: matchingRoute.title
+        title: matchingRoute.title,
+        component: matchingRoute.component
       })
     }
   })

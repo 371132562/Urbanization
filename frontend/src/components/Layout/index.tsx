@@ -75,7 +75,12 @@ export const Component: FC = () => {
   // 获取面包屑项
   const breadcrumbItems = useMemo(() => {
     return getBreadcrumbItems(pathname).map(item => ({
-      title: item.path === pathname ? item.title : <Link to={item.path}>{item.title}</Link>
+      title:
+        item.component && item.path !== pathname ? (
+          <Link to={item.path}>{item.title}</Link>
+        ) : (
+          item.title
+        )
     }))
   }, [pathname])
 
