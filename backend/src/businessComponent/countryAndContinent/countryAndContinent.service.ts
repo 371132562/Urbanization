@@ -11,10 +11,10 @@ import {
 import { BusinessException } from '../../exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
 
-interface ErrorWithMessage {
+type ErrorWithMessage = {
   message: string;
   stack?: string;
-}
+};
 
 @Injectable()
 export class CountryAndContinentService {

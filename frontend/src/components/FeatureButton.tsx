@@ -3,12 +3,12 @@ import { cloneElement, FC, isValidElement, ReactNode } from 'react'
 
 import { hexToRgba } from '@/utils'
 
-interface FeatureButtonProps {
+type FeatureButtonProps = {
+  icon: ReactNode
   title: string
   description: string
   actionText: string
-  onClick?: () => void
-  icon?: ReactNode
+  onClick: () => void
   className?: string
   color?: string
 }

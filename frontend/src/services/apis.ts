@@ -1,3 +1,4 @@
+// 数据管理API
 export const dataManagementList = '/dataManagement/list'
 export const dataManagementDetail = '/dataManagement/detail'
 export const dataManagementCreate = '/dataManagement/create'
@@ -13,3 +14,6 @@ export const continentList = '/countryAndContinent/continents'
 export const countryList = '/countryAndContinent/countries'
 export const urbanizationMap = '/countryAndContinent/urbanizationMap'
 export const urbanizationUpdate = '/countryAndContinent/urbanizationUpdate'
+
+// 文章管理API
+export const articleList = '/article/list'

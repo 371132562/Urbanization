@@ -18,10 +18,7 @@ echarts.use([
   UniversalTransition
 ])
 
-/**
- * WorldMap 组件的 props 定义
- */
-export interface WorldMapProps {
+export type WorldMapProps = {
   // 地图数据，每个对象包含 name (国家英文名) 和 value
   data: { name: string; value: number }[]
   // 国家英文名到中文名的映射

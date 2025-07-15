@@ -10,17 +10,8 @@ import {
   RiseOutlined,
   TeamOutlined
 } from '@ant-design/icons'
-import { ReactNode } from 'react'
 
-export interface RouteItem {
-  path: string
-  title: string
-  icon?: ReactNode
-  component?: string
-  hideInMenu?: boolean
-  hideInBreadcrumb?: boolean
-  children?: RouteItem[]
-}
+import { RouteItem } from '@/types'
 
 // 顶部导航菜单配置
 export const topRoutes: RouteItem[] = [

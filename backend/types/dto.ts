@@ -5,6 +5,7 @@ import {
   DetailedIndicator,
   Continent,
   Country,
+  Article,
 } from '@prisma/client';
 
 // 导出Prisma模型类型
@@ -14,6 +15,7 @@ export {
   DetailedIndicator,
   Continent,
   Country,
+  Article,
 };
 
 /*
@@ -234,3 +236,21 @@ export class UrbanizationUpdateDto {
   countryId: string;
   urbanization: boolean;
 }
+
+/*
+ * ==================== 文章管理模块 ====================
+ */
+
+/**
+ * 文章列表查询参数
+ */
+export type ArticleListDto = {
+  page?: number;
+  pageSize?: number;
+  title?: string;
+};
+
+/**
+ * 文章详情
+ */
+export type ArticleDetailDto = Article;

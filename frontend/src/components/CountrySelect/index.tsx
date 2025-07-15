@@ -7,7 +7,7 @@ import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 
 const { Option, OptGroup } = Select
 
-interface CountrySelectProps {
+type CountrySelectProps = {
   value?: string | string[] | null
   onChange?: (value: string | string[]) => void
   disabled?: boolean
@@ -17,7 +17,7 @@ interface CountrySelectProps {
   options?: (Country | CountryData)[] // 外部传入的国家选项
 }
 
-const CountrySelect = ({
+const CountrySelect: React.FC<CountrySelectProps> = ({
   value,
   onChange,
   disabled,

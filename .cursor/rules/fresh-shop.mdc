@@ -14,7 +14,7 @@ rules:
 
   - title: 类型系统规范
     body: |
-      - TypeScript开发中优先使用type而非interface
+      - TypeScript开发中必须优先使用type而非interface
       - 所有数据结构必须使用TypeScript类型定义，禁止使用any
       - 复杂对象使用交叉类型或联合类型
       - 类型定义优先放在backend/types目录下供前后端共用
@@ -51,7 +51,7 @@ rules:
 
   - title: 后端开发规范
     body: |
-      - API统一使用POST方法
+      - 接口必须统一使用POST方法
       - 业务错误需返回合适的Error信息
       - 新增错误类型时在ErrorCode中定义
       - 遵循NestJS最佳实践

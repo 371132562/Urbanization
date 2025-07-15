@@ -11,6 +11,7 @@ import { UPLOAD_DIR } from './utils/file-upload.utils'; // 导入上传目录常
 import { DataManagementModule } from './businessComponent/dataManagement/dataManagement.module';
 import { IndicatorModule } from './businessComponent/indicator/indicator.module';
 import { CountryAndContinentModule } from './businessComponent/countryAndContinent/countryAndContinent.module';
+import { ArticleModule } from './businessComponent/article/article.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { CountryAndContinentModule } from './businessComponent/countryAndContine
     DataManagementModule,
     IndicatorModule, // 指标查询模块
     CountryAndContinentModule, // 国家和大洲模块
+    ArticleModule, // 文章管理模块
   ],
   controllers: [],
   providers: [],

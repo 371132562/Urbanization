@@ -46,6 +46,21 @@ const UrbanizationRate: FC = () => {
 
   return (
     <div className="flex h-full w-full flex-row gap-4">
+      <div className="flex-grow">
+        {urbanizationMapDataLoading ? (
+          <Skeleton
+            active
+            paragraph={{ rows: 15 }}
+          />
+        ) : (
+          <WorldMap
+            data={mapData}
+            nameMap={nameMap}
+            valueMap={valueMap}
+            tooltipFormatter={urbanizationTooltipFormatter}
+          />
+        )}
+      </div>
       <div className="w-[400px] flex-shrink-0">
         {urbanizationMapDataLoading ? (
           <Skeleton
@@ -66,21 +81,6 @@ const UrbanizationRate: FC = () => {
                 <Summary.Cell index={1}>{nonUrbanizedCount}</Summary.Cell>
               </Summary.Row>
             )}
-          />
-        )}
-      </div>
-      <div className="flex-grow">
-        {urbanizationMapDataLoading ? (
-          <Skeleton
-            active
-            paragraph={{ rows: 15 }}
-          />
-        ) : (
-          <WorldMap
-            data={mapData}
-            nameMap={nameMap}
-            valueMap={valueMap}
-            tooltipFormatter={urbanizationTooltipFormatter}
           />
         )}
       </div>

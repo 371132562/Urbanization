@@ -1,7 +1,7 @@
 import { Button, Result } from 'antd'
 import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router'
 
-interface IProps {
+type IProps = {
   error?: Error
   resetErrorBoundary?: () => void
 }

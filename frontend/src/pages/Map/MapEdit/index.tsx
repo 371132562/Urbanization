@@ -5,8 +5,8 @@ import type { UrbanizationUpdateDto } from 'urbanization-backend/types/dto'
 
 import WorldMap from '@/components/WorldMap'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
+import { CountryRowData } from '@/types'
 import {
-  CountryRowData,
   createUrbanizationTooltipFormatter,
   processUrbanizationData
 } from '@/utils/mapDataProcessor'
@@ -136,6 +136,17 @@ const MapEdit: FC = () => {
           className="h-full"
         >
           <Col
+            span={14}
+            className="h-full"
+          >
+            <WorldMap
+              data={mapData}
+              nameMap={nameMap}
+              valueMap={valueMap}
+              tooltipFormatter={urbanizationTooltipFormatter}
+            />
+          </Col>
+          <Col
             span={10}
             className="flex h-full flex-col overflow-y-auto pr-2"
           >
@@ -174,18 +185,6 @@ const MapEdit: FC = () => {
                 </Collapse.Panel>
               ))}
             </Collapse>
-          </Col>
-          {/* Right Side: World Map Preview */}
-          <Col
-            span={14}
-            className="h-full"
-          >
-            <WorldMap
-              data={mapData}
-              nameMap={nameMap}
-              valueMap={valueMap}
-              tooltipFormatter={urbanizationTooltipFormatter}
-            />
           </Col>
         </Row>
       )}

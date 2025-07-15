@@ -8,36 +8,9 @@
 import type { UrbanizationWorldMapDataDto } from 'urbanization-backend/types/dto'
 
 import type { WorldMapProps } from '@/components/WorldMap'
-
+import { ContinentCountData, CountryRowData } from '@/types'
 /**
- * @interface CountryRowData
- * @description 用于城镇化编辑页面 (`MapEdit`) 中表格的行数据结构。
- * 继承自后端的 DTO，并增加了 UI 所需的 key 等属性。
- */
-export interface CountryRowData {
-  key: string // React需要的唯一key
-  countryId: string // 国家ID
-  urbanization: boolean // 当前是否城镇化状态
-  cnName: string // 国家中文名
-  enName: string // 国家英文名
-  continent: string // 所属大洲中文名
-}
-
-/**
- * @interface ContinentCountData
- * @description 用于城镇化率展示页面 (`UrbanizationRate`) 中统计表格的行数据结构。
- */
-export interface ContinentCountData {
-  key: string // React需要的唯一key
-  continent: string // 大洲中文名
-  count: number // 该大洲已城镇化国家的数量
-}
-
-/**
- * @function processUrbanizationData
- * @description 处理和转换城镇化地图数据的核心函数。
- *              它接收原始数据和可选的编辑后数据，一次性计算出所有UI组件需要的数据格式，
- *              从而避免在多个组件中重复进行数据处理。
+ * @description 处理城镇化世界地图数据的函数，同时支持编辑状态
  * @param {UrbanizationWorldMapDataDto} urbanizationMapData - 从后端获取的原始城镇化数据列表。
  * @param {Record<string, boolean>} [editedData] - (可选) 在编辑页面中，用户已修改但尚未保存的数据，格式为 { countryId: newStatus }。
  * @returns {object} 一个包含所有派生数据的对象，具体如下：
@@ -188,12 +161,12 @@ export const processUrbanizationData = (
  * @description (工厂函数) 创建一个用于城镇化场景的定制 tooltip formatter。
  *              该函数封装了城镇化业务的特定显示逻辑，使得业务组件无需关心 formatter 的具体实现。
  * @param {Record<string, string>} nameMap - 国家英文名到中文名的映射。
- * @param {WorldMapProps['valueMap']} valueMap - 离散值映射配置，用于获取状态文本。
+ * @param {any} valueMap - 离散值映射配置，用于获取状态文本。
  * @returns {function(params: any): string} - 一个配置好的、可直接供 ECharts 使用的 tooltip formatter 函数。
  */
 export const createUrbanizationTooltipFormatter = (
   nameMap: Record<string, string>,
-  valueMap: WorldMapProps['valueMap']
+  valueMap: any
 ) => {
   return (params: any): string => {
     const { name, value } = params
