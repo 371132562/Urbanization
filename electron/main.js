@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, dialog } = require('electron')
 const path = require('path')
 const { fork } = require('child_process')
 const net = require('net')
@@ -6,6 +6,44 @@ const log = require('electron-log')
 
 // 将日志文件配置到应用的用户数据目录中
 log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs/main.log')
+
+const formatArgsForDialog = args => {
+  return args
+    .map(arg => {
+      if (arg instanceof Error) {
+        return arg.stack || arg.message
+      }
+      if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg, null, 2)
+        } catch (e) {
+          return '[Unserializable Object]'
+        }
+      }
+      return String(arg)
+    })
+    .join(' ')
+}
+
+const originalInfo = log.info
+log.info = (...args) => {
+  originalInfo(...args)
+  dialog.showMessageBox({
+    type: 'info',
+    title: '信息日志',
+    message: formatArgsForDialog(args)
+  })
+}
+
+const originalError = log.error
+log.error = (...args) => {
+  originalError(...args)
+  dialog.showMessageBox({
+    type: 'error',
+    title: '错误日志',
+    message: formatArgsForDialog(args)
+  })
+}
 
 // 判断当前是否为开发环境
 const isDev = !app.isPackaged
@@ -98,8 +136,8 @@ const createLoadingWindow = () => {
 const startNestService = () => {
   // 根据环境确定 NestJS 后端服务的入口文件路径
   const nestAppPath = isDev
-    ? path.join(__dirname, '..', 'backend', 'dist', 'main.js')
-    : path.join(process.resourcesPath, 'backend', 'dist', 'main.js')
+    ? path.join(__dirname, '..', 'backend', 'dist', 'src', 'main.js')
+    : path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
 
   // 获取用户数据目录路径，这是一个安全可写的目录
   const userDataPath = app.getPath('userData')
