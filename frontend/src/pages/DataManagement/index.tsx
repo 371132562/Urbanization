@@ -1,5 +1,5 @@
 /* 数据管理列表页 */
-import { DownloadOutlined, FormOutlined } from '@ant-design/icons'
+import { DownloadOutlined, FormOutlined, UploadOutlined } from '@ant-design/icons'
 import { useDebounce } from 'ahooks'
 import { Button, Collapse, Input, message, Popconfirm, Skeleton, Space, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
@@ -16,6 +16,10 @@ const { Search } = Input
 const DataManagementSkeleton = () => (
   <div>
     <div className="mb-8 flex">
+      <Skeleton.Button
+        active
+        style={{ width: 280, height: 96, marginRight: 24 }}
+      />
       <Skeleton.Button
         active
         style={{ width: 280, height: 96, marginRight: 24 }}
@@ -164,17 +168,28 @@ const DataManagement = () => {
         <FeatureButton
           className="mr-6"
           icon={<DownloadOutlined className="text-[28px] text-blue-500" />}
-          title="基础数据导出"
-          description="导出系统中的基础数据，支持多种格式"
+          title="数据导出"
+          description="导出数据，支持多种格式"
           actionText="立即导出"
           onClick={() => {
             navigate('/dataManagement/export')
           }}
         />
         <FeatureButton
+          className="mr-6"
+          icon={<UploadOutlined className="text-[28px] text-blue-500" />}
+          title="数据导入"
+          description="从Excel文件导入数据"
+          actionText="开始导入"
+          color="#FF9500"
+          onClick={() => {
+            navigate('/dataManagement/import')
+          }}
+        />
+        <FeatureButton
           icon={<FormOutlined className="text-[28px] text-blue-500" />}
           title="数据录入"
-          description="手动录入和编辑系统基础数据"
+          description="手动录入和编辑数据"
           actionText="开始录入"
           color="#34C759"
           onClick={() => {

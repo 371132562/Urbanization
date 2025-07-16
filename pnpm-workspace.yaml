@@ -1,5 +1,7 @@
 packages:
   - frontend
   - backend
+  - electron
+  - loading-frontend
   - common
   - doc/*

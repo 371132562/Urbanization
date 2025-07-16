@@ -69,6 +69,12 @@ export const sideRoutes: RouteItem[] = [
         hideInMenu: true
       },
       {
+        path: '/dataManagement/import',
+        title: '数据导入',
+        component: './pages/DataManagement/Import',
+        hideInMenu: true
+      },
+      {
         path: '/dataManagement/export',
         title: '数据导出',
         component: './pages/DataManagement/Export',
