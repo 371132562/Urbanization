@@ -15,8 +15,7 @@ dist
 dist-ssr
 coverage
 stats.html
-electron/app
-electron/release
+release
 
 # 本地配置文件 (例如: .env.local)
 *.local

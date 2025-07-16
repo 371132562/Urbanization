@@ -7,6 +7,6 @@
   },
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Electron wrapper for the Urbanization application.",
   "devDependencies": {}
 }

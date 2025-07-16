@@ -4,7 +4,7 @@ import { diskStorage } from 'multer';
 import { v4 as uuid } from 'uuid';
 
 // 定义上传文件的根目录，所有文件都将存放在这里
-export const UPLOAD_DIR = './db/images'; // 直接指定一个通用文件夹
+export const UPLOAD_DIR = process.env.UPLOAD_DIR as string; // 直接指定一个通用文件夹
 
 // Multer 上传选项配置
 export const multerOptions = {

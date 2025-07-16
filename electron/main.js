@@ -1,25 +1,133 @@
 const { app, BrowserWindow } = require('electron')
 const path = require('path')
 const { fork } = require('child_process')
+const net = require('net')
 
-// 全局维护一个窗口对象，避免因为JS的垃圾回收机制导致窗口被自动关闭
+// 判断当前是否为开发环境
+const isDev = !app.isPackaged
+
+// 全局变量，方便管理窗口和子进程
 let mainWindow
-// 全局维护对 NestJS 子进程的引用，方便管理
+let loadingWindow
 let nestProcess
 
-// 此函数负责启动 NestJS 服务
+// 将 NestJS 服务的端口号定义为常量，方便修改
+const nestPort = 3000
+
+/**
+ * 探测指定端口是否已被占用（即服务是否已启动）
+ * @param {number} port - 要检查的端口号
+ * @param {function(boolean): void} callback - 回调函数，返回端口是否就绪
+ */
+const ping = (port, callback) => {
+  const client = new net.Socket()
+  client.once('connect', () => {
+    client.end()
+    callback(true)
+  })
+  client.once('error', () => {
+    callback(false)
+  })
+  client.connect({ port })
+}
+
+// 尝试连接 NestJS 服务，直到成功
+const tryConnect = () => {
+  ping(nestPort, isReady => {
+    if (isReady) {
+      console.log('NestJS 服务已就绪，正在创建主窗口...')
+      createMainWindow()
+      loadingWindow.close()
+    } else {
+      console.log('NestJS 服务尚未就绪，1秒后重试...')
+      setTimeout(tryConnect, 1000)
+    }
+  })
+}
+
+// 创建主应用窗口
+const createMainWindow = () => {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  })
+
+  mainWindow.loadURL(`http://localhost:${nestPort}`)
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
+}
+
+// 创建加载窗口
+const createLoadingWindow = () => {
+  loadingWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    frame: false, // 无边框
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  })
+
+  // 根据环境加载 loading-frontend 的 index.html
+  // 在打包后，它位于 resources/loading-frontend-dist/index.html
+  const loadingPagePath = isDev
+    ? path.join(__dirname, '..', 'loading-frontend', 'dist', 'index.html')
+    : path.join(process.resourcesPath, 'loading-frontend-dist', 'index.html')
+
+  loadingWindow.loadFile(loadingPagePath)
+
+  loadingWindow.on('closed', () => {
+    loadingWindow = null
+  })
+}
+
+// 启动 NestJS 后台服务
 const startNestService = () => {
-  // 定义已打包的 NestJS 应用的入口文件路径。
-  // 我们假设 NestJS 的构建输出位于 'backend/dist/main.js'。
-  // 使用 path.join(__dirname, ...) 可以确保无论应用被打包到哪里，路径都是正确的。
-  const nestAppPath = path.join(__dirname, '..', 'backend', 'dist', 'main.js')
+  // 根据环境确定 NestJS 后端服务的入口文件路径
+  const nestAppPath = isDev
+    ? path.join(__dirname, '..', 'backend', 'dist', 'main.js')
+    : path.join(process.resourcesPath, 'backend', 'dist', 'main.js')
+
+  // 获取用户数据目录路径，这是一个安全可写的目录
+  const userDataPath = app.getPath('userData')
+  // 定义数据库文件的完整路径
+  const dbPath = path.join(userDataPath, 'database.sqlite')
+  // 定义上传文件的根目录
+  const uploadPath = path.join(userDataPath, 'uploads')
+
+  console.log(`数据库路径设置为: ${dbPath}`)
+  console.log(`上传目录设置为: ${uploadPath}`)
 
   console.log(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
 
-  // 使用 'fork' 创建一个新的 Node.js 进程来运行 NestJS 服务。
-  // 'fork' 是 'spawn' 的一个特例，专门用于衍生新的 Node.js 进程。
-  // 它会自动使用 Electron 内置的 Node.js 版本，这样用户就无需单独安装 Node.js。
-  nestProcess = fork(nestAppPath)
+  nestProcess = fork(nestAppPath, [], {
+    // 将数据库和上传目录的路径作为环境变量传递给 NestJS 子进程
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      DATABASE_URL: `file:${dbPath}`,
+      UPLOAD_DIR: uploadPath
+    },
+    silent: true // 捕获子进程的 stdout 和 stderr
+  })
+
+  // 监听 NestJS 进程的 stdout
+  nestProcess.stdout.on('data', data => {
+    console.log(`[NestJS]: ${data.toString().trim()}`)
+  })
+
+  // 监听 NestJS 进程的 stderr
+  nestProcess.stderr.on('data', data => {
+    console.error(`[NestJS Error]: ${data.toString().trim()}`)
+  })
 
   // 监听来自 NestJS 进程的消息 (如果你的 NestJS 应用通过 process.send() 发送消息)
   nestProcess.on('message', message => {
@@ -27,60 +135,22 @@ const startNestService = () => {
   })
 
   // 监听 NestJS 进程的错误事件
-  nestProcess.on('error', err => {
-    console.error('NestJS 子进程出错:', err)
-  })
-
-  // 监听 NestJS 进程的退出事件
-  nestProcess.on('exit', code => {
-    console.log(`NestJS 子进程已退出，退出码: ${code}`)
-    // 在这里你可以添加一些处理逻辑, 比如尝试重启服务或直接退出 Electron 应用
-  })
+  nestProcess.on('error', err => console.error('NestJS 子进程出错:', err))
+  nestProcess.on('exit', code => console.log(`NestJS 子进程已退出，退出码: ${code}`))
 }
 
-// 此函数负责创建浏览器窗口
-const createWindow = () => {
-  // 创建一个新的浏览器窗口实例
-  mainWindow = new BrowserWindow({
-    width: 1280, // 窗口宽度
-    height: 800, // 窗口高度
-    webPreferences: {
-      // 出于安全考虑，推荐以下设置：
-      nodeIntegration: false, // 禁止在渲染进程中使用 Node.js API
-      contextIsolation: true // 开启上下文隔离，保护主进程和渲染进程
-      // 如果你需要从主进程暴露功能给渲染进程，应该使用预加载(preload)脚本
-      // preload: path.join(__dirname, 'preload.js'),
-    }
-  })
-
-  // 等待一段时间，让 NestJS 服务有足够的时间启动，然后再加载页面。
-  // 这是一个简单的解决方案，更稳妥的方法是不断地“ping”服务器，直到它成功响应后再加载URL。
-  setTimeout(() => {
-    // 加载URL。我们假设 NestJS 应用负责提供前端静态文件，并在 3000 端口上监听。
-    mainWindow.loadURL('http://localhost:3000')
-  }, 5000) // 5秒延迟，你可以根据实际情况调整
-
-  // 监听窗口关闭事件
-  mainWindow.on('closed', () => {
-    // 取消对窗口对象的引用。如果你的应用支持多窗口，通常会把多个窗口对象存放在一个数组里，
-    // 在这里就把对应的窗口对象删掉。
-    mainWindow = null
-  })
-}
-
-// Electron 初始化完成，可以创建浏览器窗口了。
-// 某些 API 只能在该事件触发后才能使用。
 app.whenReady().then(() => {
-  // 启动后端服务
+  createLoadingWindow()
   startNestService()
-  // 创建主窗口
-  createWindow()
+  tryConnect() // 开始探测 NestJS 服务
 
   app.on('activate', () => {
-    // 在 macOS 上，当点击 dock 图标并且没有其他窗口打开时，
-    // 通常在应用程序中重新创建一个窗口。
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+      // 如果应用被激活时没有窗口，可以重新开始流程
+      if (!loadingWindow && !mainWindow) {
+        createLoadingWindow()
+        tryConnect()
+      }
     }
   })
 })
@@ -100,7 +170,7 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   if (nestProcess) {
     console.log('正在停止 NestJS 应用...')
-    nestProcess.kill() // 发送信号终止子进程
+    nestProcess.kill()
     nestProcess = null
   }
 })
