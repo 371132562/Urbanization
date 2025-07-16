@@ -4,6 +4,13 @@ const { fork, execSync } = require('child_process')
 const net = require('net')
 const log = require('electron-log')
 
+// 哨兵代码：防止 fork 的子进程重新执行主逻辑。
+// 在打包后的应用中，`fork` 一个 a.js 文件，`process.argv` 会包含 `--fork a.js`。
+// 当这种情况发生时，我们知道这是一个子进程，应该立即退出，以防止无限循环。
+if (process.argv.some(arg => arg.startsWith('--fork'))) {
+  process.exit(0)
+}
+
 // 将日志文件配置到应用的用户数据目录中
 log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs/main.log')
 
@@ -65,6 +72,15 @@ function runMigrations() {
     ? path.join(__dirname, '..', 'backend')
     : path.join(process.resourcesPath, 'backend')
 
+  // 与 startNestService 中逻辑一致，确保迁移时也使用正确的数据库路径
+  const userDataPath = app.getPath('userData')
+  const dbPath = path.join(userDataPath, 'database.sqlite')
+  const migrationEnv = {
+    ...process.env,
+    DATABASE_URL: `file:${dbPath}`
+  }
+  log.info(`迁移使用的数据库路径: file:${dbPath}`)
+
   const prismaCliPath = path.join(backendPath, 'node_modules', 'prisma', 'build', 'index.js')
   const schemaPath = path.join(backendPath, 'prisma', 'schema.prisma')
   // 在 Electron 应用中，`process.execPath` 指向 Electron 的可执行文件，
@@ -75,14 +91,23 @@ function runMigrations() {
 
   try {
     log.info(`正在执行命令: ${command}`)
+    // 为迁移命令注入包含 DATABASE_URL 的环境变量
     execSync(command, {
+      env: migrationEnv,
       stdio: 'pipe', // 使用 'pipe' 来捕获输出
       encoding: 'utf-8'
     })
     log.info('数据库迁移成功完成。')
   } catch (error) {
-    log.error('数据库迁移失败:', error)
-    // log.error 已经配置为会弹出对话框，所以这里不需要额外处理
+    log.error('数据库迁移失败。')
+    // 详细记录 stdout 和 stderr，帮助调试
+    if (error.stdout) {
+      log.error('STDOUT:', error.stdout.toString())
+    }
+    if (error.stderr) {
+      log.error('STDERR:', error.stderr.toString())
+    }
+    log.error('完整错误对象:', error)
   }
 }
 
