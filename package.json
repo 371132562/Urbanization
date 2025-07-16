@@ -39,6 +39,7 @@
   "build": {
     "appId": "Urbanization",
     "productName": "Urbanization",
+    "publish": null,
     "directories": {
       "app": "electron",
       "output": "release"
@@ -77,7 +78,8 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "frontend/public/icon.png"
+      "icon": "frontend/public/icon.png",
+      "signAndEditExecutable": false
     }
   },
   "dependencies": {
