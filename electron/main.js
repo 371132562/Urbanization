@@ -415,8 +415,8 @@ const startNestService = () => {
       RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
       APP_PATH: app.getAppPath(), // 添加应用路径环境变量
       IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
-    },
-    silent: true // 捕获子进程的 stdout 和 stderr
+    }
+    // silent: true // 捕获子进程的 stdout 和 stderr
   })
 
   // 监听 NestJS 进程的 stdout

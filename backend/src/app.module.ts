@@ -111,7 +111,7 @@ console.log(
     ServeStaticModule.forRoot(
       {
         rootPath: join(process.env.UPLOAD_DIR as string), // 静态文件在服务器上的物理路径
-        serveRoot: `/images`, // URL 前缀，例如 /uploads/images
+        serveRoot: `/${(process.env.UPLOAD_DIR as string).replace('./', '')}`, // URL 前缀，例如 /uploads/images
         // serveRoot: '/', // 可以省略，默认就是 '/'
         exclude: ['/'], // 可选：排除不需要提供静态服务的路由
       },
