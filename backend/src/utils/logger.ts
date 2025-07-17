@@ -44,7 +44,7 @@ export const logger = createLogger({
       ),
     }),
     new transports.DailyRotateFile({
-      filename: 'logs/application-%DATE%.log',
+      filename: process.env.LOG_DIR + '/application-%DATE%.log',
       datePattern: 'YYYY-MM-DD-HH-mm-ss',
       level: 'info',
       zippedArchive: true,
@@ -52,7 +52,7 @@ export const logger = createLogger({
       maxFiles: '7d',
     }),
     new transports.DailyRotateFile({
-      filename: 'logs/application-%DATE%.log',
+      filename: process.env.LOG_DIR + '/application-%DATE%.log',
       datePattern: 'YYYY-MM-DD-HH-mm-ss',
       level: 'error',
       zippedArchive: true,

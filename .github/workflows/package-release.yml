@@ -1,0 +1,52 @@
+# .github/workflows/package-release.yml
+
+name: '构建和打包发布版本'
+
+on:
+  # 允许你从 Actions 标签页手动触发这个工作流
+  workflow_dispatch:
+
+jobs:
+  build-and-package-windows:
+    # 作业将在最新的 Windows 虚拟机上运行
+    runs-on: windows-latest
+
+    steps:
+      # 1. 拉取你的仓库代码
+      - name: '检出代码'
+        uses: actions/checkout@v4
+
+      # 2. 设置 pnpm 包管理器
+      - name: '设置 pnpm'
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9 # 你可以根据需要修改 pnpm 版本
+
+      # 3. 设置 Node.js 环境
+      - name: '设置 Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # 建议使用与你本地开发一致的 Node 版本
+          cache: 'pnpm'
+
+      # 4. 安装项目依赖
+      - name: '安装依赖'
+        run: pnpm install --frozen-lockfile
+
+      # 5. 运行打包脚本
+      - name: '执行打包脚本'
+        run: pnpm package
+
+      # 6. 将 release 文件夹压缩成 zip
+      #    Compress-Archive 是 PowerShell 的命令，在 windows-latest 环境中默认可用
+      - name: '归档发布文件'
+        run: Compress-Archive -Path ./release -DestinationPath Urbanization.zip
+
+      # 7. 上传打包好的 zip 文件作为构建产物
+      - name: '上传构建产物'
+        uses: actions/upload-artifact@v4
+        with:
+          # 构建产物的名称
+          name: urbanization-release-package-windows
+          # 需要上传的文件路径
+          path: Urbanization-Release.zip
