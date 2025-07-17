@@ -17,15 +17,6 @@ if (process.env.IS_NEST_FORK === 'true') {
   process.exit(0)
 }
 
-// 获取用户数据目录路径，这是一个安全可写的目录
-const userDataPath = app.getPath('userData')
-// 定义数据库文件的完整路径
-const dbPath = path.join(userDataPath, 'urbanization.db')
-// 定义上传文件的根目录
-const uploadPath = path.join(userDataPath, 'images')
-// 定义日志文件的根目录
-const logPath = path.join(userDataPath, 'logs')
-
 // 将日志文件配置到应用的用户数据目录中
 log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs/main.log')
 
@@ -82,9 +73,6 @@ const checkAndFreePort = port => {
       log.info(`端口 ${port} 已被占用，尝试释放...`)
 
       try {
-        // 获取当前进程的PID，用于安全检查
-        const currentPID = process.pid
-
         // 根据操作系统选择不同的命令来找到并杀死占用端口的进程
         if (process.platform === 'win32') {
           // Windows
@@ -95,14 +83,6 @@ const checkAndFreePort = port => {
           const pidMatches = /\s+(\d+)$/.exec(result)
           if (pidMatches && pidMatches[1]) {
             const pid = pidMatches[1]
-
-            // 安全检查：确保不会杀死自己的进程或父进程
-            if (parseInt(pid) === currentPID || parseInt(pid) === process.ppid) {
-              log.info(`检测到端口 ${port} 被当前应用占用 (PID: ${pid})，跳过杀死进程操作`)
-              resolve(true)
-              return
-            }
-
             log.info(`尝试杀死Windows进程 PID: ${pid}`)
             execSync(`taskkill /F /PID ${pid}`)
             log.info(`成功释放端口 ${port}`)
@@ -119,33 +99,13 @@ const checkAndFreePort = port => {
           if (result) {
             // 可能有多个进程，分行处理
             const pids = result.split('\n')
-            let allKilled = true
-
             pids.forEach(pid => {
               if (pid) {
-                const pidNum = parseInt(pid.trim())
-
-                // 安全检查：确保不会杀死自己的进程或父进程
-                if (pidNum === currentPID || pidNum === process.ppid) {
-                  log.info(`检测到端口 ${port} 被当前应用占用 (PID: ${pid})，跳过杀死进程操作`)
-                  return
-                }
-
                 log.info(`尝试杀死Unix进程 PID: ${pid}`)
-                try {
-                  execSync(`kill -9 ${pid}`)
-                } catch (killError) {
-                  log.error(`杀死进程 ${pid} 失败: ${killError.message}`)
-                  allKilled = false
-                }
+                execSync(`kill -9 ${pid}`)
               }
             })
-
-            if (allKilled) {
-              log.info(`成功释放端口 ${port}`)
-            } else {
-              log.warn(`部分进程可能未被成功杀死`)
-            }
+            log.info(`成功释放端口 ${port}`)
             resolve(true)
           } else {
             log.error(`无法找到占用端口 ${port} 的进程`)
@@ -190,6 +150,8 @@ function runMigrations() {
     : path.join(process.resourcesPath, 'backend')
 
   // 与 startNestService 中逻辑一致，确保迁移时也使用正确的数据库路径
+  const userDataPath = app.getPath('userData')
+  const dbPath = path.join(userDataPath, 'database.sqlite')
   const migrationEnv = {
     ...process.env,
     DATABASE_URL: `file:${dbPath}`
@@ -378,6 +340,15 @@ const startNestService = () => {
     ? path.join(__dirname, '..', 'backend', 'dist', 'src', 'main.js')
     : path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
 
+  // 获取用户数据目录路径，这是一个安全可写的目录
+  const userDataPath = app.getPath('userData')
+  // 定义数据库文件的完整路径
+  const dbPath = path.join(userDataPath, 'database.sqlite')
+  // 定义上传文件的根目录
+  const uploadPath = path.join(userDataPath, 'uploads')
+  // 定义日志文件的根目录
+  const logPath = app.getPath('logs')
+
   // log.info(`数据库路径设置为: ${dbPath}`)
   // log.info(`上传目录设置为: ${uploadPath}`)
   // log.info(`日志目录设置为: ${logPath}`)
@@ -415,8 +386,8 @@ const startNestService = () => {
       RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
       APP_PATH: app.getAppPath(), // 添加应用路径环境变量
       IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
-    }
-    // silent: true // 捕获子进程的 stdout 和 stderr
+    },
+    silent: true // 捕获子进程的 stdout 和 stderr
   })
 
   // 监听 NestJS 进程的 stdout

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express'; // 导入 Response
 import { FileInterceptor } from '@nestjs/platform-express'; // 导入 FileInterceptor
-import { multerOptions, normalizeFileName } from '../utils/file-upload.utils';
+import { multerOptions } from '../utils/file-upload.utils';
 import { UploadService } from './upload.service';
 
 @Controller('upload') // 基础路由 /upload
@@ -33,15 +33,12 @@ export class UploadController {
       // 注意：service 层可以保持不变，因为 controller 需要根据 wangeditor 的要求来定制响应
       const result = this.uploadService.processUploadedFile(file);
 
-      // 处理中文文件名
-      const normalizedName = normalizeFileName(file.originalname);
-
       // 直接返回 wangeditor 要求的成功格式
       return res.status(200).json({
         errno: 0, // 注意：值是数字，不能是字符串
         data: {
           url: result.url, // 图片 src ，现在只返回文件名
-          alt: normalizedName, // 图片描述文字，非必须
+          alt: file.originalname, // 图片描述文字，非必须
           // href: "zzz" // 图片的链接，非必须
         },
       });
