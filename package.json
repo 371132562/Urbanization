@@ -77,10 +77,9 @@
       "target": "dmg"
     },
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "icon": "frontend/public/icon.png",
-      "signAndEditExecutable": false,
-      "artifactName": "${productName}-v${version}.${ext}"
+      "signAndEditExecutable": false
     }
   },
   "dependencies": {
