@@ -29,6 +29,12 @@ async function seedContinentsAndCountries(continentCache, countryCache) {
   const existingCountries = await prisma.country.findMany();
   existingCountries.forEach((c) => countryCache.set(c.enName, c));
 
+  // 如果已经存在至少一个大洲，则跳过整个方法
+  if (existingContinents.length > 0) {
+    console.info('检测到已存在大洲数据，跳过大洲和国家的创建。');
+    return;
+  }
+
   // 步骤 2: 遍历从`countries.js`导入的初始数据。
   for (const continentData of Object.values(continents)) {
     // 检查当前大洲是否已存在于缓存中。
@@ -84,6 +90,12 @@ async function seedUrbanizationWorldMap(countryCache) {
   });
   const existingCountryIdsInMap = new Set(existingMapData.map(data => data.countryId));
 
+  // 如果已经存在至少一条记录，则跳过整个方法
+  if (existingMapData.length > 0) {
+    console.info('检测到已存在世界地图城镇化数据，跳过创建。');
+    return;
+  }
+
   // 步骤 2: 准备需要创建的新记录。
   const mapEntriesToCreate = [];
   // 遍历所有在国家缓存中的国家。
@@ -124,6 +136,13 @@ async function seedIndicators(topIndicatorCache, secondaryIndicatorCache, detail
   // 步骤 1: 预加载所有层级的现有指标数据到各自的缓存中。
   const existingTop = await prisma.topIndicator.findMany();
   existingTop.forEach((i) => topIndicatorCache.set(i.indicatorEnName, i));
+
+  // 如果已经存在至少一个顶级指标，则跳过整个方法
+  if (existingTop.length > 0) {
+    console.info('检测到已存在指标体系数据，跳过创建。');
+    return;
+  }
+
   const existingSecondary = await prisma.secondaryIndicator.findMany();
   existingSecondary.forEach((i) => secondaryIndicatorCache.set(i.indicatorEnName, i));
   const existingDetailed = await prisma.detailedIndicator.findMany();
@@ -296,7 +315,7 @@ async function main() {
   await seedContinentsAndCountries(continentCache, countryCache);
   await seedUrbanizationWorldMap(countryCache); // 在国家数据创建后，立即为其创建对应的地图展示数据。
   await seedIndicators(topIndicatorCache, secondaryIndicatorCache, detailedIndicatorCache);
-  await seedIndicatorValues(countryCache, detailedIndicatorCache);
+  // await seedIndicatorValues(countryCache, detailedIndicatorCache);
 }
 
 // 脚本的执行入口点。
