@@ -1,13 +1,19 @@
 const { app, BrowserWindow, dialog } = require('electron')
 const path = require('path')
-const { fork, execSync } = require('child_process')
+const { fork, execSync, spawn } = require('child_process')
 const net = require('net')
 const log = require('electron-log')
 
-// 哨兵代码：防止 fork 的子进程重新执行主逻辑。
-// 在打包后的应用中，`fork` 一个 a.js 文件，`process.argv` 会包含 `--fork a.js`。
-// 当这种情况发生时，我们知道这是一个子进程，应该立即退出，以防止无限循环。
-if (process.argv.some(arg => arg.startsWith('--fork'))) {
+// 哨兵代码：通过检查自定义环境变量来防止fork的子进程重新执行主逻辑
+// 区分不同类型的fork进程，让它们能正常运行而不是立即退出
+if (process.env.IS_NEST_FORK === 'true') {
+  // NestJS服务的fork进程，这个进程应该继续执行
+  // 不做任何操作，让NestJS正常启动
+} else if (process.env.IS_PRISMA_FORK === 'true') {
+  // Prisma迁移的fork进程，这个进程应该继续执行
+  // 不做任何操作，让Prisma迁移命令正常执行
+} else if (process.env.IS_ELECTRON_FORK === 'true') {
+  // 其他可能的Electron应用fork进程，应该立即退出
   process.exit(0)
 }
 
@@ -52,6 +58,77 @@ log.error = (...args) => {
   })
 }
 
+/**
+ * 检测指定端口是否被占用，如果被占用则尝试杀死占用该端口的进程
+ * @param {number} port - 要检查的端口号
+ * @returns {Promise<boolean>} 是否成功释放端口
+ */
+const checkAndFreePort = port => {
+  return new Promise(resolve => {
+    const client = new net.Socket()
+
+    client.once('connect', () => {
+      // 端口被占用，尝试释放
+      client.end()
+      log.info(`端口 ${port} 已被占用，尝试释放...`)
+
+      try {
+        // 根据操作系统选择不同的命令来找到并杀死占用端口的进程
+        if (process.platform === 'win32') {
+          // Windows
+          const findCmd = `netstat -ano | findstr :${port}`
+          const result = execSync(findCmd, { encoding: 'utf8' })
+
+          // 提取PID
+          const pidMatches = /\s+(\d+)$/.exec(result)
+          if (pidMatches && pidMatches[1]) {
+            const pid = pidMatches[1]
+            log.info(`尝试杀死Windows进程 PID: ${pid}`)
+            execSync(`taskkill /F /PID ${pid}`)
+            log.info(`成功释放端口 ${port}`)
+            resolve(true)
+          } else {
+            log.error(`无法找到占用端口 ${port} 的进程PID`)
+            resolve(false)
+          }
+        } else {
+          // macOS 和 Linux
+          const findCmd = `lsof -i:${port} -t`
+          const result = execSync(findCmd, { encoding: 'utf8' }).trim()
+
+          if (result) {
+            // 可能有多个进程，分行处理
+            const pids = result.split('\n')
+            pids.forEach(pid => {
+              if (pid) {
+                log.info(`尝试杀死Unix进程 PID: ${pid}`)
+                execSync(`kill -9 ${pid}`)
+              }
+            })
+            log.info(`成功释放端口 ${port}`)
+            resolve(true)
+          } else {
+            log.error(`无法找到占用端口 ${port} 的进程`)
+            resolve(false)
+          }
+        }
+      } catch (error) {
+        log.error(`释放端口 ${port} 失败:`, error.message)
+        resolve(false)
+      }
+    })
+
+    client.once('error', () => {
+      // 端口未被占用
+      log.info(`端口 ${port} 未被占用，可以正常使用`)
+      resolve(true)
+    })
+
+    // 尝试连接端口
+    client.connect({ port, host: '127.0.0.1' })
+  })
+}
+
 // 判断当前是否为开发环境
 const isDev = !app.isPackaged
 
@@ -87,17 +164,82 @@ function runMigrations() {
   // 它本身就是一个 Node.js 运行时，可以用来执行 node 脚本
   const nodePath = process.execPath
 
-  const command = `"${nodePath}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`
+  log.info(`准备使用fork执行Prisma迁移`)
 
   try {
-    log.info(`正在执行命令: ${command}`)
-    // 为迁移命令注入包含 DATABASE_URL 的环境变量
-    execSync(command, {
-      env: migrationEnv,
-      stdio: 'pipe', // 使用 'pipe' 来捕获输出
-      encoding: 'utf-8'
+    // 使用fork而不是execSync来避免启动新的应用实例
+    const migrationProcess = fork(prismaCliPath, ['migrate', 'deploy', `--schema=${schemaPath}`], {
+      env: {
+        ...migrationEnv,
+        IS_PRISMA_FORK: 'true' // 标记为Prisma迁移进程
+      },
+      silent: true // 捕获子进程的输出
     })
-    log.info('数据库迁移成功完成。')
+
+    // 处理迁移进程的输出
+    migrationProcess.stdout?.on('data', data => {
+      log.info(`[Prisma Migration]: ${data.toString().trim()}`)
+    })
+
+    migrationProcess.stderr?.on('data', data => {
+      log.error(`[Prisma Migration Error]: ${data.toString().trim()}`)
+    })
+
+    // 处理迁移进程的退出
+    migrationProcess.on('exit', code => {
+      if (code === 0) {
+        log.info('数据库迁移成功完成。')
+
+        // 数据库迁移成功后执行seed初始化数据
+        log.info('开始执行数据库种子初始化...')
+
+        // 使用与迁移相同的环境变量
+        const seedPath = path.join(backendPath, 'prisma', 'seed.js')
+
+        try {
+          // 使用fork执行seed脚本
+          const seedProcess = fork(seedPath, [], {
+            env: {
+              ...migrationEnv,
+              IS_PRISMA_FORK: 'true' // 标记为Prisma进程
+            },
+            silent: true // 捕获子进程的输出
+          })
+
+          // 处理seed进程的输出
+          seedProcess.stdout?.on('data', data => {
+            log.info(`[Prisma Seed]: ${data.toString().trim()}`)
+          })
+
+          seedProcess.stderr?.on('data', data => {
+            log.error(`[Prisma Seed Error]: ${data.toString().trim()}`)
+          })
+
+          // 处理seed进程的退出
+          seedProcess.on('exit', seedCode => {
+            if (seedCode === 0) {
+              log.info('数据库初始化成功完成。')
+            } else {
+              log.error(`数据库初始化失败，退出码: ${seedCode}`)
+            }
+          })
+
+          // 处理可能的错误
+          seedProcess.on('error', err => {
+            log.error('初始化进程启动失败:', err)
+          })
+        } catch (seedError) {
+          log.error('执行数据库初始化失败：', seedError)
+        }
+      } else {
+        log.error(`数据库迁移失败，退出码: ${code}`)
+      }
+    })
+
+    // 处理可能的错误
+    migrationProcess.on('error', err => {
+      log.error('迁移进程启动失败:', err)
+    })
   } catch (error) {
     log.error('数据库迁移失败。')
     // 详细记录 stdout 和 stderr，帮助调试
@@ -207,9 +349,29 @@ const startNestService = () => {
   // 定义日志文件的根目录
   const logPath = app.getPath('logs')
 
-  log.info(`数据库路径设置为: ${dbPath}`)
-  log.info(`上传目录设置为: ${uploadPath}`)
-  log.info(`日志目录设置为: ${logPath}`)
+  // log.info(`数据库路径设置为: ${dbPath}`)
+  // log.info(`上传目录设置为: ${uploadPath}`)
+  // log.info(`日志目录设置为: ${logPath}`)
+  // log.info(`资源路径设置为: ${process.resourcesPath}`)
+
+  // // 调试：列出资源目录的内容
+  // try {
+  //   const resourcesFiles = require('fs').readdirSync(process.resourcesPath)
+  //   log.info(`资源目录内容: ${JSON.stringify(resourcesFiles)}`)
+
+  //   // 检查前端资源目录是否存在
+  //   const frontendDistPath = path.join(process.resourcesPath, 'frontend-dist')
+  //   const frontendExists = require('fs').existsSync(frontendDistPath)
+  //   log.info(`前端资源目录存在: ${frontendExists}`)
+
+  //   if (frontendExists) {
+  //     // 列出前端资源目录内容
+  //     const frontendFiles = require('fs').readdirSync(frontendDistPath)
+  //     log.info(`前端资源目录内容: ${JSON.stringify(frontendFiles)}`)
+  //   }
+  // } catch (error) {
+  //   log.error(`读取资源目录失败: ${error.message}`)
+  // }
 
   log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
 
@@ -220,7 +382,10 @@ const startNestService = () => {
       NODE_ENV: 'production',
       DATABASE_URL: `file:${dbPath}`,
       UPLOAD_DIR: uploadPath,
-      LOG_PATH: logPath
+      LOG_PATH: logPath,
+      RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
+      APP_PATH: app.getAppPath(), // 添加应用路径环境变量
+      IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
     },
     silent: true // 捕获子进程的 stdout 和 stderr
   })
@@ -245,8 +410,13 @@ const startNestService = () => {
   nestProcess.on('exit', code => log.info(`NestJS 子进程已退出，退出码: ${code}`))
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createLoadingWindow()
+
+  // 在启动服务前检查并释放端口
+  log.info(`检查端口 ${nestPort} 是否被占用...`)
+  await checkAndFreePort(nestPort)
+
   runMigrations() // 在启动后端服务前执行数据库迁移
   startNestService()
   tryConnect() // 开始探测 NestJS 服务
