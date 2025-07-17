@@ -2,13 +2,7 @@
   "name": "urbanization",
   "version": "1.0.0",
   "type": "module",
-  "scripts": {
-    "start": "pnpm --filter ./frontend dev",
-    "build:frontend": "pnpm --filter ./frontend build",
-    "build:backend": "pnpm --filter ./backend build",
-    "build:loading-frontend": "pnpm --filter ./loading-frontend build",
-    "build": "rm -rf ./release && pnpm build:frontend && pnpm build:loading-frontend && pnpm build:backend && electron-builder"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/371132562/Urbanization.git"
@@ -20,7 +14,7 @@
     "url": "https://github.com/371132562/Urbanization/issues"
   },
   "homepage": "https://github.com/371132562/Urbanization#readme",
-  "description": "An application for urbanization.",
+  "description": "",
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@faker-js/faker": "^9.8.0",
@@ -35,50 +29,6 @@
     "prettier": "^3.4.2",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1"
-  },
-  "build": {
-    "appId": "Urbanization",
-    "productName": "Urbanization",
-    "directories": {
-      "app": "electron",
-      "output": "release"
-    },
-    "files": [
-      "**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "backend/dist",
-        "to": "backend/dist"
-      },
-      {
-        "from": "backend/prisma",
-        "to": "backend/prisma"
-      },
-      {
-        "from": "backend/node_modules",
-        "to": "backend/node_modules"
-      },
-      {
-        "from": "node_modules",
-        "to": "node_modules"
-      },
-      {
-        "from": "frontend/dist",
-        "to": "frontend-dist"
-      },
-      {
-        "from": "loading-frontend/dist",
-        "to": "loading-frontend-dist"
-      }
-    ],
-    "mac": {
-      "target": "dmg"
-    },
-    "win": {
-      "target": "nsis",
-      "icon": "frontend/public/icon.png"
-    }
   },
   "dependencies": {
     "dayjs": "^1.11.13",
