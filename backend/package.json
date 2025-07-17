@@ -36,6 +36,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sqlite3": "^5.1.7",
+    "tslib": "^2.6.3",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
   },

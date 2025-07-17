@@ -49,7 +49,8 @@
       "output": "release"
     },
     "files": [
-      "**/*"
+      "**/*",
+      "backend"
     ],
     "extraResources": [
       {
@@ -61,14 +62,6 @@
         "to": "backend/prisma"
       },
       {
-        "from": "backend/node_modules",
-        "to": "backend/node_modules"
-      },
-      {
-        "from": "node_modules",
-        "to": "node_modules"
-      },
-      {
         "from": "frontend/dist",
         "to": "frontend-dist"
       },
@@ -77,6 +70,7 @@
         "to": "loading-frontend-dist"
       }
     ],
+    "npmRebuild": true,
     "mac": {
       "target": "dir",
       "artifactName": "${productName}-v${version}"
