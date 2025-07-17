@@ -3,7 +3,8 @@
 
 // 指定生成器，这里是 Prisma Client for JavaScript
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
 }
 
 // 定义数据源，这里使用 SQLite
@@ -11,6 +12,7 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL") // 数据库链接从环境变量中读取
 }
+
 
 // 大洲字典表
 model Continent {
