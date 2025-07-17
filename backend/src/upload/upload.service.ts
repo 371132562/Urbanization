@@ -2,7 +2,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'; // 导入 Logger, NotFoundException
 import { BusinessException } from '../exceptions/businessException';
 import { ErrorCode } from '../../types/response';
-import { getImagePath } from '../utils/file-upload.utils'; // 导入 getImagePath
+import { getImagePath, normalizeFileName } from '../utils/file-upload.utils'; // 导入 getImagePath
 import { unlink } from 'fs/promises'; // 导入 fs/promises 中的 unlink 用于异步删除文件
 import { existsSync } from 'fs'; // 导入 existsSync
 
@@ -16,8 +16,11 @@ export class UploadService {
    * @returns 处理结果，包含文件信息和访问 URL
    */
   processUploadedFile(file: Express.Multer.File) {
+    // 处理中文文件名
+    const normalizedName = normalizeFileName(file.originalname);
+
     return {
-      originalName: file.originalname,
+      originalName: normalizedName,
       url: file.filename, // 可通过服务访问的 URL
       mimetype: file.mimetype,
       size: file.size,
@@ -50,8 +53,9 @@ export class UploadService {
       return {
         delete: true,
       };
-    } catch (error) {
-      this.logger.error(`删除文件 ${filePath} 失败: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      this.logger.error(`删除文件 ${filePath} 失败: ${errorMessage}`);
       throw new BusinessException(
         ErrorCode.BUSINESS_FAILED,
         `删除文件 ${filename} 失败。`,

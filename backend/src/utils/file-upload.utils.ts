@@ -1,20 +1,41 @@
 import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs'; // 导入 unlinkSync
+import { existsSync, mkdirSync } from 'fs';
 import { diskStorage } from 'multer';
 import { v4 as uuid } from 'uuid';
+import { Request } from 'express';
+import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 
 // 定义上传文件的根目录，所有文件都将存放在这里
 export const UPLOAD_DIR = process.env.UPLOAD_DIR as string; // 直接指定一个通用文件夹
 
+// 处理文件名中的中文，防止乱码
+export const normalizeFileName = (originalname: string): string => {
+  // 将原始文件名进行解码，避免中文乱码
+  try {
+    return decodeURIComponent(originalname);
+  } catch {
+    return originalname; // 如果解码失败，则使用原始文件名
+  }
+};
+
+// 定义回调函数类型
+type MulterCallback = (error: Error | null, destination: string) => void;
+type MulterFileCallback = (error: Error | null, filename: string) => void;
+type MulterFilterCallback = (error: Error | null, acceptFile: boolean) => void;
+
 // Multer 上传选项配置
-export const multerOptions = {
+export const multerOptions: MulterOptions = {
   // 文件大小限制：10MB
   limits: {
     fileSize: 10 * 1024 * 1024,
   },
   // 文件存储配置
   storage: diskStorage({
-    destination: (req: any, file: any, cb: any) => {
+    destination: (
+      req: Request,
+      file: Express.Multer.File,
+      cb: MulterCallback,
+    ) => {
       // 检查目录是否存在，如果不存在则递归创建
       if (!existsSync(UPLOAD_DIR)) {
         mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -22,17 +43,29 @@ export const multerOptions = {
       cb(null, UPLOAD_DIR); // 直接使用通用上传目录
     },
     // 定义上传文件的文件名
-    filename: (req: any, file: any, cb: any) => {
+    filename: (
+      req: Request,
+      file: Express.Multer.File,
+      cb: MulterFileCallback,
+    ) => {
+      // 处理原始文件名，解决中文乱码问题
+      const normalizedName = normalizeFileName(file.originalname);
       // 生成一个唯一的 UUID 作为文件名，并保留原始文件的扩展名
-      cb(null, `${uuid()}${extname(file.originalname)}`);
+      cb(null, `${uuid()}${extname(normalizedName)}`);
     },
   }),
   // 文件过滤：只允许图片类型（jpg, jpeg, png, gif）
-  fileFilter: (req: any, file: any, cb: any) => {
+  fileFilter: (
+    req: Request,
+    file: Express.Multer.File,
+    cb: MulterFilterCallback,
+  ) => {
     if (file.mimetype.match(/^image\//)) {
       cb(null, true); // 允许上传
     } else {
-      cb(new Error(`不支持的文件类型: ${extname(file.originalname)}`), false); // 拒绝上传
+      // 处理原始文件名，解决中文乱码问题
+      const normalizedName = normalizeFileName(file.originalname);
+      cb(new Error(`不支持的文件类型: ${extname(normalizedName)}`), false); // 拒绝上传
     }
   },
 };
