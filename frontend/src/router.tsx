@@ -1,10 +1,8 @@
 import { createBrowserRouter, Navigate, RouteObject } from 'react-router'
 
 import ErrorPage from '@/components/Error'
-import { Component as Layout } from '@/components/Layout'
 
-import { RouteItem } from '@/types'
-import { sideRoutes, topRoutes } from './router/routesConfig'
+import { RouteItem, sideRoutes, topRoutes } from './router/routesConfig.tsx'
 
 // 根据路由配置生成路由
 const generateRoutes = (): RouteObject[] => {
@@ -14,10 +12,9 @@ const generateRoutes = (): RouteObject[] => {
 
       // 添加主路由
       if (route.component) {
-        const Component = route.component;
         result.push({
           path: route.path,
-          element: <Component />
+          lazy: () => import(/* @vite-ignore */ route.component as string)
         })
       }
 
@@ -51,7 +48,7 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />
   },
   {
-    element: <Layout />,
+    lazy: () => import('./components/Layout'),
     // 将错误元素放在布局路由上，它可以捕获所有子路由的渲染错误
     errorElement: <ErrorPage />,
     children: generateRoutes()

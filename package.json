@@ -40,7 +40,6 @@
     "appId": "Urbanization",
     "productName": "Urbanization",
     "publish": null,
-    "electronLanguages": ["zh-CN", "en-US"],
     "directories": {
       "app": "electron",
       "output": "release"
@@ -75,7 +74,7 @@
       }
     ],
     "mac": {
-      "target": "zip"
+      "target": "dmg"
     },
     "win": {
       "target": "portable",
