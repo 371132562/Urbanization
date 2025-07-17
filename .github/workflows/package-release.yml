@@ -37,7 +37,7 @@ jobs:
 
       # 5. 运行打包脚本
       - name: '执行打包脚本'
-        run: pnpm package
+        run: pnpm build
 
       # 6. 将 release 文件夹压缩成 zip
       #    Compress-Archive 是 PowerShell 的命令，在 windows-latest 环境中默认可用
