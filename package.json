@@ -7,7 +7,7 @@
     "build:frontend": "pnpm --filter ./frontend build",
     "build:backend": "pnpm --filter ./backend build",
     "build:loading-frontend": "pnpm --filter ./loading-frontend build",
-    "build": "rm -rf ./release && pnpm build:frontend && pnpm build:loading-frontend && pnpm build:backend && electron-builder --win"
+    "build": "rm -rf ./release && pnpm build:frontend && pnpm build:loading-frontend && pnpm build:backend && electron-builder"
   },
   "repository": {
     "type": "git",
