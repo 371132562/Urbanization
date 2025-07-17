@@ -3,8 +3,10 @@
 name: '构建和打包发布版本'
 
 on:
-  # 允许你从 Actions 标签页手动触发这个工作流
-  workflow_dispatch:
+  # 推送自动触发
+  push:
+    branches:
+      - master
 
 jobs:
   build-and-package-windows:
