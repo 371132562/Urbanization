@@ -399,7 +399,7 @@ const createLoadingWindow = () => {
     height: 600,
     frame: true,
     transparent: false, // 将透明设置为false，解决Mac上显示问题
-    // backgroundColor: '#FFFFFF', // 添加背景色
+    backgroundColor: '#FFFFFF', // 添加背景色
     show: false, // 先不显示，等内容加载完毕再显示
     webPreferences: {
       nodeIntegration: false,
