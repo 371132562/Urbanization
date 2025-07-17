@@ -49,6 +49,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           # 构建产物的名称
-          name: urbanization-release-package-windows
+          name: Urbanization
           # 需要上传的文件路径
-          path: Urbanization-Release.zip
+          path: Urbanization.zip
