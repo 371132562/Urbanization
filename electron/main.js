@@ -11,6 +11,7 @@ const mime = require('mime-types')
 
 // 设置应用名称，这会影响用户数据目录的名称
 app.setName('Urbanization')
+app.setLocale('zh-CN')
 
 // 哨兵代码：通过检查自定义环境变量来防止fork的子进程重新执行主逻辑
 // 区分不同类型的fork进程，让它们能正常运行而不是立即退出
