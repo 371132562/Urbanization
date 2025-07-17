@@ -4,6 +4,9 @@ const { fork, execSync, spawn } = require('child_process')
 const net = require('net')
 const log = require('electron-log')
 
+// 设置应用名称，这会影响用户数据目录的名称
+app.setName('Urbanization')
+
 // 哨兵代码：通过检查自定义环境变量来防止fork的子进程重新执行主逻辑
 // 区分不同类型的fork进程，让它们能正常运行而不是立即退出
 if (process.env.IS_NEST_FORK === 'true') {
@@ -28,44 +31,6 @@ const logPath = path.join(userDataPath, 'logs')
 
 // 将日志文件配置到应用的用户数据目录中
 log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs/main.log')
-
-const formatArgsForDialog = args => {
-  return args
-    .map(arg => {
-      if (arg instanceof Error) {
-        return arg.stack || arg.message
-      }
-      if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.stringify(arg, null, 2)
-        } catch (e) {
-          return '[Unserializable Object]'
-        }
-      }
-      return String(arg)
-    })
-    .join(' ')
-}
-
-const originalInfo = log.info
-log.info = (...args) => {
-  originalInfo(...args)
-  dialog.showMessageBox({
-    type: 'info',
-    title: '信息日志',
-    message: formatArgsForDialog(args)
-  })
-}
-
-const originalError = log.error
-log.error = (...args) => {
-  originalError(...args)
-  dialog.showMessageBox({
-    type: 'error',
-    title: '错误日志',
-    message: formatArgsForDialog(args)
-  })
-}
 
 /**
  * 检测指定端口是否被占用，如果被占用则尝试杀死占用该端口的进程
@@ -377,30 +342,6 @@ const startNestService = () => {
   const nestAppPath = isDev
     ? path.join(__dirname, '..', 'backend', 'dist', 'src', 'main.js')
     : path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
-
-  // log.info(`数据库路径设置为: ${dbPath}`)
-  // log.info(`上传目录设置为: ${uploadPath}`)
-  // log.info(`日志目录设置为: ${logPath}`)
-  // log.info(`资源路径设置为: ${process.resourcesPath}`)
-
-  // // 调试：列出资源目录的内容
-  // try {
-  //   const resourcesFiles = require('fs').readdirSync(process.resourcesPath)
-  //   log.info(`资源目录内容: ${JSON.stringify(resourcesFiles)}`)
-
-  //   // 检查前端资源目录是否存在
-  //   const frontendDistPath = path.join(process.resourcesPath, 'frontend-dist')
-  //   const frontendExists = require('fs').existsSync(frontendDistPath)
-  //   log.info(`前端资源目录存在: ${frontendExists}`)
-
-  //   if (frontendExists) {
-  //     // 列出前端资源目录内容
-  //     const frontendFiles = require('fs').readdirSync(frontendDistPath)
-  //     log.info(`前端资源目录内容: ${JSON.stringify(frontendFiles)}`)
-  //   }
-  // } catch (error) {
-  //   log.error(`读取资源目录失败: ${error.message}`)
-  // }
 
   log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
 
