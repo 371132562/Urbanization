@@ -7,7 +7,7 @@ const log = require('electron-log')
 const http = require('http')
 const fs = require('fs')
 const url = require('url')
-const mime = require('mime-types') // 你可能需要安装这个依赖
+const mime = require('mime-types')
 
 // 设置应用名称，这会影响用户数据目录的名称
 app.setName('Urbanization')
@@ -299,6 +299,8 @@ const createMainWindow = () => {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    show: false, // 先不显示，等准备好后再显示
+    backgroundColor: '#FFFFFF', // 添加背景色，避免白屏
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -306,6 +308,13 @@ const createMainWindow = () => {
   })
 
   mainWindow.loadURL(`http://localhost:${nestPort}`)
+
+  // 页面加载完成后最大化并显示窗口
+  mainWindow.once('ready-to-show', () => {
+    log.info('主窗口准备完成，最大化并显示')
+    mainWindow.maximize() // 窗口最大化
+    mainWindow.show() // 显示窗口
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null

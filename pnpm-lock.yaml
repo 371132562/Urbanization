@@ -11,12 +11,6 @@ importers:
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
-      electron-log:
-        specifier: ^5.4.1
-        version: 5.4.1
-      mime-types:
-        specifier: ^3.0.1
-        version: 3.0.1
       prettier-plugin-tailwindcss:
         specifier: ^0.6.13
         version: 0.6.14(prettier@3.6.2)
@@ -170,7 +164,14 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0
 
-  electron: {}
+  electron:
+    dependencies:
+      electron-log:
+        specifier: ^5.4.1
+        version: 5.4.1
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.1
 
   frontend:
     dependencies:
