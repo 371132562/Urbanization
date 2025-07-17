@@ -22,7 +22,6 @@ release
 
 # 数据库文件
 *.db
-/backend/db
 
 # 用户上传的文件
 uploads
