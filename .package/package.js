@@ -27,13 +27,17 @@ async function main() {
 
     // 3. 构建前端
     console.log('🏗️  正在构建前端应用 (React)...');
-    execSync('pnpm --filter frontend build', { stdio: 'inherit' });
+    execSync('pnpm --filter urbanization-frontend build', { stdio: 'inherit' });
     await fs.copy(path.join(rootDir, 'frontend', 'dist'), path.join(appDir, 'frontend', 'dist'));
     console.log('✅ 前端构建并复制完成。');
 
     // 4. 构建后端
+    console.log('🔄 正在为后端生成 Prisma Client...');
+    execSync('pnpm --filter urbanization-backend exec prisma generate', { cwd: rootDir, stdio: 'inherit' });
+    console.log('✅ Prisma Client 生成成功。');
+
     console.log('🏗️  正在构建后端应用 (NestJS)...');
-    execSync('pnpm --filter backend build', { stdio: 'inherit' });
+    execSync('pnpm --filter urbanization-backend build', { stdio: 'inherit' });
     const backendAppDir = path.join(appDir, 'backend');
     await fs.copy(path.join(rootDir, 'backend', 'dist'), path.join(backendAppDir, 'dist'));
     console.log('✅ 后端构建完成。');
