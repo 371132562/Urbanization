@@ -42,20 +42,28 @@ async function main() {
     await fs.copy(path.join(rootDir, 'backend', 'dist'), path.join(backendAppDir, 'dist'));
     console.log('✅ 后端构建完成。');
 
-    // 5. 复制后端核心文件和所有依赖模块（替代安装步骤）
-    console.log('📦 正在复制后端核心文件...');
+    // 5. 复制后端核心文件和 workspace 配置，复制根 package.json 和 pnpm-workspace.yaml 以创建有效的安装环境
+    console.log('📦 正在复制后端核心文件和 workspace 配置...');
+    await fs.copy(
+      path.join(rootDir, 'pnpm-workspace.yaml'),
+      path.join(appDir, 'pnpm-workspace.yaml'),
+    );
+    await fs.copy(path.join(rootDir, 'package.json'), path.join(appDir, 'package.json'));
     await fs.copy(path.join(rootDir, 'backend', 'prisma'), path.join(backendAppDir, 'prisma'));
     await fs.copy(
       path.join(rootDir, 'backend', 'package.json'),
       path.join(backendAppDir, 'package.json'),
     );
-    console.log('📦 正在复制项目根目录的 node_modules (这可能需要一些时间)...');
-    await fs.copy(path.join(rootDir, 'node_modules'), path.join(appDir, 'node_modules'));
-    console.log('📦 正在复制 backend 目录的 node_modules...');
-    await fs.copy(path.join(rootDir, 'backend', 'node_modules'), path.join(backendAppDir, 'node_modules'));
-    console.log('✅ 后端文件和依赖复制完成。');
+    console.log('✅ 后端核心文件和配置复制完成。');
 
-    // 6. 复制启动器、说明文档和便携版Node.js
+    // 6. 在打包目录中为后端安装生产依赖（正确且可靠的方式）
+    // 这会根据 backend/package.json 创建一个自包含的、无符号链接的 node_modules
+    console.log('📦 正在为后端安装生产依赖 (pnpm install --prod)...');
+    execSync('pnpm install --prod', { cwd: backendAppDir, stdio: 'inherit' });
+    console.log('✅ 后端依赖安装完成。');
+
+
+    // 7. 复制启动器、说明文档和便携版Node.js
     console.log('🚀 正在复制启动器、说明文档和便携版 Node.js...');
     await fs.copy(
       path.join(packageAssetsDir, 'node-portable'),

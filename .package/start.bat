@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 setlocal
 
 REM 获取脚本所在的目录 (release 目录)

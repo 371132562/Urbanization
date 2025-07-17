@@ -39,10 +39,11 @@ jobs:
       - name: '执行打包脚本'
         run: pnpm build
 
-      # 6. 将 release 文件夹压缩成 zip
-      #    Compress-Archive 是 PowerShell 的命令，在 windows-latest 环境中默认可用
+      # 6. 将 release 文件夹的内容压缩成 zip，而不是文件夹本身
+      #    我们先进入 release 目录，然后压缩其所有内容
       - name: '归档发布文件'
-        run: Compress-Archive -Path ./release -DestinationPath Urbanization.zip
+        working-directory: ./release
+        run: Compress-Archive -Path ./* -DestinationPath ../Urbanization.zip
 
       # 7. 上传打包好的 zip 文件作为构建产物
       - name: '上传构建产物'
