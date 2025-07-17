@@ -6,13 +6,9 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build Windows App on Ubuntu
+    runs-on: ubuntu-latest # 固定使用 Ubuntu 环境
     
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,19 +27,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build
+      - name: Build for Windows
         run: pnpm build
 
       - name: Upload Windows Artifacts
-        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: Urbanization-Windows
           path: release/win-unpacked/
-
-      - name: Upload macOS Artifacts
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Urbanization-macOS
-          path: release/mac/Urbanization.app/
