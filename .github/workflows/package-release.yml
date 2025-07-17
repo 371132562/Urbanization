@@ -39,17 +39,11 @@ jobs:
       - name: '执行打包脚本'
         run: pnpm build
 
-      # 6. 将 release 文件夹的内容压缩成 zip，而不是文件夹本身
-      #    我们先进入 release 目录，然后压缩其所有内容
-      - name: '归档发布文件'
-        working-directory: ./release
-        run: Compress-Archive -Path ./* -DestinationPath ../Urbanization.zip
-
-      # 7. 上传打包好的 zip 文件作为构建产物
+      # 6. 直接上传release目录内的所有文件作为构建产物
       - name: '上传构建产物'
         uses: actions/upload-artifact@v4
         with:
           # 构建产物的名称
           name: Urbanization
           # 需要上传的文件路径
-          path: Urbanization.zip
+          path: ./release/**/*

@@ -58,8 +58,11 @@ async function main() {
 
     // 6. 在打包目录中为后端安装生产依赖（正确且可靠的方式）
     // 这会根据 backend/package.json 创建一个自包含的、无符号链接的 node_modules
+    console.log('🔄 正在为后端生成 Prisma Client...');
+    execSync('pnpm --filter urbanization-backend exec prisma generate', { cwd: rootDir, stdio: 'inherit' });
+    console.log('✅ Prisma Client 生成成功。');
     console.log('📦 正在为后端安装生产依赖 (pnpm install --prod)...');
-    execSync('pnpm install --prod', { cwd: backendAppDir, stdio: 'inherit' });
+    execSync('pnpm install', { cwd: backendAppDir, stdio: 'inherit' });
     console.log('✅ 后端依赖安装完成。');
 
 
