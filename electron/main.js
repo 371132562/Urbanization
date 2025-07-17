@@ -300,6 +300,7 @@ const createMainWindow = () => {
     width: 1280,
     height: 800,
     show: false, // 先不显示，等准备好后再显示
+    backgroundColor: '#FFFFFF', // 添加背景色，避免白屏
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
