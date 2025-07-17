@@ -8,57 +8,9 @@ const http = require('http')
 const fs = require('fs')
 const url = require('url')
 const mime = require('mime-types') // 你可能需要安装这个依赖
-const Module = require('module')
 
 // 设置应用名称，这会影响用户数据目录的名称
 app.setName('Urbanization')
-
-// 解决打包后依赖模块找不到的问题
-if (!app.isPackaged) {
-  log.info('开发环境: 使用默认模块解析机制')
-} else {
-  log.info('生产环境: 添加自定义模块解析路径')
-
-  // 保存原始的require.resolve方法
-  const originalResolve = Module._resolveFilename
-
-  // 重写模块解析路径逻辑
-  Module._resolveFilename = function (request, parent, isMain, options) {
-    const resourcesPath = process.resourcesPath
-
-    // 尝试从不同路径解析模块
-    const modulePaths = [
-      // 1. 标准路径解析
-      () => originalResolve(request, parent, isMain, options),
-
-      // 2. backend目录下的node_modules
-      () => {
-        const backendModulePath = path.join(resourcesPath, 'backend', 'node_modules', request)
-        return originalResolve(backendModulePath, parent, isMain, options)
-      },
-
-      // 3. resources目录下的node_modules
-      () => {
-        const resourcesModulePath = path.join(resourcesPath, 'node_modules', request)
-        return originalResolve(resourcesModulePath, parent, isMain, options)
-      }
-    ]
-
-    // 依次尝试所有路径
-    for (const resolver of modulePaths) {
-      try {
-        return resolver()
-      } catch (e) {
-        // 继续尝试下一个路径
-      }
-    }
-
-    // 如果所有路径都失败，使用原始方法抛出一致的错误
-    return originalResolve(request, parent, isMain, options)
-  }
-
-  log.info('已添加自定义模块解析路径')
-}
 
 // 哨兵代码：通过检查自定义环境变量来防止fork的子进程重新执行主逻辑
 // 区分不同类型的fork进程，让它们能正常运行而不是立即退出
@@ -212,15 +164,9 @@ function runMigrations() {
   // 与 startNestService 中逻辑一致，确保迁移时也使用正确的数据库路径
   const migrationEnv = {
     ...process.env,
-    DATABASE_URL: `file:${dbPath}`,
-    NODE_PATH: isDev ? undefined : path.join(process.resourcesPath, 'node_modules') // 添加NODE_PATH环境变量
+    DATABASE_URL: `file:${dbPath}`
   }
   log.info(`迁移使用的数据库路径: file:${dbPath}`)
-
-  // 在生产环境下，先确保关键依赖已安装
-  if (!isDev) {
-    ensureDependencies(backendPath)
-  }
 
   const prismaCliPath = path.join(backendPath, 'node_modules', 'prisma', 'build', 'index.js')
   const schemaPath = path.join(backendPath, 'prisma', 'schema.prisma')
@@ -315,97 +261,6 @@ function runMigrations() {
     }
     log.error('完整错误对象:', error)
   }
-}
-
-/**
- * 确保关键依赖已安装
- * @param {string} backendPath - 后端代码路径
- */
-function ensureDependencies(backendPath) {
-  log.info('检查并安装关键依赖...')
-
-  try {
-    // 关键依赖列表
-    const criticalDependencies = ['tslib', '@prisma/engines', '@prisma/client']
-
-    // 检查每个依赖是否已安装，如果没有则尝试安装
-    for (const dep of criticalDependencies) {
-      try {
-        // 尝试加载依赖，如果不存在会抛出异常
-        require.resolve(dep, { paths: [backendPath] })
-        log.info(`依赖 ${dep} 已存在，跳过安装`)
-      } catch (e) {
-        log.warn(`找不到依赖 ${dep}，尝试安装...`)
-
-        try {
-          // 在后端目录安装依赖
-          execSync(`npm install ${dep} --no-save`, {
-            cwd: backendPath,
-            stdio: 'pipe'
-          })
-          log.info(`成功安装依赖 ${dep}`)
-        } catch (installErr) {
-          log.error(`安装依赖 ${dep} 失败: ${installErr.message}`)
-        }
-      }
-    }
-  } catch (err) {
-    log.error('检查依赖过程中出错:', err.message)
-  }
-}
-
-// 启动 NestJS 后台服务
-const startNestService = () => {
-  // 根据环境确定 NestJS 后端服务的入口文件路径
-  const nestAppPath = isDev
-    ? path.join(__dirname, '..', 'backend', 'dist', 'src', 'main.js')
-    : path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
-
-  const backendPath = isDev
-    ? path.join(__dirname, '..', 'backend')
-    : path.join(process.resourcesPath, 'backend')
-
-  // 在生产环境下，先确保关键依赖已安装
-  if (!isDev) {
-    ensureDependencies(backendPath)
-  }
-
-  log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
-
-  nestProcess = fork(nestAppPath, [], {
-    // 将数据库、上传和日志目录的路径作为环境变量传递给 NestJS 子进程
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      DATABASE_URL: `file:${dbPath}`,
-      UPLOAD_DIR: uploadPath,
-      LOG_PATH: logPath,
-      RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
-      APP_PATH: app.getAppPath(), // 添加应用路径环境变量
-      NODE_PATH: isDev ? undefined : path.join(process.resourcesPath, 'node_modules'), // 添加NODE_PATH环境变量
-      IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
-    },
-    silent: true // 捕获子进程的 stdout 和 stderr
-  })
-
-  // 监听 NestJS 进程的 stdout
-  nestProcess.stdout.on('data', data => {
-    log.info(`[NestJS]: ${data.toString().trim()}`)
-  })
-
-  // 监听 NestJS 进程的 stderr
-  nestProcess.stderr.on('data', data => {
-    log.error(`[NestJS Error]: ${data.toString().trim()}`)
-  })
-
-  // 监听来自 NestJS 进程的消息 (如果你的 NestJS 应用通过 process.send() 发送消息)
-  nestProcess.on('message', message => {
-    log.info('收到来自 NestJS 的消息:', message)
-  })
-
-  // 监听 NestJS 进程的错误事件
-  nestProcess.on('error', err => log.error('NestJS 子进程出错:', err))
-  nestProcess.on('exit', code => log.info(`NestJS 子进程已退出，退出码: ${code}`))
 }
 
 /**
@@ -591,6 +446,50 @@ const createLoadingWindow = () => {
       staticServer = null
     }
   })
+}
+
+// 启动 NestJS 后台服务
+const startNestService = () => {
+  // 根据环境确定 NestJS 后端服务的入口文件路径
+  const nestAppPath = isDev
+    ? path.join(__dirname, '..', 'backend', 'dist', 'src', 'main.js')
+    : path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
+
+  log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
+
+  nestProcess = fork(nestAppPath, [], {
+    // 将数据库、上传和日志目录的路径作为环境变量传递给 NestJS 子进程
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      DATABASE_URL: `file:${dbPath}`,
+      UPLOAD_DIR: uploadPath,
+      LOG_PATH: logPath,
+      RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
+      APP_PATH: app.getAppPath(), // 添加应用路径环境变量
+      IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
+    },
+    silent: true // 捕获子进程的 stdout 和 stderr
+  })
+
+  // 监听 NestJS 进程的 stdout
+  nestProcess.stdout.on('data', data => {
+    log.info(`[NestJS]: ${data.toString().trim()}`)
+  })
+
+  // 监听 NestJS 进程的 stderr
+  nestProcess.stderr.on('data', data => {
+    log.error(`[NestJS Error]: ${data.toString().trim()}`)
+  })
+
+  // 监听来自 NestJS 进程的消息 (如果你的 NestJS 应用通过 process.send() 发送消息)
+  nestProcess.on('message', message => {
+    log.info('收到来自 NestJS 的消息:', message)
+  })
+
+  // 监听 NestJS 进程的错误事件
+  nestProcess.on('error', err => log.error('NestJS 子进程出错:', err))
+  nestProcess.on('exit', code => log.info(`NestJS 子进程已退出，退出码: ${code}`))
 }
 
 app.whenReady().then(async () => {

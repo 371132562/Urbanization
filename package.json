@@ -78,11 +78,11 @@
       }
     ],
     "mac": {
-      "target": "zip"
+      "target": "dir",
+      "artifactName": "${productName}-v${version}"
     },
     "win": {
       "target": "dir",
-      "icon": "frontend/public/icon.png",
       "signAndEditExecutable": false,
       "artifactName": "${productName}-v${version}"
     }

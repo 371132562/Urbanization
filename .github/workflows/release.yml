@@ -11,7 +11,7 @@ jobs:
     
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, macos-latest]
 
     steps:
       - name: Checkout code
@@ -34,8 +34,16 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Upload Artifacts
+      - name: Upload Windows Artifacts
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: Urbanization
+          name: Urbanization-Windows
           path: release/win-unpacked/
+
+      - name: Upload macOS Artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Urbanization-macOS
+          path: release/mac/Urbanization.app/
