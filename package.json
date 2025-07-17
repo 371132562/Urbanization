@@ -40,7 +40,10 @@
     "appId": "Urbanization",
     "productName": "Urbanization",
     "publish": null,
-    "electronLanguages": ["zh-CN", "en-US"],
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
     "directories": {
       "app": "electron",
       "output": "release"
@@ -78,15 +81,16 @@
       "target": "zip"
     },
     "win": {
-      "target": "portable",
+      "target": "dir",
       "icon": "frontend/public/icon.png",
       "signAndEditExecutable": false,
-      "artifactName": "${productName}-v${version}.${ext}"
+      "artifactName": "${productName}-v${version}"
     }
   },
   "dependencies": {
     "dayjs": "^1.11.13",
     "electron-log": "^5.4.1",
+    "mime-types": "^3.0.1",
     "prettier-plugin-tailwindcss": "^0.6.13",
     "uuid": "^11.1.0",
     "xlsx": "^0.18.5"

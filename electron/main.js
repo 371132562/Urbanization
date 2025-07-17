@@ -3,9 +3,62 @@ const path = require('path')
 const { fork, execSync, spawn } = require('child_process')
 const net = require('net')
 const log = require('electron-log')
+// 添加HTTP服务器相关模块
+const http = require('http')
+const fs = require('fs')
+const url = require('url')
+const mime = require('mime-types') // 你可能需要安装这个依赖
+const Module = require('module')
 
 // 设置应用名称，这会影响用户数据目录的名称
 app.setName('Urbanization')
+
+// 解决打包后依赖模块找不到的问题
+if (!app.isPackaged) {
+  log.info('开发环境: 使用默认模块解析机制')
+} else {
+  log.info('生产环境: 添加自定义模块解析路径')
+
+  // 保存原始的require.resolve方法
+  const originalResolve = Module._resolveFilename
+
+  // 重写模块解析路径逻辑
+  Module._resolveFilename = function (request, parent, isMain, options) {
+    const resourcesPath = process.resourcesPath
+
+    // 尝试从不同路径解析模块
+    const modulePaths = [
+      // 1. 标准路径解析
+      () => originalResolve(request, parent, isMain, options),
+
+      // 2. backend目录下的node_modules
+      () => {
+        const backendModulePath = path.join(resourcesPath, 'backend', 'node_modules', request)
+        return originalResolve(backendModulePath, parent, isMain, options)
+      },
+
+      // 3. resources目录下的node_modules
+      () => {
+        const resourcesModulePath = path.join(resourcesPath, 'node_modules', request)
+        return originalResolve(resourcesModulePath, parent, isMain, options)
+      }
+    ]
+
+    // 依次尝试所有路径
+    for (const resolver of modulePaths) {
+      try {
+        return resolver()
+      } catch (e) {
+        // 继续尝试下一个路径
+      }
+    }
+
+    // 如果所有路径都失败，使用原始方法抛出一致的错误
+    return originalResolve(request, parent, isMain, options)
+  }
+
+  log.info('已添加自定义模块解析路径')
+}
 
 // 哨兵代码：通过检查自定义环境变量来防止fork的子进程重新执行主逻辑
 // 区分不同类型的fork进程，让它们能正常运行而不是立即退出
@@ -141,9 +194,11 @@ const isDev = !app.isPackaged
 let mainWindow
 let loadingWindow
 let nestProcess
+let staticServer // 添加静态服务器变量
 
 // 将 NestJS 服务的端口号定义为常量，方便修改
 const nestPort = 3000
+const staticPort = 5173 // 添加静态服务器端口
 
 // 在创建窗口和启动后端服务之前，运行 Prisma 数据库迁移
 function runMigrations() {
@@ -157,9 +212,15 @@ function runMigrations() {
   // 与 startNestService 中逻辑一致，确保迁移时也使用正确的数据库路径
   const migrationEnv = {
     ...process.env,
-    DATABASE_URL: `file:${dbPath}`
+    DATABASE_URL: `file:${dbPath}`,
+    NODE_PATH: isDev ? undefined : path.join(process.resourcesPath, 'node_modules') // 添加NODE_PATH环境变量
   }
   log.info(`迁移使用的数据库路径: file:${dbPath}`)
+
+  // 在生产环境下，先确保关键依赖已安装
+  if (!isDev) {
+    ensureDependencies(backendPath)
+  }
 
   const prismaCliPath = path.join(backendPath, 'node_modules', 'prisma', 'build', 'index.js')
   const schemaPath = path.join(backendPath, 'prisma', 'schema.prisma')
@@ -257,6 +318,97 @@ function runMigrations() {
 }
 
 /**
+ * 确保关键依赖已安装
+ * @param {string} backendPath - 后端代码路径
+ */
+function ensureDependencies(backendPath) {
+  log.info('检查并安装关键依赖...')
+
+  try {
+    // 关键依赖列表
+    const criticalDependencies = ['tslib', '@prisma/engines', '@prisma/client']
+
+    // 检查每个依赖是否已安装，如果没有则尝试安装
+    for (const dep of criticalDependencies) {
+      try {
+        // 尝试加载依赖，如果不存在会抛出异常
+        require.resolve(dep, { paths: [backendPath] })
+        log.info(`依赖 ${dep} 已存在，跳过安装`)
+      } catch (e) {
+        log.warn(`找不到依赖 ${dep}，尝试安装...`)
+
+        try {
+          // 在后端目录安装依赖
+          execSync(`npm install ${dep} --no-save`, {
+            cwd: backendPath,
+            stdio: 'pipe'
+          })
+          log.info(`成功安装依赖 ${dep}`)
+        } catch (installErr) {
+          log.error(`安装依赖 ${dep} 失败: ${installErr.message}`)
+        }
+      }
+    }
+  } catch (err) {
+    log.error('检查依赖过程中出错:', err.message)
+  }
+}
+
+// 启动 NestJS 后台服务
+const startNestService = () => {
+  // 根据环境确定 NestJS 后端服务的入口文件路径
+  const nestAppPath = isDev
+    ? path.join(__dirname, '..', 'backend', 'dist', 'src', 'main.js')
+    : path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
+
+  const backendPath = isDev
+    ? path.join(__dirname, '..', 'backend')
+    : path.join(process.resourcesPath, 'backend')
+
+  // 在生产环境下，先确保关键依赖已安装
+  if (!isDev) {
+    ensureDependencies(backendPath)
+  }
+
+  log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
+
+  nestProcess = fork(nestAppPath, [], {
+    // 将数据库、上传和日志目录的路径作为环境变量传递给 NestJS 子进程
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      DATABASE_URL: `file:${dbPath}`,
+      UPLOAD_DIR: uploadPath,
+      LOG_PATH: logPath,
+      RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
+      APP_PATH: app.getAppPath(), // 添加应用路径环境变量
+      NODE_PATH: isDev ? undefined : path.join(process.resourcesPath, 'node_modules'), // 添加NODE_PATH环境变量
+      IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
+    },
+    silent: true // 捕获子进程的 stdout 和 stderr
+  })
+
+  // 监听 NestJS 进程的 stdout
+  nestProcess.stdout.on('data', data => {
+    log.info(`[NestJS]: ${data.toString().trim()}`)
+  })
+
+  // 监听 NestJS 进程的 stderr
+  nestProcess.stderr.on('data', data => {
+    log.error(`[NestJS Error]: ${data.toString().trim()}`)
+  })
+
+  // 监听来自 NestJS 进程的消息 (如果你的 NestJS 应用通过 process.send() 发送消息)
+  nestProcess.on('message', message => {
+    log.info('收到来自 NestJS 的消息:', message)
+  })
+
+  // 监听 NestJS 进程的错误事件
+  nestProcess.on('error', err => log.error('NestJS 子进程出错:', err))
+  nestProcess.on('exit', code => log.info(`NestJS 子进程已退出，退出码: ${code}`))
+}
+
+/**
  * 探测指定端口是否已被占用（即服务是否已启动）
  * @param {number} port - 要检查的端口号
  * @param {function(boolean): void} callback - 回调函数，返回端口是否就绪
@@ -305,79 +457,140 @@ const createMainWindow = () => {
   })
 }
 
+/**
+ * 启动静态文件服务器
+ * @param {string} directoryPath - 静态文件目录路径
+ * @param {number} port - 服务器端口
+ * @returns {Promise<http.Server>} HTTP服务器实例
+ */
+function startStaticServer(directoryPath, port) {
+  log.info(`启动静态文件服务器，目录: ${directoryPath}, 端口: ${port}`)
+
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      // 解析请求URL
+      const parsedUrl = url.parse(req.url)
+      let pathname = path.join(directoryPath, parsedUrl.pathname)
+
+      // 默认加载index.html
+      if (parsedUrl.pathname === '/') {
+        pathname = path.join(directoryPath, 'index.html')
+      }
+
+      // 检查文件是否存在
+      fs.stat(pathname, (err, stats) => {
+        if (err) {
+          // 如果请求的文件不存在，尝试加载index.html
+          log.error(`文件不存在: ${pathname}, 错误: ${err.message}`)
+
+          // 返回404
+          res.statusCode = 404
+          res.end(`File ${parsedUrl.pathname} not found!`)
+          return
+        }
+
+        // 如果是目录，默认尝试加载目录下的index.html
+        if (stats.isDirectory()) {
+          pathname = path.join(pathname, 'index.html')
+        }
+
+        // 读取文件
+        fs.readFile(pathname, (err, data) => {
+          if (err) {
+            res.statusCode = 500
+            log.error(`读取文件失败: ${pathname}, 错误: ${err.message}`)
+            res.end(`Error getting the file: ${err}.`)
+            return
+          }
+
+          // 获取文件的MIME类型
+          const contentType = mime.lookup(pathname) || 'application/octet-stream'
+
+          // 返回文件内容
+          res.setHeader('Content-type', contentType)
+          res.end(data)
+          log.info(`提供文件: ${pathname}, 类型: ${contentType}`)
+        })
+      })
+    })
+
+    // 监听指定端口
+    server.listen(port, () => {
+      log.info(`静态文件服务器运行在 http://localhost:${port}/`)
+      resolve(server)
+    })
+
+    // 处理服务器错误
+    server.on('error', err => {
+      log.error(`启动静态文件服务器失败: ${err.message}`)
+      reject(err)
+    })
+  })
+}
+
 // 创建加载窗口
 const createLoadingWindow = () => {
   log.info('创建加载窗口...')
   loadingWindow = new BrowserWindow({
-    width: 400,
-    height: 300,
+    width: 600,
+    height: 600,
     frame: true,
-    transparent: true,
+    transparent: false, // 将透明设置为false，解决Mac上显示问题
+    backgroundColor: '#FFFFFF', // 添加背景色
+    show: false, // 先不显示，等内容加载完毕再显示
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
     }
   })
 
-  // 根据环境加载 loading-frontend 的 index.html
-  // 在打包后，它位于 resources/loading-frontend-dist/index.html
-  const loadingPagePath = isDev
-    ? path.join(__dirname, '..', 'loading-frontend', 'dist', 'index.html')
-    : path.join(process.resourcesPath, 'loading-frontend-dist', 'index.html')
+  // 在开发环境下使用localhost地址，生产环境下使用内部HTTP服务器
+  if (isDev) {
+    // 开发模式下使用localhost地址
+    log.info('开发模式：加载localhost上的加载页面...')
+    loadingWindow.loadURL('http://localhost:5173') // 假设loading-frontend的开发服务器在5173端口
+  } else {
+    // 生产模式下启动内部HTTP服务器提供静态文件
+    const loadingDistPath = path.join(process.resourcesPath, 'loading-frontend-dist')
+    log.info(`生产模式：为路径 ${loadingDistPath} 启动HTTP服务器...`)
 
-  loadingWindow.loadFile(loadingPagePath)
+    // 检查端口并启动静态服务器
+    checkAndFreePort(staticPort)
+      .then(() => {
+        return startStaticServer(loadingDistPath, staticPort)
+      })
+      .then(server => {
+        staticServer = server
+        // 使用HTTP服务器加载页面
+        loadingWindow.loadURL(`http://localhost:${staticPort}`)
+      })
+      .catch(err => {
+        log.error(`启动静态文件服务器失败: ${err.message}`)
+        // 如果启动服务器失败，尝试直接加载文件（作为备用方案）
+        const loadingPagePath = path.join(
+          process.resourcesPath,
+          'loading-frontend-dist',
+          'index.html'
+        )
+        loadingWindow.loadFile(loadingPagePath)
+      })
+  }
 
+  // 页面加载完成后显示窗口
   loadingWindow.once('ready-to-show', () => {
+    log.info('加载页面准备完成，显示窗口')
     loadingWindow.show()
   })
 
   loadingWindow.on('closed', () => {
     loadingWindow = null
+    // 如果静态服务器存在，关闭它
+    if (staticServer) {
+      log.info('关闭静态文件服务器')
+      staticServer.close()
+      staticServer = null
+    }
   })
-}
-
-// 启动 NestJS 后台服务
-const startNestService = () => {
-  // 根据环境确定 NestJS 后端服务的入口文件路径
-  const nestAppPath = isDev
-    ? path.join(__dirname, '..', 'backend', 'dist', 'src', 'main.js')
-    : path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
-
-  log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
-
-  nestProcess = fork(nestAppPath, [], {
-    // 将数据库、上传和日志目录的路径作为环境变量传递给 NestJS 子进程
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      DATABASE_URL: `file:${dbPath}`,
-      UPLOAD_DIR: uploadPath,
-      LOG_PATH: logPath,
-      RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
-      APP_PATH: app.getAppPath(), // 添加应用路径环境变量
-      IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
-    },
-    silent: true // 捕获子进程的 stdout 和 stderr
-  })
-
-  // 监听 NestJS 进程的 stdout
-  nestProcess.stdout.on('data', data => {
-    log.info(`[NestJS]: ${data.toString().trim()}`)
-  })
-
-  // 监听 NestJS 进程的 stderr
-  nestProcess.stderr.on('data', data => {
-    log.error(`[NestJS Error]: ${data.toString().trim()}`)
-  })
-
-  // 监听来自 NestJS 进程的消息 (如果你的 NestJS 应用通过 process.send() 发送消息)
-  nestProcess.on('message', message => {
-    log.info('收到来自 NestJS 的消息:', message)
-  })
-
-  // 监听 NestJS 进程的错误事件
-  nestProcess.on('error', err => log.error('NestJS 子进程出错:', err))
-  nestProcess.on('exit', code => log.info(`NestJS 子进程已退出，退出码: ${code}`))
 }
 
 app.whenReady().then(async () => {
@@ -413,11 +626,19 @@ app.on('window-all-closed', () => {
 // 在此文件中，你可以包含应用程序剩余的所有主进程代码。
 // 你也可以将它们拆分到不同的文件中，然后在这里 require 它们。
 
-// 确保在应用退出前，杀死 NestJS 子进程。
+// 确保在应用退出前，关闭所有资源
 app.on('will-quit', () => {
+  // 关闭NestJS进程
   if (nestProcess) {
     log.info('正在停止 NestJS 应用...')
     nestProcess.kill()
     nestProcess = null
+  }
+
+  // 关闭静态文件服务器
+  if (staticServer) {
+    log.info('正在关闭静态文件服务器...')
+    staticServer.close()
+    staticServer = null
   }
 })
