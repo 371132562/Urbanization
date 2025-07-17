@@ -84,10 +84,7 @@
     "win": {
       "target": "dir",
       "signAndEditExecutable": false,
-      "artifactName": "${productName}-v${version}",
-      "nsis": {
-        "language": "2052"
-      }
+      "artifactName": "${productName}-v${version}"
     }
   },
   "dependencies": {

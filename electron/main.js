@@ -306,7 +306,6 @@ const createMainWindow = () => {
     }
   })
 
-  mainWindow.setMenu(null) // 移除菜单栏
   mainWindow.loadURL(`http://localhost:${nestPort}`)
 
   // 页面加载完成后最大化并显示窗口
