@@ -1,11 +1,11 @@
 const { app, BrowserWindow, dialog } = require('electron')
 const path = require('path')
-const { fork, execSync } = require('child_process')
+const { fork } = require('child_process')
 const net = require('net')
 const log = require('electron-log')
 
 // 将日志文件配置到应用的用户数据目录中
-log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs/main.log')
+log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs/main.log')
 
 const formatArgsForDialog = args => {
   return args
@@ -55,36 +55,6 @@ let nestProcess
 
 // 将 NestJS 服务的端口号定义为常量，方便修改
 const nestPort = 3000
-
-// 在创建窗口和启动后端服务之前，运行 Prisma 数据库迁移
-function runMigrations() {
-  log.info('开始进行数据库迁移...')
-
-  // 根据环境确定 backend 目录的路径
-  const backendPath = isDev
-    ? path.join(__dirname, '..', 'backend')
-    : path.join(process.resourcesPath, 'backend')
-
-  const prismaCliPath = path.join(backendPath, 'node_modules', 'prisma', 'build', 'index.js')
-  const schemaPath = path.join(backendPath, 'prisma', 'schema.prisma')
-  // 在 Electron 应用中，`process.execPath` 指向 Electron 的可执行文件，
-  // 它本身就是一个 Node.js 运行时，可以用来执行 node 脚本
-  const nodePath = process.execPath
-
-  const command = `"${nodePath}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`
-
-  try {
-    log.info(`正在执行命令: ${command}`)
-    execSync(command, {
-      stdio: 'pipe', // 使用 'pipe' 来捕获输出
-      encoding: 'utf-8'
-    })
-    log.info('数据库迁移成功完成。')
-  } catch (error) {
-    log.error('数据库迁移失败:', error)
-    // log.error 已经配置为会弹出对话框，所以这里不需要额外处理
-  }
-}
 
 /**
  * 探测指定端口是否已被占用（即服务是否已启动）
@@ -141,7 +111,7 @@ const createLoadingWindow = () => {
   loadingWindow = new BrowserWindow({
     width: 400,
     height: 300,
-    frame: true,
+    frame: false, // 无边框
     transparent: true,
     webPreferences: {
       nodeIntegration: false,
@@ -156,10 +126,6 @@ const createLoadingWindow = () => {
     : path.join(process.resourcesPath, 'loading-frontend-dist', 'index.html')
 
   loadingWindow.loadFile(loadingPagePath)
-
-  loadingWindow.once('ready-to-show', () => {
-    loadingWindow.show()
-  })
 
   loadingWindow.on('closed', () => {
     loadingWindow = null
@@ -179,23 +145,19 @@ const startNestService = () => {
   const dbPath = path.join(userDataPath, 'database.sqlite')
   // 定义上传文件的根目录
   const uploadPath = path.join(userDataPath, 'uploads')
-  // 定义日志文件的根目录
-  const logPath = app.getPath('logs')
 
   log.info(`数据库路径设置为: ${dbPath}`)
   log.info(`上传目录设置为: ${uploadPath}`)
-  log.info(`日志目录设置为: ${logPath}`)
 
   log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
 
   nestProcess = fork(nestAppPath, [], {
-    // 将数据库、上传和日志目录的路径作为环境变量传递给 NestJS 子进程
+    // 将数据库和上传目录的路径作为环境变量传递给 NestJS 子进程
     env: {
       ...process.env,
       NODE_ENV: 'production',
       DATABASE_URL: `file:${dbPath}`,
-      UPLOAD_DIR: uploadPath,
-      LOG_PATH: logPath
+      UPLOAD_DIR: uploadPath
     },
     silent: true // 捕获子进程的 stdout 和 stderr
   })
@@ -222,7 +184,6 @@ const startNestService = () => {
 
 app.whenReady().then(() => {
   createLoadingWindow()
-  runMigrations() // 在启动后端服务前执行数据库迁移
   startNestService()
   tryConnect() // 开始探测 NestJS 服务
 
