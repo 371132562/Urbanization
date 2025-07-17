@@ -11,9 +11,6 @@ importers:
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
-      electron-log:
-        specifier: ^5.4.1
-        version: 5.4.1
       prettier-plugin-tailwindcss:
         specifier: ^0.6.13
         version: 0.6.14(prettier@3.6.2)
@@ -167,7 +164,14 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0
 
-  electron: {}
+  electron:
+    devDependencies:
+      electron:
+        specifier: ^37.2.2
+        version: 37.2.2
+      electron-builder:
+        specifier: ^26.0.12
+        version: 26.0.12(electron-builder-squirrel-windows@26.0.12(dmg-builder@26.0.12))
 
   frontend:
     dependencies:
@@ -2954,10 +2958,6 @@ packages:
     resolution: {integrity: sha512-cD1kz5g2sgPTMFHjLxfMjUK5JABq3//J4jPswi93tOPFz6btzXYtK5NrDt717NRbukCUDOrrvmYVOWERlqoiXA==}
     engines: {node: '>=14.0.0'}
     hasBin: true
-
-  electron-log@5.4.1:
-    resolution: {integrity: sha512-QvisA18Z++8E3Th0zmhUelys9dEv7aIeXJlbFw3UrxCc8H9qSRW0j8/ooTef/EtHui8tVmbKSL+EIQzP9GoRLg==}
-    engines: {node: '>= 14'}
 
   electron-publish@26.0.11:
     resolution: {integrity: sha512-a8QRH0rAPIWH9WyyS5LbNvW9Ark6qe63/LqDB7vu2JXYpi0Gma5Q60Dh4tmTqhOBQt0xsrzD8qE7C+D7j+B24A==}
@@ -9131,8 +9131,6 @@ snapshots:
       - bluebird
       - electron-builder-squirrel-windows
       - supports-color
-
-  electron-log@5.4.1: {}
 
   electron-publish@26.0.11:
     dependencies:

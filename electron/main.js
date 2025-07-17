@@ -2,10 +2,6 @@ const { app, BrowserWindow } = require('electron')
 const path = require('path')
 const { fork } = require('child_process')
 const net = require('net')
-const log = require('electron-log')
-
-// 将日志文件配置到应用的用户数据目录中
-log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs/main.log')
 
 // 判断当前是否为开发环境
 const isDev = !app.isPackaged
@@ -39,11 +35,11 @@ const ping = (port, callback) => {
 const tryConnect = () => {
   ping(nestPort, isReady => {
     if (isReady) {
-      log.info('NestJS 服务已就绪，正在创建主窗口...')
+      console.log('NestJS 服务已就绪，正在创建主窗口...')
       createMainWindow()
       loadingWindow.close()
     } else {
-      log.info('NestJS 服务尚未就绪，1秒后重试...')
+      console.log('NestJS 服务尚未就绪，1秒后重试...')
       setTimeout(tryConnect, 1000)
     }
   })
@@ -69,7 +65,6 @@ const createMainWindow = () => {
 
 // 创建加载窗口
 const createLoadingWindow = () => {
-  log.info('创建加载窗口...')
   loadingWindow = new BrowserWindow({
     width: 400,
     height: 300,
@@ -108,10 +103,10 @@ const startNestService = () => {
   // 定义上传文件的根目录
   const uploadPath = path.join(userDataPath, 'uploads')
 
-  log.info(`数据库路径设置为: ${dbPath}`)
-  log.info(`上传目录设置为: ${uploadPath}`)
+  console.log(`数据库路径设置为: ${dbPath}`)
+  console.log(`上传目录设置为: ${uploadPath}`)
 
-  log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
+  console.log(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
 
   nestProcess = fork(nestAppPath, [], {
     // 将数据库和上传目录的路径作为环境变量传递给 NestJS 子进程
@@ -126,22 +121,22 @@ const startNestService = () => {
 
   // 监听 NestJS 进程的 stdout
   nestProcess.stdout.on('data', data => {
-    log.info(`[NestJS]: ${data.toString().trim()}`)
+    console.log(`[NestJS]: ${data.toString().trim()}`)
   })
 
   // 监听 NestJS 进程的 stderr
   nestProcess.stderr.on('data', data => {
-    log.error(`[NestJS Error]: ${data.toString().trim()}`)
+    console.error(`[NestJS Error]: ${data.toString().trim()}`)
   })
 
   // 监听来自 NestJS 进程的消息 (如果你的 NestJS 应用通过 process.send() 发送消息)
   nestProcess.on('message', message => {
-    log.info('收到来自 NestJS 的消息:', message)
+    console.log('收到来自 NestJS 的消息:', message)
   })
 
   // 监听 NestJS 进程的错误事件
-  nestProcess.on('error', err => log.error('NestJS 子进程出错:', err))
-  nestProcess.on('exit', code => log.info(`NestJS 子进程已退出，退出码: ${code}`))
+  nestProcess.on('error', err => console.error('NestJS 子进程出错:', err))
+  nestProcess.on('exit', code => console.log(`NestJS 子进程已退出，退出码: ${code}`))
 }
 
 app.whenReady().then(() => {
@@ -174,7 +169,7 @@ app.on('window-all-closed', () => {
 // 确保在应用退出前，杀死 NestJS 子进程。
 app.on('will-quit', () => {
   if (nestProcess) {
-    log.info('正在停止 NestJS 应用...')
+    console.log('正在停止 NestJS 应用...')
     nestProcess.kill()
     nestProcess = null
   }
