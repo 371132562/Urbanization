@@ -33,3 +33,21 @@ export type ContinentCountData = {
   continent: string
   count: number
 }
+
+/**
+ * 导出数据相关类型
+ */
+export enum ExportFormat {
+  XLSX = 'xlsx',
+  CSV = 'csv',
+  JSON = 'json',
+}
+
+/**
+ * 导出格式选项 - 用于前端渲染
+ */
+export const ExportFormatOptions = [
+  { value: ExportFormat.CSV, label: 'CSV' },
+  { value: ExportFormat.XLSX, label: 'XLSX (Excel)' },
+  { value: ExportFormat.JSON, label: 'JSON' },
+];

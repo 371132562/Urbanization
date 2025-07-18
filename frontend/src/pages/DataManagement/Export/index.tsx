@@ -5,9 +5,8 @@ import { useNavigate } from 'react-router'
 import {
   CountryData,
   ExportDataReqDto,
-  ExportFormat,
-  ExportFormatOptions
 } from 'urbanization-backend/types/dto'
+import { ExportFormat, ExportFormatOptions } from '@/types'
 
 import CountrySelect from '@/components/CountrySelect'
 import useDataManagementStore from '@/stores/dataManagementStore'
