@@ -16,6 +16,7 @@ export class UploadService {
    * @returns 处理结果，包含文件信息和访问 URL
    */
   processUploadedFile(file: Express.Multer.File) {
+    this.logger.log(file.originalname);
     return {
       originalName: file.originalname,
       url: file.filename, // 可通过服务访问的 URL
@@ -51,7 +52,9 @@ export class UploadService {
         delete: true,
       };
     } catch (error) {
-      this.logger.error(`删除文件 ${filePath} 失败: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`删除文件 ${filePath} 失败: ${errorMessage}`);
       throw new BusinessException(
         ErrorCode.BUSINESS_FAILED,
         `删除文件 ${filename} 失败。`,

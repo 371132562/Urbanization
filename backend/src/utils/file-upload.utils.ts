@@ -23,6 +23,10 @@ export const multerOptions = {
     },
     // 定义上传文件的文件名
     filename: (req: any, file: any, cb: any) => {
+      // 解决中文文件名乱码问题
+      file.originalname = Buffer.from(file.originalname, 'latin1').toString(
+        'utf8',
+      );
       // 生成一个唯一的 UUID 作为文件名，并保留原始文件的扩展名
       cb(null, `${uuid()}${extname(file.originalname)}`);
     },

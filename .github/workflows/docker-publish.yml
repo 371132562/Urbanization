@@ -1,0 +1,42 @@
+name: Publish Docker image
+
+on:
+  push:
+    branches:
+      - master # 当推送到 main 分支时触发
+
+env:
+  DOCKER_IMAGE_NAME: linstar666/urbanization # 替换为你的 Docker Hub 用户名和镜像名
+  # 如果你的项目目录不是 urbanization，可以根据需要调整 IMAGE_NAME。
+  # 也可以直接在 steps 中构建时指定全名
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest # 使用最新的 Ubuntu 运行器
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # 检出你的仓库代码
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3 # 设置 Docker Buildx，用于更高效地构建镜像
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }} # 从 GitHub Secrets 获取 Docker Hub 用户名
+          password: ${{ secrets.DOCKER_PASSWORD }} # 从 GitHub Secrets 获取 Docker Hub 密码
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: . # Dockerfile 所在的目录 (你的项目根目录)
+          file: ./Dockerfile # Dockerfile 的路径
+          push: true # 推送到仓库
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:latest # 镜像标签为 latest
+          # 也可以添加其他标签，例如：
+          # tags: |
+          #   ${{ env.DOCKER_IMAGE_NAME }}:latest
+          #   ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} # 使用 commit SHA 作为标签，唯一标识每次构建
+          build-args: | # 传递构建参数给 Dockerfile
+            DATABASE_URL_BUILD=file:../db/urbanization.db # 你的 DATABASE_URL_BUILD 参数

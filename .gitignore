@@ -16,7 +16,7 @@ dist-ssr
 coverage
 stats.html
 release
-Urbanization.zip
+backend/db
 
 # 本地配置文件 (例如: .env.local)
 *.local
