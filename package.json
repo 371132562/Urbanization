@@ -7,7 +7,7 @@
     "build:frontend": "pnpm --filter ./frontend build",
     "build:backend": "pnpm --filter ./backend build",
     "build:loading-frontend": "pnpm --filter ./loading-frontend build",
-    "build": "rm -rf ./release && pnpm build:frontend && pnpm build:loading-frontend && pnpm build:backend && electron-builder"
+    "build": "pnpm build:frontend && pnpm build:loading-frontend && pnpm build:backend && electron-builder"
   },
   "repository": {
     "type": "git",
@@ -53,16 +53,8 @@
     ],
     "extraResources": [
       {
-        "from": "backend/dist",
-        "to": "backend/dist"
-      },
-      {
-        "from": "backend/prisma",
-        "to": "backend/prisma"
-      },
-      {
-        "from": "backend/node_modules",
-        "to": "backend/node_modules"
+        "from": "backend",
+        "to": "backend"
       },
       {
         "from": "node_modules",
@@ -89,6 +81,7 @@
   },
   "dependencies": {
     "dayjs": "^1.11.13",
+    "npm": "^11.4.2",
     "prettier-plugin-tailwindcss": "^0.6.13",
     "uuid": "^11.1.0",
     "xlsx": "^0.18.5"

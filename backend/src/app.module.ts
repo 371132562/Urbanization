@@ -24,11 +24,10 @@ import { ArticleModule } from './businessComponent/article/article.module';
         exclude: ['/'], // 可选：排除不需要提供静态服务的路由
       },
       {
-        // 根据环境动态设置前端静态资源的根路径
-        // 在生产环境中，静态资源会被复制到 Resources/frontend-dist 目录
-        rootPath: join(process.env.RESOURCES_PATH || '', 'frontend-dist'),
+        rootPath: join(process.cwd(), '..', 'frontend', 'dist'), // 指向 monorepo 根目录下的 frontend/dist
+        // serveRoot: '/', // 可以省略，默认就是 '/'
         serveStaticOptions: {
-          preCompressed: true, // 如果前端构建时生成了 .gz 文件，可以开启以提升性能
+          preCompressed: true,
         },
       },
     ),

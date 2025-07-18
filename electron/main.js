@@ -25,17 +25,17 @@ if (process.env.IS_NEST_FORK === 'true') {
   process.exit(0)
 }
 
-// 获取用户数据目录路径，这是一个安全可写的目录
-const userDataPath = app.getPath('userData')
+const filesPath = path.join(__dirname, '..') // 获取当前文件所在目录的上一级目录（即项目根目录）
 // 定义数据库文件的完整路径
-const dbPath = path.join(userDataPath, 'urbanization.db')
+const dbPath = path.join(filesPath, 'db', 'urbanization.db')
 // 定义上传文件的根目录
-const uploadPath = path.join(userDataPath, 'images')
+const uploadPath = path.join(filesPath, 'db', 'images')
 // 定义日志文件的根目录
-const logPath = path.join(userDataPath, 'logs')
+const logPath = path.join(filesPath, 'db', 'logs')
 
 // 将日志文件配置到应用的用户数据目录中
 log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs/main.log')
+log.transports.file.encoding = 'utf8' // 设置文件编码为UTF-8，防止中文乱码
 
 /**
  * 检测指定端口是否被占用，如果被占用则尝试杀死占用该端口的进程
@@ -183,7 +183,8 @@ function runMigrations() {
         ...migrationEnv,
         IS_PRISMA_FORK: 'true' // 标记为Prisma迁移进程
       },
-      silent: true // 捕获子进程的输出
+      silent: true, // 捕获子进程的输出
+      windowsHide: true // 在Windows上隐藏子进程的窗口
     })
 
     // 处理迁移进程的输出
@@ -303,7 +304,8 @@ const createMainWindow = () => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
-    }
+    },
+    autoHideMenuBar: true
   })
 
   mainWindow.setMenu(null) // 移除菜单栏
@@ -398,46 +400,45 @@ const createLoadingWindow = () => {
   loadingWindow = new BrowserWindow({
     width: 600,
     height: 600,
-    frame: true,
-    transparent: false, // 将透明设置为false，解决Mac上显示问题
-    show: false, // 先不显示，等内容加载完毕再显示
+    show: false, // 先不显示，等准备好后再显示
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
-    }
+    },
+    autoHideMenuBar: true
   })
 
   // 在开发环境下使用localhost地址，生产环境下使用内部HTTP服务器
-  if (isDev) {
-    // 开发模式下使用localhost地址
-    log.info('开发模式：加载localhost上的加载页面...')
-    loadingWindow.loadURL('http://localhost:5173') // 假设loading-frontend的开发服务器在5173端口
-  } else {
-    // 生产模式下启动内部HTTP服务器提供静态文件
-    const loadingDistPath = path.join(process.resourcesPath, 'loading-frontend-dist')
-    log.info(`生产模式：为路径 ${loadingDistPath} 启动HTTP服务器...`)
+  // if (isDev) {
+  //   // 开发模式下使用localhost地址
+  //   log.info('开发模式：加载localhost上的加载页面...')
+  //   loadingWindow.loadURL('http://localhost:5173') // 假设loading-frontend的开发服务器在5173端口
+  // } else {
+  // 生产模式下启动内部HTTP服务器提供静态文件
+  const loadingDistPath = path.join(__dirname, '..', 'loading-frontend', 'dist')
+  log.info(`生产模式：为路径 ${loadingDistPath} 启动HTTP服务器...`)
 
-    // 检查端口并启动静态服务器
-    checkAndFreePort(staticPort)
-      .then(() => {
-        return startStaticServer(loadingDistPath, staticPort)
-      })
-      .then(server => {
-        staticServer = server
-        // 使用HTTP服务器加载页面
-        loadingWindow.loadURL(`http://localhost:${staticPort}`)
-      })
-      .catch(err => {
-        log.error(`启动静态文件服务器失败: ${err.message}`)
-        // 如果启动服务器失败，尝试直接加载文件（作为备用方案）
-        const loadingPagePath = path.join(
-          process.resourcesPath,
-          'loading-frontend-dist',
-          'index.html'
-        )
-        loadingWindow.loadFile(loadingPagePath)
-      })
-  }
+  // 检查端口并启动静态服务器
+  checkAndFreePort(staticPort)
+    .then(() => {
+      return startStaticServer(loadingDistPath, staticPort)
+    })
+    .then(server => {
+      staticServer = server
+      // 使用HTTP服务器加载页面
+      loadingWindow.loadURL(`http://localhost:${staticPort}`)
+    })
+    .catch(err => {
+      log.error(`启动静态文件服务器失败: ${err.message}`)
+      // 如果启动服务器失败，尝试直接加载文件（作为备用方案）
+      const loadingPagePath = path.join(
+        process.resourcesPath,
+        'loading-frontend-dist',
+        'index.html'
+      )
+      loadingWindow.loadFile(loadingPagePath)
+    })
+  // }
 
   // 页面加载完成后显示窗口
   loadingWindow.once('ready-to-show', () => {
@@ -458,27 +459,71 @@ const createLoadingWindow = () => {
 
 // 启动 NestJS 后台服务
 const startNestService = () => {
-  // 根据环境确定 NestJS 后端服务的入口文件路径
-  const nestAppPath = isDev
-    ? path.join(__dirname, '..', 'backend', 'dist', 'src', 'main.js')
-    : path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
+  // 将公共的环境变量提取出来
+  const nestEnv = {
+    ...process.env,
+    DATABASE_URL: `file:${dbPath}`,
+    UPLOAD_DIR: uploadPath,
+    LOG_PATH: logPath,
+    RESOURCES_PATH: process.resourcesPath, // 在生产环境中特别有用
+    APP_PATH: app.getAppPath() // 在生产环境中特别有用
+  }
 
-  log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
+  if (isDev) {
+    // 开发环境: 使用 npm run start:dev 启动 NestJS 以支持热重载
+    log.info('开发环境: 准备使用 "npm run start:dev" 启动 NestJS 服务...')
 
-  nestProcess = fork(nestAppPath, [], {
-    // 将数据库、上传和日志目录的路径作为环境变量传递给 NestJS 子进程
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      DATABASE_URL: `file:${dbPath}`,
-      UPLOAD_DIR: uploadPath,
-      LOG_PATH: logPath,
-      RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
-      APP_PATH: app.getAppPath(), // 添加应用路径环境变量
-      IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
-    },
-    silent: true // 捕获子进程的 stdout 和 stderr
-  })
+    // 构造 npm CLI 脚本的路径
+    const npmCliPath = path.join(__dirname, '..', 'node_modules', 'npm', 'bin', 'npm-cli.js')
+    // 指定 npm 命令的工作目录
+    const backendPath = path.join(__dirname, '..', 'backend')
+
+    log.info(`NPM CLI 路径: ${npmCliPath}`)
+    log.info(`将在工作目录中执行: ${backendPath}`)
+
+    // 使用 fork 来执行 npm 脚本
+    // fork 是 spawn('node', ...) 的一个特例，非常适合运行 node 脚本
+    nestProcess = fork(npmCliPath, ['run', 'start:dev'], {
+      cwd: backendPath, // 必须设置工作目录，npm 才能找到 backend/package.json
+      env: { ...nestEnv, NODE_ENV: 'development' }, // 确保 NestJS 以开发模式运行
+      silent: true, // 捕获子进程的输出
+      windowsHide: true // 在Windows上隐藏子进程的窗口
+    })
+  } else {
+    // 开发环境: 使用 npm run start:dev 启动 NestJS 以支持热重载
+    log.info('开发环境: 准备使用 "npm run start:dev" 启动 NestJS 服务...')
+
+    // 构造 npm CLI 脚本的路径
+    const npmCliPath = path.join(process.resourcesPath, 'node_modules', 'npm', 'bin', 'npm-cli.js')
+    // 指定 npm 命令的工作目录
+    const nestAppPath = path.join(process.resourcesPath, 'backend')
+
+    log.info(`NPM CLI 路径: ${npmCliPath}`)
+    log.info(`将在工作目录中执行: ${backendPath}`)
+
+    // 使用 fork 来执行 npm 脚本
+    // fork 是 spawn('node', ...) 的一个特例，非常适合运行 node 脚本
+    nestProcess = fork(npmCliPath, ['run', 'start:dev'], {
+      cwd: nestAppPath, // 必须设置工作目录，npm 才能找到 backend/package.json
+      env: { ...nestEnv, NODE_ENV: 'production' }, // 确保 NestJS 以开发模式运行
+      silent: true, // 捕获子进程的输出
+      windowsHide: true // 在Windows上隐藏子进程的窗口
+    })
+    // // 生产环境: 直接运行编译后的 main.js 文件
+    // const nestAppPath = path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
+
+    // log.info(`生产环境: 正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
+
+    // nestProcess = fork(nestAppPath, [], {
+    //   // 传递生产所需的环境变量
+    //   env: {
+    //     ...nestEnv,
+    //     NODE_ENV: 'production',
+    //     IS_NEST_FORK: 'true' // 用于防止子进程重新执行 electron 主逻辑的哨兵代码
+    //   },
+    //   silent: true // 捕获子进程的输出
+    // })
+  }
 
   // 监听 NestJS 进程的 stdout
   nestProcess.stdout.on('data', data => {
@@ -497,7 +542,10 @@ const startNestService = () => {
 
   // 监听 NestJS 进程的错误事件
   nestProcess.on('error', err => log.error('NestJS 子进程出错:', err))
-  nestProcess.on('exit', code => log.info(`NestJS 子进程已退出，退出码: ${code}`))
+  nestProcess.on('exit', code => {
+    log.info(`NestJS 子进程已退出，可关闭所有窗口`)
+    process.exit(0)
+  })
 }
 
 app.whenReady().then(async () => {
