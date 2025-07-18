@@ -7,7 +7,7 @@ export type RouteItem = {
   path: string
   title: string
   icon?: ReactNode
-  component?: string
+  component?: React.ComponentType
   hideInMenu?: boolean
   hideInBreadcrumb?: boolean
   children?: RouteItem[]

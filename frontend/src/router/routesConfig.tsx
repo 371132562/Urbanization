@@ -11,40 +11,55 @@ import {
   TeamOutlined
 } from '@ant-design/icons'
 
+import { Component as ArticleManagement } from '@/pages/ArticleManagement'
+import { Component as ModifyArticle } from '@/pages/ArticleManagement/Modify'
+import { Component as ComprehensiveEvaluation } from '@/pages/ComprehensiveEvaluation'
+import { Component as DataManagement } from '@/pages/DataManagement'
+import { Component as ExportData } from '@/pages/DataManagement/Export'
+import { Component as ImportData } from '@/pages/DataManagement/Import'
+import { Component as ModifyData } from '@/pages/DataManagement/Modify'
+import { Component as EvaluationModel } from '@/pages/EvaluationModel'
+import { Component as Home } from '@/pages/Home'
+import { Component as HumanDynamics } from '@/pages/HumanDynamics'
+import { Component as MapEdit } from '@/pages/Map/MapEdit'
+import { Component as UrbanizationRate } from '@/pages/Map/UrbanizationRate'
+import { Component as MaterialDynamics } from '@/pages/MaterialDynamics'
+import { Component as SpatialDynamics } from '@/pages/SpatialDynamics'
+import { Component as UrbanizationProcess } from '@/pages/UrbanizationProcess'
 import { RouteItem } from '@/types'
 
 // 顶部导航菜单配置
 export const topRoutes: RouteItem[] = [
-  { path: '/home', title: '首页', icon: <HomeOutlined />, component: './pages/Home' },
+  { path: '/home', title: '首页', icon: <HomeOutlined />, component: Home },
   {
     path: '/comprehensiveEvaluation',
     title: '综合评价',
     icon: <BarChartOutlined />,
-    component: './pages/ComprehensiveEvaluation'
+    component: ComprehensiveEvaluation
   },
   {
     path: '/urbanizationProcess',
     title: '城镇化进程',
     icon: <RiseOutlined />,
-    component: './pages/UrbanizationProcess'
+    component: UrbanizationProcess
   },
   {
     path: '/humanDynamics',
     title: '人性动力',
     icon: <TeamOutlined />,
-    component: './pages/HumanDynamics'
+    component: HumanDynamics
   },
   {
     path: '/materialDynamics',
     title: '物性动力',
     icon: <GoldOutlined />,
-    component: './pages/MaterialDynamics'
+    component: MaterialDynamics
   },
   {
     path: '/spatialDynamics',
     title: '空间动力',
     icon: <GlobalOutlined />,
-    component: './pages/SpatialDynamics'
+    component: SpatialDynamics
   }
 ]
 
@@ -54,30 +69,30 @@ export const sideRoutes: RouteItem[] = [
     path: '/dataManagement',
     title: '数据管理',
     icon: <DatabaseOutlined />,
-    component: './pages/DataManagement',
+    component: DataManagement,
     children: [
       {
         path: '/dataManagement/modify/:countryId/:year',
         title: '数据编辑',
-        component: './pages/DataManagement/Modify',
+        component: ModifyData,
         hideInMenu: true
       },
       {
         path: '/dataManagement/create',
         title: '数据录入',
-        component: './pages/DataManagement/Modify',
+        component: ModifyData,
         hideInMenu: true
       },
       {
         path: '/dataManagement/import',
         title: '数据导入',
-        component: './pages/DataManagement/Import',
+        component: ImportData,
         hideInMenu: true
       },
       {
         path: '/dataManagement/export',
         title: '数据导出',
-        component: './pages/DataManagement/Export',
+        component: ExportData,
         hideInMenu: true
       }
     ]
@@ -90,12 +105,12 @@ export const sideRoutes: RouteItem[] = [
       {
         path: '/map/urbanizationRate',
         title: '城镇化率',
-        component: './pages/Map/UrbanizationRate'
+        component: UrbanizationRate
       },
       {
         path: '/map/mapEdit',
         title: '地图修改',
-        component: './pages/Map/MapEdit'
+        component: MapEdit
       }
     ]
   },
@@ -103,24 +118,24 @@ export const sideRoutes: RouteItem[] = [
     path: '/evaluationModel',
     title: '评估模型',
     icon: <CalculatorOutlined />,
-    component: './pages/EvaluationModel'
+    component: EvaluationModel
   },
   {
     path: '/article',
     title: '文章管理',
     icon: <FileTextOutlined />,
-    component: './pages/ArticleManagement',
+    component: ArticleManagement,
     children: [
       {
         path: '/article/create',
         title: '新增文章',
-        component: './pages/ArticleManagement/Modify',
+        component: ModifyArticle,
         hideInMenu: true
       },
       {
         path: '/article/edit/:id',
         title: '编辑文章',
-        component: './pages/ArticleManagement/Modify',
+        component: ModifyArticle,
         hideInMenu: true
       }
     ]
@@ -145,9 +160,9 @@ export const getAllRoutes = (): RouteItem[] => {
 // 根据路径获取面包屑项
 export const getBreadcrumbItems = (
   pathname: string
-): { path: string; title: string; component: string | undefined }[] => {
+): { path: string; title: string; component: React.ComponentType | undefined }[] => {
   const allRoutes = getAllRoutes()
-  const result: { path: string; title: string; component: string | undefined }[] = []
+  const result: { path: string; title: string; component: React.ComponentType | undefined }[] = []
 
   // 构建路径映射表
   const pathMap = new Map<string, RouteItem>()
