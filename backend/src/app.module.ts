@@ -24,7 +24,7 @@ import { ArticleModule } from './businessComponent/article/article.module';
         exclude: ['/'], // 可选：排除不需要提供静态服务的路由
       },
       {
-        rootPath: join(process.cwd(), '..', 'frontend', 'dist'), // 指向 monorepo 根目录下的 frontend/dist
+        rootPath: join(process.cwd(), 'frontend', 'dist'), // 指向 monorepo 根目录下的 frontend/dist
         // serveRoot: '/', // 可以省略，默认就是 '/'
         serveStaticOptions: {
           preCompressed: true,
