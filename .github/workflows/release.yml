@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: Build Portable App on Windows
+    name: 构建并发布Windows应用
     runs-on: windows-latest
     
     steps:
@@ -27,24 +27,27 @@ jobs:
       - name: 4. 安装依赖
         run: pnpm install
 
-      - name: 5. 构建前端应用
+      - name: 5. 执行构建预处理
+        run: pnpm approve-builds
+
+      - name: 6. 构建前端应用
         run: |
           pnpm --filter urbanization-frontend build
           pnpm --filter urbanization-loading-frontend build
         shell: pwsh
 
-      - name: 6. 删除前端源代码
+      - name: 7. 删除前端源代码
         run: |
           Get-ChildItem -Path frontend -Exclude dist | Remove-Item -Recurse -Force
           Get-ChildItem -Path loading-frontend -Exclude dist | Remove-Item -Recurse -Force
         shell: pwsh
 
-      - name: 7. 清理根目录下的配置文件
+      - name: 8. 清理根目录下的配置文件
         run: |
           Get-ChildItem -Path . -Force -Filter ".*" | Remove-Item -Recurse -Force
         shell: pwsh
 
-      - name: 8. 上传便携应用产物
+      - name: 9. 上传便携应用产物
         uses: actions/upload-artifact@v4
         with:
           name: Urbanization
