@@ -47,10 +47,8 @@ export class DataManagementService {
     });
 
     if (!indicatorValues || indicatorValues.length === 0) {
-      throw new BusinessException(
-        ErrorCode.RESOURCE_NOT_FOUND,
-        '未找到任何指标数据',
-      );
+      this.logger.log('未找到任何指标数据，返回空数组。');
+      return [];
     }
 
     // 定义一个包含国家信息的指标值类型，方便后续处理
