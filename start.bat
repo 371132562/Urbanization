@@ -15,7 +15,6 @@ SET "ELECTRON_CLI_PATH=%BASE_DIR%node_modules\electron\cli.js"
 
 cd /d "%BASE_DIR%electron"
 
-rem --- 这是修改的关键 ---
 rem 使用 start 命令来启动应用。
 rem start 会让应用独立运行，脚本本身不等待。
 rem /b 参数能防止启动时额外弹出一个新的黑框，让启动过程更干净。

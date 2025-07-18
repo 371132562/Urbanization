@@ -171,21 +171,24 @@ function runMigrations() {
   const prismaCliPath = path.join(backendPath, 'node_modules', 'prisma', 'build', 'index.js')
   const schemaPath = path.join(backendPath, 'prisma', 'schema.prisma')
   // 在 Electron 应用中，`process.execPath` 指向 Electron 的可执行文件，
-  // 它本身就是一个 Node.js 运行时，可以用来执行 node 脚本
-  const nodePath = process.execPath
+  // 这里我们强制使用便携式Node.js来保证环境一致性
+  const nodeExecutablePath = isDev
+    ? path.join(__dirname, '..', 'node-portable', 'node.exe')
+    : path.join(process.resourcesPath, 'node-portable', 'node.exe')
 
-  log.info(`准备使用fork执行Prisma迁移`)
+  log.info(`准备执行Prisma迁移...`)
 
   try {
-    // 使用fork而不是execSync来避免启动新的应用实例
-    const migrationProcess = fork(prismaCliPath, ['migrate', 'deploy', `--schema=${schemaPath}`], {
-      env: {
-        ...migrationEnv,
-        IS_PRISMA_FORK: 'true' // 标记为Prisma迁移进程
-      },
-      silent: true, // 捕获子进程的输出
-      windowsHide: true // 在Windows上隐藏子进程的窗口
-    })
+    // 使用spawn来执行迁移脚本，并指定便携式Node.js
+    const migrationProcess = spawn(
+      nodeExecutablePath,
+      [prismaCliPath, 'migrate', 'deploy', `--schema=${schemaPath}`],
+      {
+        env: migrationEnv,
+        cwd: backendPath, // 设置工作目录，确保prisma命令能找到schema
+        windowsHide: true
+      }
+    )
 
     // 处理迁移进程的输出
     migrationProcess.stdout?.on('data', data => {
@@ -208,13 +211,11 @@ function runMigrations() {
         const seedPath = path.join(backendPath, 'prisma', 'seed.js')
 
         try {
-          // 使用fork执行seed脚本
-          const seedProcess = fork(seedPath, [], {
-            env: {
-              ...migrationEnv,
-              IS_PRISMA_FORK: 'true' // 标记为Prisma进程
-            },
-            silent: true // 捕获子进程的输出
+          // 使用spawn来执行seed脚本
+          const seedProcess = spawn(nodeExecutablePath, [seedPath], {
+            env: migrationEnv,
+            cwd: backendPath,
+            windowsHide: true
           })
 
           // 处理seed进程的输出
@@ -475,55 +476,36 @@ const startNestService = () => {
     log.info('开发环境: 准备使用 "npm run start:dev" 启动 NestJS 服务...')
 
     // 构造 npm CLI 脚本的路径
-    const npmCliPath = path.join(__dirname, '..', 'node_modules', 'npm', 'bin', 'npm-cli.js')
-    // 指定 npm 命令的工作目录
     const backendPath = path.join(__dirname, '..', 'backend')
 
-    log.info(`NPM CLI 路径: ${npmCliPath}`)
     log.info(`将在工作目录中执行: ${backendPath}`)
 
-    // 使用 fork 来执行 npm 脚本
-    // fork 是 spawn('node', ...) 的一个特例，非常适合运行 node 脚本
-    nestProcess = fork(npmCliPath, ['run', 'start:dev'], {
-      cwd: backendPath, // 必须设置工作目录，npm 才能找到 backend/package.json
-      env: { ...nestEnv, NODE_ENV: 'development' }, // 确保 NestJS 以开发模式运行
-      silent: true, // 捕获子进程的输出
-      windowsHide: true // 在Windows上隐藏子进程的窗口
-    })
+    // 使用 spawn 来执行便携式 npm 命令
+    nestProcess = spawn(
+      path.join(__dirname, '..', 'node-portable', 'npm.cmd'),
+      ['run', 'start:dev'],
+      {
+        cwd: backendPath, // 必须设置工作目录，npm 才能找到 backend/package.json
+        env: { ...nestEnv, NODE_ENV: 'development' }, // 确保 NestJS 以开发模式运行
+        windowsHide: true, // 在Windows上隐藏子进程的窗口
+        shell: true // 在Windows上执行.cmd文件需要shell
+      }
+    )
   } else {
-    // 开发环境: 使用 npm run start:dev 启动 NestJS 以支持热重载
-    log.info('开发环境: 准备使用 "npm run start:dev" 启动 NestJS 服务...')
+    // 生产环境: 直接运行编译后的 main.js 文件
+    const nestAppPath = path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
+    const nodeExePath = path.join(process.resourcesPath, 'node-portable', 'node.exe')
 
-    // 构造 npm CLI 脚本的路径
-    const npmCliPath = path.join(process.resourcesPath, 'node_modules', 'npm', 'bin', 'npm-cli.js')
-    // 指定 npm 命令的工作目录
-    const nestAppPath = path.join(process.resourcesPath, 'backend')
+    log.info(`生产环境: 正在使用便携式Node启动 NestJS 应用: ${nestAppPath}...`)
 
-    log.info(`NPM CLI 路径: ${npmCliPath}`)
-    log.info(`将在工作目录中执行: ${backendPath}`)
-
-    // 使用 fork 来执行 npm 脚本
-    // fork 是 spawn('node', ...) 的一个特例，非常适合运行 node 脚本
-    nestProcess = fork(npmCliPath, ['run', 'start:dev'], {
-      cwd: nestAppPath, // 必须设置工作目录，npm 才能找到 backend/package.json
-      env: { ...nestEnv, NODE_ENV: 'production' }, // 确保 NestJS 以开发模式运行
-      silent: true, // 捕获子进程的输出
+    nestProcess = spawn(nodeExePath, [nestAppPath], {
+      // 传递生产所需的环境变量
+      env: {
+        ...nestEnv,
+        NODE_ENV: 'production'
+      },
       windowsHide: true // 在Windows上隐藏子进程的窗口
     })
-    // // 生产环境: 直接运行编译后的 main.js 文件
-    // const nestAppPath = path.join(process.resourcesPath, 'backend', 'dist', 'src', 'main.js')
-
-    // log.info(`生产环境: 正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
-
-    // nestProcess = fork(nestAppPath, [], {
-    //   // 传递生产所需的环境变量
-    //   env: {
-    //     ...nestEnv,
-    //     NODE_ENV: 'production',
-    //     IS_NEST_FORK: 'true' // 用于防止子进程重新执行 electron 主逻辑的哨兵代码
-    //   },
-    //   silent: true // 捕获子进程的输出
-    // })
   }
 
   // 监听 NestJS 进程的 stdout
