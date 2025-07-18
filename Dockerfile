@@ -75,7 +75,7 @@ ENV NODE_ENV production
 ENV DATABASE_URL=${DATABASE_URL_BUILD}
 
 # 暴露后端端口
-EXPOSE 3000
+EXPOSE 3333
 
 # 在启动 NestJS 应用之前运行 Prisma migrate
 # 这是为了确保数据库在应用启动前是最新状态

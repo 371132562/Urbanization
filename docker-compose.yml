@@ -8,7 +8,7 @@ services:
 
     image: linstar666/urbanization:latest
     ports:
-      - "3000:3000" # 将容器的 3000 端口映射到主机的 3000 端口
+      - "3333:3333" # 将容器的 3333 端口映射到主机的 3333 端口
     volumes:
       # 持久化 SQLite 数据库文件
       # 注意：假设你的 SQLite 数据库文件在 backend/prisma/dev.db (或你配置的任何路径)
