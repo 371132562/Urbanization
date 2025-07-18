@@ -242,8 +242,7 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
     // 如果找不到，则尝试遍历缓存，用中文名作为后备查找方式。
     const country = countryCache.get(countryData.countryEnName) || 
                     Array.from(countryCache.values()).find(c => c.cnName === countryData.countryCnName);
-
-    // 如果国家在中英缓存中都找不到，则无法关联，只能跳过该国家的所有数据。
+// 如果国家在中英缓存中都找不到，则无法关联，只能跳过该国家的所有数据。
     if (!country) {
       console.warn({ countryCn: countryData.countryCnName, countryEn: countryData.countryEnName }, `在缓存中未找到国家, 跳过此国家的所有条目.`);
       continue;
@@ -315,7 +314,7 @@ async function main() {
   await seedContinentsAndCountries(continentCache, countryCache);
   await seedUrbanizationWorldMap(countryCache); // 在国家数据创建后，立即为其创建对应的地图展示数据。
   await seedIndicators(topIndicatorCache, secondaryIndicatorCache, detailedIndicatorCache);
-  // await seedIndicatorValues(countryCache, detailedIndicatorCache);
+  await seedIndicatorValues(countryCache, detailedIndicatorCache);
 }
 
 // 脚本的执行入口点。

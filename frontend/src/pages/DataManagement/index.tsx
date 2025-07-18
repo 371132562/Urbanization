@@ -1,7 +1,7 @@
 /* 数据管理列表页 */
 import { DownloadOutlined, FormOutlined, UploadOutlined } from '@ant-design/icons'
 import { useDebounce } from 'ahooks'
-import { Button, Collapse, Input, message, Popconfirm, Skeleton, Space, Table, Tag } from 'antd'
+import { Button, Collapse, Empty, Input, message, Popconfirm, Skeleton, Space, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router'
@@ -207,28 +207,34 @@ const DataManagement = () => {
         />
       </div>
 
-      <Collapse
-        accordion
-        defaultActiveKey={filteredData[0]?.year.toString()}
-      >
-        {filteredData.map((yearData: YearData) => (
-          <Panel
-            header={
-              <span className="text-base font-semibold">
-                {dayjs(yearData.year).format('YYYY')}年
-              </span>
-            }
-            key={yearData.year.toString()}
-          >
-            <Table
-              columns={countryTableColumns}
-              dataSource={yearData.data}
-              rowKey="id"
-              pagination={false}
-            />
-          </Panel>
-        ))}
-      </Collapse>
+      {filteredData.length > 0 ? (
+        <Collapse
+          accordion
+          defaultActiveKey={filteredData[0]?.year.toString()}
+        >
+          {filteredData.map((yearData: YearData) => (
+            <Panel
+              header={
+                <span className="text-base font-semibold">
+                  {dayjs(yearData.year).format('YYYY')}年
+                </span>
+              }
+              key={yearData.year.toString()}
+            >
+              <Table
+                columns={countryTableColumns}
+                dataSource={yearData.data}
+                rowKey="id"
+                pagination={false}
+              />
+            </Panel>
+          ))}
+        </Collapse>
+      ) : (
+        <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 p-8">
+          <Empty description="暂无数据" />
+        </div>
+      )}
     </div>
   )
 }

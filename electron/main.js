@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron')
+const { app, BrowserWindow, dialog, webContents } = require('electron')
 const path = require('path')
 const { fork, execSync, spawn } = require('child_process')
 const net = require('net')
@@ -317,6 +317,7 @@ const createMainWindow = () => {
     mainWindow.maximize() // 窗口最大化
     mainWindow.show() // 显示窗口
   })
+  // mainWindow.webContents.openDevTools()
 
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -544,7 +545,6 @@ const startNestService = () => {
   nestProcess.on('error', err => log.error('NestJS 子进程出错:', err))
   nestProcess.on('exit', code => {
     log.info(`NestJS 子进程已退出，可关闭所有窗口`)
-    process.exit(0)
   })
 }
 
