@@ -25,3 +25,12 @@ export const articleListAll = '/article/listAll'
 export const articleUpsertOrder = '/article/order'
 export const articleGetByPage = '/article/getByPage'
 export const articleGetDetailsByIds = '/article/getDetailsByIds'
+
+// 得分管理API
+export const scoreList = '/score/list'
+export const scoreCreate = '/score/create'
+export const scoreDetail = '/score/detail'
+export const scoreDelete = '/score/delete'
+export const scoreCheckExisting = '/score/checkExisting'
+export const scoreEvaluationList = '/score/evaluation/list'
+export const scoreEvaluationCreate = '/score/evaluation/create'

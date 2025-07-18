@@ -15,7 +15,7 @@ export const Component = () => {
   }, [getArticlesByPage]);
 
   const goToConfig = () => {
-    navigate('/article-management');
+    navigate('/article');
   };
 
   if (isLoading) {

@@ -11,6 +11,7 @@ import { DataManagementModule } from './businessComponent/dataManagement/dataMan
 import { IndicatorModule } from './businessComponent/indicator/indicator.module';
 import { CountryAndContinentModule } from './businessComponent/countryAndContinent/countryAndContinent.module';
 import { ArticleModule } from './businessComponent/article/article.module';
+import { ScoreModule } from './businessComponent/score/score.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ArticleModule } from './businessComponent/article/article.module';
     IndicatorModule, // 指标查询模块
     CountryAndContinentModule, // 国家和大洲模块
     ArticleModule, // 文章管理模块
+    ScoreModule, // 得分评价模块
   ],
   controllers: [],
   providers: [],

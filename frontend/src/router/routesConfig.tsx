@@ -27,6 +27,9 @@ import { Component as HumanDynamics } from '@/pages/HumanDynamics'
 import { Component as MaterialDynamics } from '@/pages/MaterialDynamics'
 import { Component as SpatialDynamics } from '@/pages/SpatialDynamics'
 import { Component as UrbanizationProcess } from '@/pages/UrbanizationProcess'
+import { Component as ScoreManagement } from '@/pages/ScoreManagement'
+import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
+import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
 import { RouteItem } from '@/types'
 
 // 顶部导航菜单配置
@@ -114,6 +117,32 @@ export const sideRoutes: RouteItem[] = [
         component: MapEdit
       }
     ]
+  },
+  {
+    path: '/scoreManagement',
+    title: '得分管理',
+    icon: <CalculatorOutlined />,
+    component: ScoreManagement,
+    children: [
+      {
+        path: '/scoreManagement/modify/:countryId/:year',
+        title: '得分编辑',
+        component: ModifyScore,
+        hideInMenu: true,
+      },
+      {
+        path: '/scoreManagement/create',
+        title: '得分录入',
+        component: ModifyScore,
+        hideInMenu: true,
+      },
+      {
+        path: '/scoreManagement/import',
+        title: '导入得分',
+        component: ImportScore,
+        hideInMenu: true
+      }
+    ],
   },
   // {
   //   path: '/evaluationModel',

@@ -109,13 +109,27 @@ CREATE TABLE "ArticleOrder" (
 -- CreateTable
 CREATE TABLE "Score" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "value" DECIMAL NOT NULL,
+    "totalScore" DECIMAL NOT NULL,
+    "urbanizationProcessDimensionScore" DECIMAL NOT NULL,
+    "humanDynamicsDimensionScore" DECIMAL NOT NULL,
+    "materialDynamicsDimensionScore" DECIMAL NOT NULL,
+    "spatialDynamicsDimensionScore" DECIMAL NOT NULL,
     "year" DATETIME NOT NULL,
     "countryId" TEXT NOT NULL,
     "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateTime" DATETIME NOT NULL,
     "delete" INTEGER NOT NULL DEFAULT 0,
     CONSTRAINT "Score_countryId_fkey" FOREIGN KEY ("countryId") REFERENCES "Country" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "ScoreEvaluation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "minScore" DECIMAL NOT NULL,
+    "maxScore" DECIMAL NOT NULL,
+    "evaluationText" TEXT NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL
 );
 
 -- CreateIndex
@@ -209,10 +223,10 @@ CREATE INDEX "UrbanizationWorldMap_id_idx" ON "UrbanizationWorldMap"("id");
 CREATE INDEX "UrbanizationWorldMap_countryId_delete_idx" ON "UrbanizationWorldMap"("countryId", "delete");
 
 -- CreateIndex
-CREATE INDEX "Article_id_idx" ON "Article"("id");
+CREATE INDEX "Article_id_delete_idx" ON "Article"("id", "delete");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ArticleOrder_page_key" ON "ArticleOrder"("page");
+CREATE INDEX "ArticleOrder_page_delete_idx" ON "ArticleOrder"("page", "delete");
 
 -- CreateIndex
-CREATE INDEX "Score_id_idx" ON "Score"("id");
+CREATE INDEX "Score_year_countryId_delete_idx" ON "Score"("year", "countryId", "delete");

@@ -65,7 +65,7 @@ model TopIndicator {
 
 // 二级要素/指标
 model SecondaryIndicator {
-  id                String              @id @default(uuid()) // 主键ID（UUID）
+  id                String              @id @default(uuid()) // 主键ID
   indicatorCnName   String              @unique // 指标中文名称
   indicatorEnName   String              @unique // 指标英文名称
   description       String? // 描述
@@ -84,7 +84,7 @@ model SecondaryIndicator {
 
 // 三级指标
 model DetailedIndicator {
-  id                   String             @id @default(uuid()) // 主键ID（UUID）
+  id                   String             @id @default(uuid()) // 主键ID
   indicatorCnName      String             @unique // 指标中文名称
   indicatorEnName      String             @unique // 指标英文名称
   unit                 String // 指标单位
@@ -142,7 +142,7 @@ model Article {
   updateTime DateTime @updatedAt
   delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
 
-  @@index([id])
+  @@index([id, delete])
 }
 
 // 文章展示顺序排布表
@@ -153,18 +153,34 @@ model ArticleOrder {
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
   delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
+
+  @@index([page, delete])
 }
 
 // 得分管理表
 model Score {
-  id         String   @id @default(uuid()) // 主键ID
-  value      Decimal // 得分
-  year       DateTime // 年份
-  countryId  String // 国家ID
-  country    Country  @relation(fields: [countryId], references: [id]) // 所属国家
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
-  delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
+  id                                String   @id @default(uuid()) // 主键ID
+  totalScore                        Decimal // 综合得分
+  urbanizationProcessDimensionScore Decimal // 城镇化进程维度得分
+  humanDynamicsDimensionScore       Decimal // 人性动力维度得分
+  materialDynamicsDimensionScore    Decimal // 物性动力维度得分
+  spatialDynamicsDimensionScore     Decimal // 空间动力维度得分
+  year                              DateTime // 年份
+  countryId                         String // 国家ID
+  country                           Country  @relation(fields: [countryId], references: [id]) // 所属国家
+  createTime                        DateTime @default(now())
+  updateTime                        DateTime @updatedAt
+  delete                            Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
 
-  @@index([id])
+  @@index([year, countryId, delete])
 }
+
+// 得分评价表
+model ScoreEvaluation {
+  id             String   @id @default(uuid()) // 主键ID
+  minScore       Decimal // 最小得分
+  maxScore       Decimal // 最大得分
+  evaluationText String // 评价文案
+  createTime     DateTime @default(now())
+  updateTime     DateTime @updatedAt
+} 

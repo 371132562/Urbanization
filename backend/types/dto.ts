@@ -315,3 +315,68 @@ export type ArticleOrderDto = {
   createTime: Date;
   updateTime: Date;
 };
+
+/*
+ * ==================== 得分评价模块 ====================
+ */
+export type ScoreEvaluationItemDto = {
+  minScore: number;
+  maxScore: number;
+  evaluationText: string;
+};
+
+/**
+ * 得分创建 DTO
+ */
+export type CreateScoreDto = {
+  countryId: string;
+  year: Date;
+  totalScore: number;
+  urbanizationProcessDimensionScore: number;
+  humanDynamicsDimensionScore: number;
+  materialDynamicsDimensionScore: number;
+  spatialDynamicsDimensionScore: number;
+};
+
+/**
+ * 国家得分数据 DTO
+ */
+export type CountryScoreData = {
+  id: string;
+  countryId: string;
+  cnName: string;
+  enName: string;
+  year: Date;
+  totalScore: number;
+  urbanizationProcessDimensionScore: number;
+  humanDynamicsDimensionScore: number;
+  materialDynamicsDimensionScore: number;
+  spatialDynamicsDimensionScore: number;
+  createTime: Date;
+  updateTime: Date;
+};
+
+/**
+ * 年份得分数据 DTO
+ */
+export type YearScoreData = {
+  year: Date;
+  data: CountryScoreData[];
+};
+
+export type ScoreListDto = YearScoreData[];
+
+/**
+ * 得分详情查询 DTO
+ */
+export type ScoreDetailReqDto = {
+  countryId: string;
+  year: Date;
+};
+
+/**
+ * 删除得分记录 DTO
+ */
+export type DeleteScoreDto = {
+  id: string;
+};
