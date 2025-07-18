@@ -4,7 +4,6 @@ import { TransformInterceptor } from './interceptors/response.interceptor';
 import { AllExceptionsFilter } from './exceptions/allExceptionsFilter';
 import { ValidationPipe } from '@nestjs/common';
 import { WinstonLoggerService } from './utils/logger.service';
-import open = require('open');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -30,6 +29,5 @@ async function bootstrap() {
   );
 
   await app.listen(process.env.PORT ?? 3000);
-  await open(`http://localhost:${process.env.PORT ?? 3000}`);
 }
 bootstrap();
