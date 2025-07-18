@@ -14,7 +14,7 @@ const generateRoutes = (): RouteObject[] => {
       if (route.component) {
         result.push({
           path: route.path,
-          lazy: () => import(/* @vite-ignore */ route.component as string)
+          lazy: () => import(route.component as string)
         })
       }
 
