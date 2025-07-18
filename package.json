@@ -2,13 +2,7 @@
   "name": "urbanization",
   "version": "1.0.0",
   "type": "module",
-  "scripts": {
-    "start": "pnpm --filter ./frontend dev",
-    "build:frontend": "pnpm --filter ./frontend build",
-    "build:backend": "pnpm --filter ./backend build",
-    "build:loading-frontend": "pnpm --filter ./loading-frontend build",
-    "build": "pnpm build:frontend && pnpm build:loading-frontend && pnpm build:backend && electron-builder"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/371132562/Urbanization.git"
@@ -25,8 +19,6 @@
     "@eslint/js": "^9.29.0",
     "@faker-js/faker": "^9.8.0",
     "@types/node": "^22.15.2",
-    "electron": "^37.2.2",
-    "electron-builder": "^26.0.12",
     "eslint": "^9.29.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.0",
@@ -35,49 +27,6 @@
     "prettier": "^3.4.2",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1"
-  },
-  "build": {
-    "appId": "Urbanization",
-    "productName": "Urbanization",
-    "publish": null,
-    "electronLanguages": [
-      "zh-CN",
-      "en-US"
-    ],
-    "directories": {
-      "app": "electron",
-      "output": "release"
-    },
-    "files": [
-      "**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "backend",
-        "to": "backend"
-      },
-      {
-        "from": "node_modules",
-        "to": "node_modules"
-      },
-      {
-        "from": "frontend/dist",
-        "to": "frontend-dist"
-      },
-      {
-        "from": "loading-frontend/dist",
-        "to": "loading-frontend-dist"
-      }
-    ],
-    "mac": {
-      "target": "dir",
-      "artifactName": "${productName}-v${version}"
-    },
-    "win": {
-      "target": "dir",
-      "signAndEditExecutable": false,
-      "artifactName": "${productName}-v${version}"
-    }
   },
   "dependencies": {
     "dayjs": "^1.11.13",
