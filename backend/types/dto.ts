@@ -262,7 +262,7 @@ export type ArticleItem = {
 };
 
 export type ArticleListResponse = {
-  list: ArticleItem[];
+  list: ArticleMetaItem[];
   total: number;
   page: number;
   pageSize: number;
@@ -286,8 +286,32 @@ export type UpdateArticleDto = {
 };
 
 /**
+ * 文章元信息 DTO (不含content)
+ */
+export type ArticleMetaItem = Omit<ArticleItem, 'content'>;
+
+/**
  * 删除文章 DTO
  */
 export type DeleteArticleDto = {
   id: string;
+};
+
+/**
+ * 创建/更新文章顺序 DTO
+ */
+export type UpsertArticleOrderDto = {
+  page: string;
+  articles: string[]; // 文章ID数组
+};
+
+/**
+ * 文章顺序 DTO
+ */
+export type ArticleOrderDto = {
+  id: string;
+  page: string;
+  articles: string[];
+  createTime: Date;
+  updateTime: Date;
 };

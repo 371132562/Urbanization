@@ -105,7 +105,7 @@ export const sideRoutes: RouteItem[] = [
     children: [
       {
         path: '/map/urbanizationRate',
-        title: '城镇化率',
+        title: '世界城镇化地图',
         component: UrbanizationRate
       },
       {
@@ -115,12 +115,12 @@ export const sideRoutes: RouteItem[] = [
       }
     ]
   },
-  {
-    path: '/evaluationModel',
-    title: '评估模型',
-    icon: <CalculatorOutlined />,
-    component: EvaluationModel
-  },
+  // {
+  //   path: '/evaluationModel',
+  //   title: '评估模型',
+  //   icon: <CalculatorOutlined />,
+  //   component: EvaluationModel
+  // },
   {
     path: '/article',
     title: '文章管理',
@@ -134,7 +134,7 @@ export const sideRoutes: RouteItem[] = [
         hideInMenu: true
       },
       {
-        path: '/article/edit/:id',
+        path: '/article/modify/:id',
         title: '编辑文章',
         component: ModifyArticle,
         hideInMenu: true

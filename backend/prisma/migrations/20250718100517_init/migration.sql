@@ -96,6 +96,28 @@ CREATE TABLE "Article" (
     "delete" INTEGER NOT NULL DEFAULT 0
 );
 
+-- CreateTable
+CREATE TABLE "ArticleOrder" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "page" TEXT NOT NULL,
+    "articles" JSONB NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL,
+    "delete" INTEGER NOT NULL DEFAULT 0
+);
+
+-- CreateTable
+CREATE TABLE "Score" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "value" DECIMAL NOT NULL,
+    "year" DATETIME NOT NULL,
+    "countryId" TEXT NOT NULL,
+    "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updateTime" DATETIME NOT NULL,
+    "delete" INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT "Score_countryId_fkey" FOREIGN KEY ("countryId") REFERENCES "Country" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Continent_cnName_key" ON "Continent"("cnName");
 
@@ -188,3 +210,9 @@ CREATE INDEX "UrbanizationWorldMap_countryId_delete_idx" ON "UrbanizationWorldMa
 
 -- CreateIndex
 CREATE INDEX "Article_id_idx" ON "Article"("id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ArticleOrder_page_key" ON "ArticleOrder"("page");
+
+-- CreateIndex
+CREATE INDEX "Score_id_idx" ON "Score"("id");

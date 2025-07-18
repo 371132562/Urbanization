@@ -1,11 +1,15 @@
 import { Controller, Post, Body } from '@nestjs/common';
-
 import { ArticleService } from './article.service';
 import {
-  ArticleListDto,
+  ArticleItem,
   CreateArticleDto,
-  DeleteArticleDto,
   UpdateArticleDto,
+  UpsertArticleOrderDto,
+  ArticleOrderDto,
+  ArticleListDto,
+  DeleteArticleDto,
+  ArticleMetaItem,
+  ArticleListResponse,
 } from '../../../types/dto';
 
 @Controller('article')
@@ -13,7 +17,9 @@ export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
 
   @Post('list')
-  async getArticleList(@Body() body: ArticleListDto) {
+  async getArticleList(
+    @Body() body: ArticleListDto,
+  ): Promise<ArticleListResponse> {
     const { page = 1, pageSize = 10, title = '' } = body;
     return this.articleService.list(page, pageSize, title);
   }
@@ -36,5 +42,31 @@ export class ArticleController {
   @Post('delete')
   async deleteArticle(@Body() deleteArticleDto: DeleteArticleDto) {
     return this.articleService.delete(deleteArticleDto.id);
+  }
+
+  @Post('listAll')
+  async listAll(): Promise<ArticleMetaItem[]> {
+    return this.articleService.listAll();
+  }
+
+  @Post('order')
+  async upsertArticleOrder(
+    @Body() upsertArticleOrderDto: UpsertArticleOrderDto,
+  ): Promise<ArticleOrderDto> {
+    return this.articleService.upsertArticleOrder(upsertArticleOrderDto);
+  }
+
+  @Post('getByPage')
+  async getArticlesByPage(
+    @Body() { page }: { page: string },
+  ): Promise<ArticleItem[]> {
+    return this.articleService.getArticlesByPage(page);
+  }
+
+  @Post('getDetailsByIds')
+  async getDetailsByIds(
+    @Body() { ids }: { ids: string[] },
+  ): Promise<ArticleItem[]> {
+    return this.articleService.getDetailsByIds(ids);
   }
 }

@@ -1,40 +1,58 @@
 import type {
   ArticleItem,
   CreateArticleDto,
-  UpdateArticleDto
-} from 'urbanization-backend/types/dto'
-import { create } from 'zustand'
+  UpdateArticleDto,
+  ArticleMetaItem,
+} from 'urbanization-backend/types/dto';
+import { create } from 'zustand';
 
 import {
   articleCreate,
   articleDelete,
   articleDetail,
+  articleGetByPage,
+  articleGetDetailsByIds,
   articleList,
-  articleUpdate
-} from '@/services/apis'
-import http from '@/services/base'
+  articleListAll,
+  articleUpdate,
+  articleUpsertOrder,
+} from '@/services/apis';
+import http from '@/services/base';
 
 type ArticleStore = {
   // 状态
-  articles: ArticleItem[]
-  total: number
-  currentPage: number
-  pageSize: number
-  loading: boolean
-  searchTitle: string
-  articleDetail: ArticleItem | null
-  detailLoading: boolean
-  submitLoading: boolean
+  articles: ArticleItem[];
+  total: number;
+  currentPage: number;
+  pageSize: number;
+  loading: boolean;
+  searchTitle: string;
+  articleDetail: ArticleItem | null;
+  detailLoading: boolean;
+  submitLoading: boolean;
+  allArticles: ArticleMetaItem[];
+  pageArticles: ArticleItem[];
+  orderConfigLoading: boolean;
+  previewArticles: ArticleItem[];
+  previewLoading: boolean;
 
   // 操作
-  getArticleList: (page?: number, pageSize?: number, title?: string) => Promise<void>
-  setSearchTitle: (title: string) => void
-  createArticle: (data: CreateArticleDto) => Promise<boolean>
-  updateArticle: (data: UpdateArticleDto) => Promise<boolean>
-  deleteArticle: (id: string) => Promise<boolean>
-  getArticleDetail: (id: string) => Promise<void>
-  clearArticleDetail: () => void
-}
+  getArticleList: (
+    page?: number,
+    pageSize?: number,
+    title?: string,
+  ) => Promise<void>;
+  setSearchTitle: (title: string) => void;
+  createArticle: (data: CreateArticleDto) => Promise<boolean>;
+  updateArticle: (data: UpdateArticleDto) => Promise<boolean>;
+  deleteArticle: (id: string) => Promise<boolean>;
+  getArticleDetail: (id: string) => Promise<void>;
+  clearArticleDetail: () => void;
+  getAllArticles: () => Promise<void>;
+  getArticlesByPage: (page: string) => Promise<void>;
+  upsertArticleOrder: (page: string, articleIds: string[]) => Promise<boolean>;
+  getArticleDetailsByIds: (ids: string[]) => Promise<void>;
+};
 
 const useArticleStore = create<ArticleStore>((set, get) => ({
   // 初始状态
@@ -47,6 +65,11 @@ const useArticleStore = create<ArticleStore>((set, get) => ({
   articleDetail: null,
   detailLoading: false,
   submitLoading: false,
+  allArticles: [],
+  pageArticles: [],
+  orderConfigLoading: false,
+  previewArticles: [],
+  previewLoading: false,
 
   // 获取文章列表
   getArticleList: async (page = 1, pageSize = 10, title) => {
@@ -141,8 +164,71 @@ const useArticleStore = create<ArticleStore>((set, get) => ({
 
   // 清除文章详情
   clearArticleDetail: () => {
-    set({ articleDetail: null })
-  }
-}))
+    set({ articleDetail: null });
+  },
 
-export default useArticleStore
+  // 获取所有文章
+  getAllArticles: async () => {
+    set({ orderConfigLoading: true });
+    try {
+      const response = await http.post(articleListAll);
+      if (response && response.data) {
+        set({ allArticles: response.data });
+      }
+    } catch (error) {
+      console.error('获取所有文章列表失败:', error);
+    } finally {
+      set({ orderConfigLoading: false });
+    }
+  },
+
+  // 根据页面获取文章
+  getArticlesByPage: async (page: string) => {
+    set({ orderConfigLoading: true });
+    try {
+      const response = await http.post(articleGetByPage, { page });
+      if (response && response.data) {
+        set({ pageArticles: response.data });
+      }
+    } catch (error) {
+      console.error(`获取页面 ${page} 文章失败:`, error);
+      set({ pageArticles: [] });
+    } finally {
+      set({ orderConfigLoading: false });
+    }
+  },
+
+  // 创建或更新文章顺序
+  upsertArticleOrder: async (page: string, articles: string[]) => {
+    set({ submitLoading: true });
+    try {
+      await http.post(articleUpsertOrder, { page, articles });
+      return true;
+    } catch (error) {
+      console.error('更新文章顺序失败:', error);
+      return false;
+    } finally {
+      set({ submitLoading: false });
+    }
+  },
+
+  // 获取预览文章
+  getArticleDetailsByIds: async (ids: string[]) => {
+    set({ previewLoading: true, previewArticles: [] });
+    try {
+      const response = await http.post<ArticleItem[]>(articleGetDetailsByIds, {
+        ids,
+      });
+      if (response && response.data) {
+        set({ previewArticles: response.data });
+      }
+    } catch (error) {
+      console.error('获取预览文章失败:', error);
+      set({ previewArticles: [] });
+    } finally {
+      set({ previewLoading: false });
+    }
+  },
+}));
+
+export default useArticleStore;

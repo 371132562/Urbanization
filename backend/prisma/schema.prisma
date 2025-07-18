@@ -14,13 +14,13 @@ datasource db {
 
 // 大洲字典表
 model Continent {
-  id      String    @id @default(uuid()) // 主键ID（UUID）
-  cnName  String    @unique // 大洲中文名
-  enName  String    @unique // 大洲英文名
-  country Country[] // 关联到国家表
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
-  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  id         String    @id @default(uuid()) // 主键ID（UUID）
+  cnName     String    @unique // 大洲中文名
+  enName     String    @unique // 大洲英文名
+  country    Country[] // 关联到国家表
+  createTime DateTime  @default(now())
+  updateTime DateTime  @updatedAt
+  delete     Int       @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
   @@index([cnName, delete])
@@ -36,9 +36,10 @@ model Country {
   continent            Continent              @relation(fields: [continentId], references: [id]) // 所属大洲
   urbanizationWorldMap UrbanizationWorldMap[] // 关联到世界地图城镇化数据
   indicatorValues      IndicatorValue[] // 关联到指标数值表
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
-  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  createTime           DateTime               @default(now())
+  updateTime           DateTime               @updatedAt
+  delete               Int                    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  Score                Score[]
 
   @@index([id])
   @@index([cnName, delete])
@@ -53,10 +54,10 @@ model TopIndicator {
   description        String? // 描述
   weight             Decimal // 权重
   secondaryIndicator SecondaryIndicator[] // 关联到二级指标
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
- delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
- 
+  createTime         DateTime             @default(now())
+  updateTime         DateTime             @updatedAt
+  delete             Int                  @default(0) // 软删除标记，0表示未删除，1表示已删除
+
   @@index([id])
   @@index([indicatorCnName, delete])
   @@index([indicatorEnName, delete])
@@ -72,9 +73,9 @@ model SecondaryIndicator {
   topIndicatorId    String // 外键，关联到一级指标ID
   topIndicator      TopIndicator        @relation(fields: [topIndicatorId], references: [id]) // 所属一级维度
   detailedIndicator DetailedIndicator[] // 关联到三级指标
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
-  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  createTime        DateTime            @default(now())
+  updateTime        DateTime            @updatedAt
+  delete            Int                 @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
   @@index([indicatorCnName, delete])
@@ -83,18 +84,18 @@ model SecondaryIndicator {
 
 // 三级指标
 model DetailedIndicator {
-  id                   String              @id @default(uuid()) // 主键ID（UUID）
-  indicatorCnName      String              @unique // 指标中文名称
-  indicatorEnName      String              @unique // 指标英文名称
+  id                   String             @id @default(uuid()) // 主键ID（UUID）
+  indicatorCnName      String             @unique // 指标中文名称
+  indicatorEnName      String             @unique // 指标英文名称
   unit                 String // 指标单位
   description          String? // 描述
   weight               Decimal // 权重
   secondaryIndicatorId String // 外键，关联到二级指标ID
   SecondaryIndicator   SecondaryIndicator @relation(fields: [secondaryIndicatorId], references: [id]) // 所属二级要素
   IndicatorValue       IndicatorValue[] // 关联到指标数值表
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
-  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  createTime           DateTime           @default(now())
+  updateTime           DateTime           @updatedAt
+  delete               Int                @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
   @@index([indicatorCnName, delete])
@@ -110,9 +111,9 @@ model IndicatorValue {
   country             Country           @relation(fields: [countryId], references: [id]) // 所属国家
   detailedIndicatorId String // 外键，关联到三级指标ID
   detailedIndicator   DetailedIndicator @relation(fields: [detailedIndicatorId], references: [id]) // 所属三级指标
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
-  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  createTime          DateTime          @default(now())
+  updateTime          DateTime          @updatedAt
+  delete              Int               @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([countryId, year])
   @@index([countryId, year, delete])
@@ -120,13 +121,13 @@ model IndicatorValue {
 
 // 世界地图城镇化展示表
 model UrbanizationWorldMap {
-  id           String  @id @default(uuid()) // 主键ID
-  countryId    String  @unique // 国家ID，这里应该是唯一的，一个国家只有一条记录
-  country      Country @relation(fields: [countryId], references: [id]) // 所属国家
-  urbanization Boolean @default(false) // 是否城镇化
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
-  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  id           String   @id @default(uuid()) // 主键ID
+  countryId    String   @unique // 国家ID，这里应该是唯一的，一个国家只有一条记录
+  country      Country  @relation(fields: [countryId], references: [id]) // 所属国家
+  urbanization Boolean  @default(false) // 是否城镇化
+  createTime   DateTime @default(now())
+  updateTime   DateTime @updatedAt
+  delete       Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
   @@index([countryId, delete])
@@ -134,12 +135,36 @@ model UrbanizationWorldMap {
 
 // 文章管理表
 model Article {
-  id      String @id @default(uuid()) // 主键ID
-  title   String // 文章标题
-  content String // 文章内容
+  id         String   @id @default(uuid()) // 主键ID
+  title      String // 文章标题
+  content    String // 文章内容
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
-  delete  Int    @default(0) // 软删除标记，0表示未删除，1表示已删除
+  delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
+
+  @@index([id])
+}
+
+// 文章展示顺序排布表
+model ArticleOrder {
+  id         String   @id @default(uuid()) // 主键ID
+  page       String // 对应页面key
+  articles   Json //包含的所有文章 为文章id组成的数组
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
+  delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
+}
+
+// 得分管理表
+model Score {
+  id         String   @id @default(uuid()) // 主键ID
+  value      Decimal // 得分
+  year       DateTime // 年份
+  countryId  String // 国家ID
+  country    Country  @relation(fields: [countryId], references: [id]) // 所属国家
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
+  delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id])
 }

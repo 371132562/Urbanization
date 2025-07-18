@@ -119,7 +119,7 @@ function RichEditor({
 
   return (
     // 编辑器容器，设置边框和 z-index 以保证工具栏在页面上正常显示
-    <div style={{ border: '1px solid #ccc', zIndex: 100 }}>
+    <div style={{ border: '1px solid #ccc', zIndex: 100 }} className="rounded-md overflow-hidden">
       {/* 工具栏 */}
       {!readOnly && (
         <Toolbar
