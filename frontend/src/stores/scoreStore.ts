@@ -5,7 +5,8 @@ import {
   DeleteScoreDto,
   ScoreDetailReqDto,
   ScoreEvaluationItemDto,
-  ScoreListDto
+  ScoreListDto,
+  CountryScoreData
 } from 'urbanization-backend/types/dto'
 
 import * as apis from '@/services/apis'
@@ -16,6 +17,7 @@ type ScoreFormData = Partial<CreateScoreDto>
 
 interface ScoreStore {
   data: ScoreListDto
+  scoreListByCountry: CountryScoreData[]
   listLoading: boolean
   detailData: ScoreFormData | null
   detailLoading: boolean
@@ -24,6 +26,7 @@ interface ScoreStore {
   evaluationsLoading: boolean
   evaluationsSaveLoading: boolean
   getScoreList: () => Promise<void>
+  getScoreListByCountry: () => Promise<void>
   getScoreDetail: (params: ScoreDetailReqDto) => Promise<void>
   createScore: (data: CreateScoreDto) => Promise<boolean>
   checkScoreExistingData: (params: ScoreDetailReqDto) => Promise<CheckExistingDataResDto>
@@ -36,6 +39,7 @@ interface ScoreStore {
 
 const useScoreStore = create<ScoreStore>()(set => ({
   data: [],
+  scoreListByCountry: [],
   listLoading: false,
   detailData: null,
   detailLoading: false,
@@ -49,6 +53,16 @@ const useScoreStore = create<ScoreStore>()(set => ({
     try {
       const res = await http.post<ScoreListDto>(apis.scoreList, {})
       set({ data: res.data || [], listLoading: false })
+    } catch (error) {
+      set({ listLoading: false })
+    }
+  },
+
+  getScoreListByCountry: async () => {
+    set({ listLoading: true })
+    try {
+      const res = await http.post<CountryScoreData[]>(apis.scoreListByCountry, {})
+      set({ scoreListByCountry: res.data || [], listLoading: false })
     } catch (error) {
       set({ listLoading: false })
     }
@@ -132,7 +146,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
         spatialDynamicsDimensionScore: undefined
       }
     })
-  },
+  }
 }))
 
-export default useScoreStore 
+export default useScoreStore

@@ -121,31 +121,31 @@ export const sideRoutes: RouteItem[] = [
   },
   {
     path: '/scoreManagement',
-    title: '得分管理',
+    title: '评分管理',
     icon: <CalculatorOutlined />,
     component: ScoreManagement,
     children: [
       {
         path: '/scoreManagement/modify/:countryId/:year',
-        title: '得分编辑',
+        title: '评分编辑',
         component: ModifyScore,
         hideInMenu: true,
       },
       {
         path: '/scoreManagement/create',
-        title: '得分录入',
+        title: '评分录入',
         component: ModifyScore,
         hideInMenu: true,
       },
       {
         path: '/scoreManagement/import',
-        title: '得分导入',
+        title: '评分导入',
         component: ImportScore,
         hideInMenu: true
       },
       {
         path: '/scoreManagement/evaluation',
-        title: '配置得分评价',
+        title: '配置评分评价',
         component: ScoreEvaluation,
         hideInMenu: true
       }

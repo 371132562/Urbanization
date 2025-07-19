@@ -29,15 +29,13 @@ export const Component = () => {
   const isEdit = !!countryId && !!year
 
   // --- Store States ---
-  const {
-    detailData,
-    detailLoading,
-    saveLoading,
-    getScoreDetail,
-    createScore,
-    resetDetailData,
-    initializeNewData
-  } = useScoreStore()
+  const detailData = useScoreStore(state => state.detailData)
+  const detailLoading = useScoreStore(state => state.detailLoading)
+  const saveLoading = useScoreStore(state => state.saveLoading)
+  const getScoreDetail = useScoreStore(state => state.getScoreDetail)
+  const createScore = useScoreStore(state => state.createScore)
+  const resetDetailData = useScoreStore(state => state.resetDetailData)
+  const initializeNewData = useScoreStore(state => state.initializeNewData)
   const getCountries = useCountryAndContinentStore(state => state.getCountries)
 
   // --- Local States for Selections ---
@@ -94,7 +92,7 @@ export const Component = () => {
 
       const success = await createScore(dataToSave)
       if (success) {
-        message.success(`得分数据${isEdit ? '编辑' : '录入'}成功`)
+        message.success(`评分数据${isEdit ? '编辑' : '录入'}成功`)
         navigate('/scoreManagement')
       } else {
         message.error('保存失败')
@@ -113,7 +111,7 @@ export const Component = () => {
     <div className="w-full max-w-7xl">
       <div className="mb-4 flex items-center justify-between">
         <Title level={2} className="!mb-0">
-          得分{isEdit ? '编辑' : '录入'}
+          评分{isEdit ? '编辑' : '录入'}
         </Title>
       </div>
 
@@ -171,39 +169,39 @@ export const Component = () => {
           <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
             {/* Form Items */}
             <Form.Item
-              label="综合得分"
+              label="综合评分"
               name="totalScore"
-              rules={[{ required: true, message: '请输入得分' }]}
+              rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入得分" precision={3} />
+              <InputNumber style={{ width: '100%' }} placeholder="请输入评分" precision={3} />
             </Form.Item>
             <Form.Item
-              label="城镇化进程维度得分"
+              label="城镇化进程维度评分"
               name="urbanizationProcessDimensionScore"
-              rules={[{ required: true, message: '请输入得分' }]}
+              rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入得分"  precision={3}/>
+              <InputNumber style={{ width: '100%' }} placeholder="请输入评分"  precision={3}/>
             </Form.Item>
             <Form.Item
-              label="人性动力维度得分"
+              label="人性动力维度评分"
               name="humanDynamicsDimensionScore"
-              rules={[{ required: true, message: '请输入得分' }]}
+              rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入得分"  precision={3}/>
+              <InputNumber style={{ width: '100%' }} placeholder="请输入评分"  precision={3}/>
             </Form.Item>
             <Form.Item
-              label="物性动力维度得分"
+              label="物性动力维度评分"
               name="materialDynamicsDimensionScore"
-              rules={[{ required: true, message: '请输入得分' }]}
+              rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入得分"  precision={3}/>
+              <InputNumber style={{ width: '100%' }} placeholder="请输入评分"  precision={3}/>
             </Form.Item>
             <Form.Item
-              label="空间动力维度得分"
+              label="空间动力维度评分"
               name="spatialDynamicsDimensionScore"
-              rules={[{ required: true, message: '请输入得分' }]}
+              rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入得分"  precision={3}/>
+              <InputNumber style={{ width: '100%' }} placeholder="请输入评分"  precision={3}/>
             </Form.Item>
           </div>
         </div>

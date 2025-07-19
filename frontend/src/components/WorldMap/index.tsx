@@ -27,9 +27,17 @@ export type WorldMapProps = {
   valueMap?: Record<string | number, { text: string; color: string }>
   // (可选) 自定义 tooltip 格式化函数
   tooltipFormatter?: (params: any) => string
+  // (可选) 地图点击事件回调
+  onMapClick?: (params: any) => void
 }
 
-const WorldMap: FC<WorldMapProps> = ({ data, nameMap, valueMap, tooltipFormatter }) => {
+const WorldMap: FC<WorldMapProps> = ({
+  data,
+  nameMap,
+  valueMap,
+  tooltipFormatter,
+  onMapClick
+}) => {
   // 用于引用 DOM 元素的 ref
   const chartRef = useRef<HTMLDivElement>(null)
   // 保存 ECharts 实例的 ref
@@ -125,6 +133,16 @@ const WorldMap: FC<WorldMapProps> = ({ data, nameMap, valueMap, tooltipFormatter
       // 设置图表配置
       chartInstance.current.setOption(option)
 
+      // 绑定点击事件
+      if (onMapClick) {
+        chartInstance.current.on('click', params => {
+          // 在这里可以进行判断，例如只在点击了有数据的系列上才触发
+          if (params.componentType === 'series') {
+            onMapClick(params)
+          }
+        })
+      }
+
       // 添加窗口大小变化的监听
       const handleResize = () => {
         chartInstance.current?.resize()
@@ -134,10 +152,14 @@ const WorldMap: FC<WorldMapProps> = ({ data, nameMap, valueMap, tooltipFormatter
       // 组件卸载时清理
       return () => {
         window.removeEventListener('resize', handleResize)
+        // 解绑点击事件
+        if (onMapClick && chartInstance.current) {
+          chartInstance.current.off('click')
+        }
         chartInstance.current?.dispose()
       }
     }
-  }, [data, nameMap, valueMap])
+  }, [data, nameMap, valueMap, tooltipFormatter, onMapClick])
 
   return (
     <div

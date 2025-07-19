@@ -279,7 +279,7 @@ export const DETAILED_INDICATORS = [
 
 export const SCORE_DIMENSIONS = [
   {
-    cnName: '综合得分',
+    cnName: '综合评分',
     enName: 'totalScore'
   },
   {

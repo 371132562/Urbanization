@@ -5,7 +5,11 @@
  * 2. 提供一个工厂函数，用于创建定制化的 ECharts tooltip formatter。
  */
 
-import type { UrbanizationWorldMapDataDto } from 'urbanization-backend/types/dto'
+import type {
+  UrbanizationWorldMapDataDto,
+  CountryScoreData,
+  CountryScoreDataItem
+} from 'urbanization-backend/types/dto'
 
 import type { WorldMapProps } from '@/components/WorldMap'
 import { ContinentCountData, CountryRowData } from '@/types'
@@ -188,4 +192,70 @@ export const createUrbanizationTooltipFormatter = (
     // 备用逻辑，理论上在当前场景（离散值）中不会走到。
     return `${countryName}: ${value}`
   }
+}
+
+export interface ProcessedScoreMapData {
+  mapData: { name: string; value: number }[]
+  nameMap: Record<string, string>
+  valueMap: Record<string | number, { text: string; color: string }>
+  countryYearsMap: Map<string, number[]>
+}
+
+/**
+ * @description 处理按国家分组的评分数据，为综合评价地图页准备数据
+ * @param {CountryScoreData[]} scoreData - 从后端获取的、按国家分组的评分数据。
+ * @param {CountryListResDto} allCountries - 包含所有国家的列表，用于构建完整的nameMap。
+ * @returns {object} 一个包含所有派生数据的对象，具体如下：
+ * - `mapData`: 用于 `WorldMap` 组件的 `series.data`。只包含有数据的国家。
+ * - `nameMap`: 用于 `WorldMap` 组件，国家英文名到中文名的映射。
+ * - `valueMap`: 用于 `WorldMap` 组件的 `visualMap`，定义了不同数值对应的颜色和图例文字。
+ * - `countryYearsMap`: 一个映射，key为国家英文名，value为该国有评分的所有年份的数组。
+ */
+export const processScoreDataForMap = (
+  scoreData: CountryScoreData[],
+  allCountries: any[]
+): ProcessedScoreMapData => {
+  const nameMap: Record<string, string> = {}
+  // 首先，用所有国家的数据填充nameMap，确保全覆盖
+  if (allCountries) {
+    allCountries.forEach(country => {
+      nameMap[country.enName] = country.cnName
+    })
+  }
+
+  if (!scoreData || scoreData.length === 0) {
+    return {
+      mapData: [],
+      nameMap, // 返回包含所有国家名字的nameMap
+      valueMap: {},
+      countryYearsMap: new Map()
+    }
+  }
+
+  const mapData: { name: string; value: number }[] = []
+  const countryYearsMap = new Map<string, number[]>()
+
+  // 定义一个固定的value和对应的valueMap，用于高亮显示所有有数据的国家
+  const dataValue = 1
+  const valueMap = {
+    [dataValue]: { text: '有评分数据', color: '#4575b4' }
+  }
+
+  scoreData.forEach(country => {
+    // 1. 填充 nameMap (如果allCountries中没有，这里会补充)
+    if (!nameMap[country.enName]) {
+      nameMap[country.enName] = country.cnName
+    }
+
+    // 2. 填充 mapData，所有有数据的国家使用相同的value
+    mapData.push({ name: country.enName, value: dataValue })
+
+    // 3. 提取每个国家的所有年份
+    const years = country.data
+      .map((d: CountryScoreDataItem) => new Date(d.year).getFullYear())
+      .sort((a: number, b: number) => b - a)
+    countryYearsMap.set(country.enName, years)
+  })
+
+  return { mapData, nameMap, valueMap, countryYearsMap }
 }

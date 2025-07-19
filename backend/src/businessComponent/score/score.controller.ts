@@ -20,6 +20,14 @@ export class ScoreController {
   }
 
   /**
+   * @description 获取所有得分数据，按国家分组
+   */
+  @Post('listByCountry')
+  listByCountry() {
+    return this.scoreService.listByCountry();
+  }
+
+  /**
    * @description 创建或更新得分记录
    */
   @Post('create')

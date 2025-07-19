@@ -8,6 +8,8 @@ import {
   ScoreDetailReqDto,
   DeleteScoreDto,
   CheckExistingDataResDto,
+  CountryScoreData,
+  CountryScoreDataItem,
 } from 'types/dto';
 import * as dayjs from 'dayjs';
 import { BusinessException } from '../../exceptions/businessException';
@@ -112,6 +114,106 @@ export class ScoreService {
     }
 
     this.logger.log('得分数据处理完成。');
+    return result;
+  }
+
+  /**
+   * @description 获取所有得分数据，并按国家进行分组。
+   * @returns {Promise<CountryScoreData[]>} 按国家分组的得分数据。
+   */
+  async listByCountry(): Promise<CountryScoreData[]> {
+    this.logger.log('开始从数据库获取所有得分数据，并按国家分组。');
+
+    // 1. 从数据库查询所有未被软删除的得分记录
+    //    - 包含关联的国家信息
+    //    - 按国家中文名升序, 年份降序排序
+    const scores = await this.prisma.score.findMany({
+      where: {
+        delete: 0, // 过滤未被删除的记录
+        country: {
+          delete: 0, // 确保关联的国家也未被删除
+        },
+      },
+      include: {
+        country: true, // 包含关联的国家实体
+      },
+      orderBy: [
+        {
+          country: {
+            cnName: 'asc',
+          },
+        },
+        {
+          year: 'desc',
+        },
+      ],
+    });
+
+    // 如果查询结果为空，直接返回空数组
+    if (!scores || scores.length === 0) {
+      this.logger.log('未找到任何得分数据，返回空数组。');
+      return [];
+    }
+
+    // 2. 使用 Map 按国家对数据进行分组
+    //    - Key: countryId (number)
+    //    - Value: 当个国家的所有得分记录数组 (Score with Country)
+    const groupedByCountry = new Map<
+      string,
+      (Score & { country: Country })[]
+    >();
+    for (const score of scores) {
+      const countryId = score.countryId;
+      // 如果 Map 中尚不存在该国家的键，则初始化一个空数组
+      if (!groupedByCountry.has(countryId)) {
+        groupedByCountry.set(countryId, []);
+      }
+      // 将当前记录添加到对应国家的数组中
+      groupedByCountry.get(countryId)!.push(score);
+    }
+
+    // 3. 将分组后的 Map 转换为 DTO 所需的数组结构
+    const result: CountryScoreData[] = [];
+    for (const [, countryScores] of groupedByCountry.entries()) {
+      const firstScore = countryScores[0]; // All scores in this group have the same country info
+      const countryData: CountryScoreData = {
+        countryId: firstScore.countryId,
+        cnName: firstScore.country.cnName,
+        enName: firstScore.country.enName,
+        // 遍历该国家的所有得分记录，并将其映射为 DTO 格式
+        data: countryScores.map((score): CountryScoreDataItem => {
+          return {
+            id: score.id,
+            year: score.year,
+            totalScore:
+              score.totalScore instanceof Decimal
+                ? score.totalScore.toNumber()
+                : score.totalScore,
+            urbanizationProcessDimensionScore:
+              score.urbanizationProcessDimensionScore instanceof Decimal
+                ? score.urbanizationProcessDimensionScore.toNumber()
+                : score.urbanizationProcessDimensionScore,
+            humanDynamicsDimensionScore:
+              score.humanDynamicsDimensionScore instanceof Decimal
+                ? score.humanDynamicsDimensionScore.toNumber()
+                : score.humanDynamicsDimensionScore,
+            materialDynamicsDimensionScore:
+              score.materialDynamicsDimensionScore instanceof Decimal
+                ? score.materialDynamicsDimensionScore.toNumber()
+                : score.materialDynamicsDimensionScore,
+            spatialDynamicsDimensionScore:
+              score.spatialDynamicsDimensionScore instanceof Decimal
+                ? score.spatialDynamicsDimensionScore.toNumber()
+                : score.spatialDynamicsDimensionScore,
+            createTime: score.createTime,
+            updateTime: score.updateTime,
+          };
+        }),
+      };
+      result.push(countryData);
+    }
+
+    this.logger.log('按国家分组的得分数据处理完成。');
     return result;
   }
 

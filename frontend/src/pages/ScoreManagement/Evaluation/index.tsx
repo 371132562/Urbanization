@@ -12,13 +12,11 @@ const { TextArea } = Input
 const ScoreEvaluationPage = () => {
   const navigate = useNavigate()
   const [form] = Form.useForm()
-  const {
-    evaluations,
-    evaluationsLoading,
-    evaluationsSaveLoading,
-    getEvaluations,
-    saveEvaluations
-  } = useScoreStore()
+  const evaluations = useScoreStore(state => state.evaluations)
+  const evaluationsLoading = useScoreStore(state => state.evaluationsLoading)
+  const evaluationsSaveLoading = useScoreStore(state => state.evaluationsSaveLoading)
+  const getEvaluations = useScoreStore(state => state.getEvaluations)
+  const saveEvaluations = useScoreStore(state => state.saveEvaluations)
 
   useEffect(() => {
     getEvaluations()
@@ -62,9 +60,9 @@ const ScoreEvaluationPage = () => {
 
   return (
     <div className="w-full max-w-4xl">
-      <Title level={2}>配置得分评价体系</Title>
+      <Title level={2}>配置评分评价体系</Title>
       <Text type="secondary" className="mb-4 block">
-        定义不同的得分区间及其对应的评价文案。系统将根据综合得分匹配相应的评价，请确保区间连续且不重叠。
+        定义不同的评分区间及其对应的评价文案。系统将根据综合评分匹配相应的评价，请确保区间连续且不重叠。
       </Text>
       <div className="mb-4 flex justify-end">
         <Space>
@@ -108,8 +106,8 @@ const ScoreEvaluationPage = () => {
                     <Form.Item
                       {...restField}
                       name={[name, 'minScore']}
-                      label="最小得分 (包含)"
-                      rules={[{ required: true, message: '请输入最小得分' }]}
+                      label="最小评分 (包含)"
+                      rules={[{ required: true, message: '请输入最小评分' }]}
                     >
                       <InputNumber
                         step={0.001}
@@ -121,8 +119,8 @@ const ScoreEvaluationPage = () => {
                     <Form.Item
                       {...restField}
                       name={[name, 'maxScore']}
-                      label="最大得分 (包含)"
-                      rules={[{ required: true, message: '请输入最大得分' }]}
+                      label="最大评分 (包含)"
+                      rules={[{ required: true, message: '请输入最大评分' }]}
                     >
                       <InputNumber
                         step={0.001}
@@ -138,7 +136,7 @@ const ScoreEvaluationPage = () => {
                     label="评价文案"
                     rules={[{ required: true, message: '请输入评价文案' }]}
                   >
-                    <TextArea rows={3} placeholder="请输入对该得分区间的详细评价..." />
+                    <TextArea rows={3} placeholder="请输入对该评分区间的详细评价..." />
                   </Form.Item>
                 </Card>
               ))}

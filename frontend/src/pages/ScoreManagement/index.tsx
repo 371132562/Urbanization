@@ -1,4 +1,4 @@
-/* 得分管理列表页 */
+/* 评分管理列表页 */
 import { FormOutlined, UploadOutlined } from '@ant-design/icons'
 import { useDebounce } from 'ahooks'
 import { Button, Collapse, Empty, Input, message, Popconfirm, Skeleton, Space, Table, Tag } from 'antd'
@@ -127,8 +127,8 @@ const ScoreManagement = () => {
         <FeatureButton
           className="mr-6"
           icon={<UploadOutlined className="text-[28px] text-blue-500" />}
-          title="得分导入"
-          description="从Excel文件导入得分数据"
+          title="评分导入"
+          description="从Excel文件导入评分数据"
           actionText="开始导入"
           color="#FF9500"
           onClick={() => {
@@ -137,8 +137,8 @@ const ScoreManagement = () => {
         />
         <FeatureButton
           icon={<FormOutlined className="text-[28px] text-blue-500" />}
-          title="得分录入"
-          description="手动录入和编辑得分数据"
+          title="评分录入"
+          description="手动录入和编辑评分数据"
           actionText="开始录入"
           color="#34C759"
           onClick={() => {
@@ -154,7 +154,7 @@ const ScoreManagement = () => {
           onChange={e => setSearchTerm(e.target.value)}
           style={{ width: 300 }}
         />
-        <Button onClick={() => navigate('/scoreManagement/evaluation')}>配置得分评价</Button>
+        <Button onClick={() => navigate('/scoreManagement/evaluation')}>配置评分评价</Button>
       </div>
 
       {filteredData.length > 0 ? (

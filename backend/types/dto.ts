@@ -338,10 +338,7 @@ export type CreateScoreDto = {
   spatialDynamicsDimensionScore: number;
 };
 
-/**
- * 国家得分数据 DTO
- */
-export type CountryScoreData = {
+export type ScoreDataItem = {
   id: string;
   countryId: string;
   cnName: string;
@@ -357,14 +354,36 @@ export type CountryScoreData = {
 };
 
 /**
- * 年份得分数据 DTO
+ * 得分列表按年份分组
  */
 export type YearScoreData = {
   year: Date;
-  data: CountryScoreData[];
+  data: ScoreDataItem[];
 };
 
 export type ScoreListDto = YearScoreData[];
+
+export interface CountryScoreDataItem {
+  id: string;
+  year: Date;
+  totalScore: number;
+  urbanizationProcessDimensionScore: number;
+  humanDynamicsDimensionScore: number;
+  materialDynamicsDimensionScore: number;
+  spatialDynamicsDimensionScore: number;
+  createTime: Date;
+  updateTime: Date;
+}
+
+/**
+ * 得分列表按国家分组
+ */
+export interface CountryScoreData {
+  countryId: string;
+  cnName: string;
+  enName: string;
+  data: CountryScoreDataItem[];
+}
 
 /**
  * 得分详情查询 DTO
