@@ -32,15 +32,19 @@ jobs:
         run: |
           zip urbanization.zip start-app.bat backup-data.bat restore-data.bat 使用说明.txt docker-compose.yml
         
+      - name: 生成版本号 (北京时间)
+        id: version
+        run: echo "tag=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+
       - name: 创建 GitHub Release
         # 使用一个非常流行的第三方 Action 来简化 Release 的创建过程
         uses: softprops/action-gh-release@v2
         with:
-          # 使用 GitHub Action 的运行编号作为版本号，确保每次都唯一且递增
-          tag_name: release-v${{ github.run_number }}
-          name: "客户端部署包 v${{ github.run_number }}"
+          # 使用日期和时间作为版本号，例如 release-v20240725-1030
+          tag_name: release-v${{ steps.version.outputs.tag }}
+          name: "客户端运行包 v${{ steps.version.outputs.tag }}"
           body: |
-            自动打包的客户端部署文件。
+            自动打包的客户端运行文件。
             
             本次发布包含了最新的：
             - 使用说明文档 (`使用说明.txt`)
