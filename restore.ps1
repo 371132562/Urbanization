@@ -1,4 +1,4 @@
-# 设置UTF-8编码，避免中文显示乱码
+﻿# 设置UTF-8编码，避免中文显示乱码
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 
@@ -177,10 +177,11 @@ try {
 # 从备份文件恢复数据
 Write-Host "正在从备份文件恢复数据..." -ForegroundColor Yellow
 try {
-    $restoreCommand = "docker run --rm -v urbanization_db:/data -v ${PWD}/$backupDir:/backup alpine sh -c 'tar -xf /backup/$($selectedFile.Name) -C /data'"
+    # 修正路径问题，使用${PWD}/${backupDir}格式
+    $restoreCommand = "docker run --rm -v urbanization_db:/data -v ${PWD}/${backupDir}:/backup alpine sh -c 'tar -xf /backup/$($selectedFile.Name) -C /data'"
     Write-Host "执行命令: $restoreCommand" -ForegroundColor Gray
     
-    docker run --rm -v urbanization_db:/data -v ${PWD}/$backupDir:/backup alpine sh -c "tar -xf /backup/$($selectedFile.Name) -C /data"
+    docker run --rm -v urbanization_db:/data -v ${PWD}/${backupDir}:/backup alpine sh -c "tar -xf /backup/$($selectedFile.Name) -C /data"
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "数据恢复成功！" -ForegroundColor Green
