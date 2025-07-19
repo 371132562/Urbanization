@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 rem 设置控制台编码为 UTF-8 以便正确显示中文。
 chcp 65001 > nul
 setlocal
