@@ -8,13 +8,18 @@ on:
     branches:
       - master
 
+# 并发控制：自动取消旧的、正在进行中的工作流
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # 授予工作流写权限，以便它可以创建 Release
 permissions:
   contents: write
 
 jobs:
   build-and-release:
-    name: 构建并发布
+    name: 打包客户所需文件并发布
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码

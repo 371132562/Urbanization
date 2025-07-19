@@ -5,6 +5,11 @@ on:
     branches:
       - master # 当推送到 main 分支时触发
 
+# 并发控制：自动取消旧的、正在进行中的工作流
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOCKER_IMAGE_NAME: linstar666/urbanization # 替换为你的 Docker Hub 用户名和镜像名
   # 如果你的项目目录不是 urbanization，可以根据需要调整 IMAGE_NAME。
