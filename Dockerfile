@@ -67,6 +67,10 @@ COPY --from=builder /app/frontend/dist ./frontend/dist
 # 复制后端打包产物
 COPY --from=builder /app/backend ./backend
 
+# 复制entrypoint脚本
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 # 设置运行时环境变量
 # 确保运行时也有 DATABASE_URL，因为 Prisma migrate 和你的应用都需要它
 # 如果你的应用在运行时也需要 DATABASE_URL，这一步非常关键。
@@ -77,7 +81,5 @@ ENV DATABASE_URL ${DATABASE_URL_BUILD}
 # 暴露后端端口
 EXPOSE 3333
 
-# 在启动 NestJS 应用之前运行 Prisma migrate
-# 这是为了确保数据库在应用启动前是最新状态
-# CMD 命令的路径都是相对于 WORKDIR /app 的
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./backend/prisma/schema.prisma && node ./backend/dist/src/main"]
+# 使用ENTRYPOINT执行启动脚本
+ENTRYPOINT ["./entrypoint.sh"]

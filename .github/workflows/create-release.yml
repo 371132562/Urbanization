@@ -31,7 +31,7 @@ jobs:
       - name: 打包发布文件
         run: |
           zip urbanization.zip docker-compose.yml 使用说明.txt \
-          start.ps1 backup.ps1 restore.ps1
+          start.ps1 backup.ps1 restore.ps1 entrypoint.sh
         
       - name: 生成版本号 (北京时间)
         id: version
@@ -50,6 +50,7 @@ jobs:
             本次发布包含了最新的：
             - 使用说明文档 (`使用说明.txt`)
             - Docker Compose 配置文件 (`docker-compose.yml`)
+            - Docker启动脚本 (`entrypoint.sh`)
             - PowerShell 脚本:
               - 启动应用: `start.ps1`
               - 备份数据: `backup.ps1` 
