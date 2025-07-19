@@ -1,4 +1,4 @@
-﻿# 设置UTF-8编码，避免中文显示乱码
+# 设置UTF-8编码，避免中文显示乱码
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 
@@ -95,7 +95,7 @@ Write-Host "备份文件将保存为: $backupDir\$backupFileName" -ForegroundCol
 try {
     # 创建临时容器并将卷挂载到容器中的/data目录，然后将/data目录打包成tar文件
     Write-Host "执行备份命令..." -ForegroundColor Gray
-    docker run --rm -v urbanization_db:/data -v ${PWD}/$backupDir:/backup alpine tar -cf /backup/$backupFileName -C /data .
+    docker run --rm -v urbanization_db:/data -v ${PWD}/${backupDir}:/backup alpine tar -cf /backup/$backupFileName -C /data .
     
     if ($LASTEXITCODE -eq 0) {
         # 检查文件是否实际创建

@@ -9,7 +9,7 @@ ARG DATABASE_URL_BUILD
 
 # 将构建参数的值赋给环境变量 DATABASE_URL
 # 这样在构建时，如 Prisma 生成等操作就可以使用这个数据库URL
-ENV DATABASE_URL=${DATABASE_URL_BUILD}
+ENV DATABASE_URL ${DATABASE_URL_BUILD}
 
 # 设置工作目录
 WORKDIR /app
@@ -72,7 +72,7 @@ COPY --from=builder /app/backend ./backend
 # 如果你的应用在运行时也需要 DATABASE_URL，这一步非常关键。
 # 这里我们直接从构建阶段继承 DATABASE_URL_BUILD 的值
 ENV NODE_ENV production
-ENV DATABASE_URL=${DATABASE_URL_BUILD}
+ENV DATABASE_URL ${DATABASE_URL_BUILD}
 
 # 暴露后端端口
 EXPOSE 3333

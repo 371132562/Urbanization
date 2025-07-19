@@ -1,4 +1,4 @@
-﻿# 设置UTF-8编码，避免中文显示乱码
+# 设置UTF-8编码，避免中文显示乱码
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 
@@ -139,7 +139,7 @@ try {
 # 停止相关容器
 try {
     Write-Host "`n正在停止运行中的容器..." -ForegroundColor Yellow
-    docker-compose down
+    docker compose down
     if ($LASTEXITCODE -ne 0) {
         Handle-Error "停止容器失败，错误码: $LASTEXITCODE"
     }
@@ -194,7 +194,7 @@ try {
 # 重新启动容器
 try {
     Write-Host "正在重新启动容器..." -ForegroundColor Yellow
-    docker-compose up -d
+    docker compose up -d
     if ($LASTEXITCODE -ne 0) {
         Handle-Error "重新启动容器失败，错误码: $LASTEXITCODE"
     }
@@ -214,11 +214,11 @@ try {
         Write-Host "系统访问地址: http://localhost:3333" -ForegroundColor Cyan
     } else {
         Write-Host "`n警告: 容器可能未正常启动，请检查日志:" -ForegroundColor Red
-        docker-compose logs
+        docker compose logs
     }
 } catch {
     Write-Host "`n警告: 无法检查容器状态: $_" -ForegroundColor Red
-    Write-Host "请手动运行 'docker-compose logs' 查看详情。" -ForegroundColor Yellow
+    Write-Host "请手动运行 'docker compose logs' 查看详情。" -ForegroundColor Yellow
 }
 
 Write-Host "`n==== 操作完成 ====" -ForegroundColor Green

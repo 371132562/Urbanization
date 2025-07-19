@@ -31,7 +31,7 @@ jobs:
       - name: 打包发布文件
         run: |
           zip urbanization.zip docker-compose.yml 使用说明.txt \
-          start-docker.ps1 backup-volume.ps1 restore-volume.ps1
+          start.ps1 backup.ps1 restore.ps1
         
       - name: 生成版本号 (北京时间)
         id: version
@@ -51,9 +51,9 @@ jobs:
             - 使用说明文档 (`使用说明.txt`)
             - Docker Compose 配置文件 (`docker-compose.yml`)
             - PowerShell 脚本:
-              - 启动应用: `start-docker.ps1`
-              - 备份数据: `backup-volume.ps1` 
-              - 恢复数据: `restore-volume.ps1`
+              - 启动应用: `start.ps1`
+              - 备份数据: `backup.ps1` 
+              - 恢复数据: `restore.ps1`
 
             请下载下面的 `urbanization.zip` 文件，解压后即可使用。
           files: urbanization.zip 
