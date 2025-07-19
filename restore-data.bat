@@ -21,6 +21,6 @@ if not exist "%GIT_BASH_PATH%" (
     exit /b 1
 )
 
-:: 执行恢复脚本
-echo 正在启动恢复程序...
-"%GIT_BASH_PATH%" -c "cd '%SCRIPT_DIR%' && ./restore-data.sh" 
+:: 在新窗口中执行恢复脚本
+echo 正在打开新的 Bash 窗口以执行恢复...
+start "数据恢复" /d "%SCRIPT_DIR%" "%GIT_BASH_PATH%" --login -i -c "./restore-data.sh; read -p '按 Enter 键关闭此窗口...'" 

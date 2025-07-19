@@ -21,6 +21,9 @@ if not exist "%GIT_BASH_PATH%" (
     exit /b 1
 )
 
-:: 使用 PortableGit 的 bash.exe 执行对应的 .sh 脚本
-echo 正在启动应用...
-"%GIT_BASH_PATH%" -c "cd '%SCRIPT_DIR%' && ./start-app.sh" 
+:: 使用 start 命令在新窗口中启动 bash 并执行 .sh 脚本
+:: "启动应用" 是新窗口的标题
+:: /d "%SCRIPT_DIR%" 设置新窗口的工作目录
+:: --login -i: 让 bash 以交互式登录 shell 的方式启动，这样可以获得更好的环境和体验
+echo 正在打开新的 Bash 窗口以启动应用...
+start "启动应用" /d "%SCRIPT_DIR%" "%GIT_BASH_PATH%" --login -i -c "./start-app.sh; read -p '按 Enter 键关闭此窗口...'" 

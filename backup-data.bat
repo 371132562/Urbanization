@@ -21,6 +21,6 @@ if not exist "%GIT_BASH_PATH%" (
     exit /b 1
 )
 
-:: 执行备份脚本
-echo 正在启动备份程序...
-"%GIT_BASH_PATH%" -c "cd '%SCRIPT_DIR%' && ./backup-data.sh" 
+:: 在新窗口中执行备份脚本
+echo 正在打开新的 Bash 窗口以执行备份...
+start "数据备份" /d "%SCRIPT_DIR%" "%GIT_BASH_PATH%" --login -i -c "./backup-data.sh; read -p '按 Enter 键关闭此窗口...'" 
