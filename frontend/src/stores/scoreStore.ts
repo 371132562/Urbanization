@@ -1,25 +1,30 @@
-import { create } from 'zustand'
 import {
   CheckExistingDataResDto,
+  Country,
+  CountryScoreData,
   CreateScoreDto,
   DeleteScoreDto,
   ScoreDetailReqDto,
   ScoreEvaluationItemDto,
-  ScoreListDto,
-  CountryScoreData
+  ScoreListDto
 } from 'urbanization-backend/types/dto'
+import { create } from 'zustand'
 
 import * as apis from '@/services/apis'
 import http from '@/services/base'
 
 // 用于表单的临时状态，允许部分字段为空
 type ScoreFormData = Partial<CreateScoreDto>
+// 定义一个更完整的详情数据类型
+type ScoreDetail = CreateScoreDto & {
+  country?: Country
+}
 
 interface ScoreStore {
   data: ScoreListDto
   scoreListByCountry: CountryScoreData[]
   listLoading: boolean
-  detailData: ScoreFormData | null
+  detailData: ScoreDetail | ScoreFormData | null
   detailLoading: boolean
   saveLoading: boolean
   evaluations: ScoreEvaluationItemDto[]
@@ -54,6 +59,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
       const res = await http.post<ScoreListDto>(apis.scoreList, {})
       set({ data: res.data || [], listLoading: false })
     } catch (error) {
+      console.log(error)
       set({ listLoading: false })
     }
   },
@@ -64,16 +70,18 @@ const useScoreStore = create<ScoreStore>()(set => ({
       const res = await http.post<CountryScoreData[]>(apis.scoreListByCountry, {})
       set({ scoreListByCountry: res.data || [], listLoading: false })
     } catch (error) {
-      set({ listLoading: false })
+      console.log(error)
+      set({ listLoading: false, scoreListByCountry: [] })
     }
   },
 
   getScoreDetail: async (params: ScoreDetailReqDto) => {
     set({ detailLoading: true })
     try {
-      const res = await http.post<CreateScoreDto>(apis.scoreDetail, params)
+      const res = await http.post<ScoreDetail>(apis.scoreDetail, params)
       set({ detailData: res.data, detailLoading: false })
     } catch (error) {
+      console.log(error)
       set({ detailLoading: false })
     }
   },
@@ -83,6 +91,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
       const res = await http.post<CheckExistingDataResDto>(apis.scoreCheckExisting, params)
       return res.data
     } catch (error) {
+      console.log(error)
       return { exists: false, count: 0 }
     }
   },
@@ -93,6 +102,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
       const res = await http.post<ScoreEvaluationItemDto[]>(apis.scoreEvaluationList, {})
       set({ evaluations: res.data || [], evaluationsLoading: false })
     } catch (error) {
+      console.log(error)
       set({ evaluationsLoading: false })
     }
   },
@@ -104,6 +114,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
       set({ evaluationsSaveLoading: false })
       return true
     } catch (error) {
+      console.log(error)
       set({ evaluationsSaveLoading: false })
       return false
     }
@@ -116,6 +127,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
       set({ saveLoading: false })
       return true
     } catch (error) {
+      console.log(error)
       set({ saveLoading: false })
       return false
     }
@@ -126,6 +138,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
       await http.post(apis.scoreDelete, params)
       return true
     } catch (error) {
+      console.log(error)
       return false
     }
   },

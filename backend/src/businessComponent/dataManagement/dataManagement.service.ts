@@ -112,6 +112,10 @@ export class DataManagementService {
         };
         yearData.data.push(countryData);
       }
+      // 对当前年份下的国家/地区数据按更新时间降序排序
+      yearData.data.sort(
+        (a, b) => b.updateTime.getTime() - a.updateTime.getTime(),
+      );
       result.push(yearData);
     }
 
@@ -190,16 +194,12 @@ export class DataManagementService {
     const result = await this.prisma.$transaction(async (prisma) => {
       let count = 0;
 
-      // 如果已存在数据，先删除所有现有数据
+      // 如果已存在数据，先进行物理删除
       if (existingCount > 0) {
-        await prisma.indicatorValue.updateMany({
+        await prisma.indicatorValue.deleteMany({
           where: {
             countryId,
             year: yearDate,
-            delete: 0,
-          },
-          data: {
-            delete: 1,
           },
         });
 

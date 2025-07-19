@@ -12,7 +12,7 @@ export class ScoreController {
   constructor(private readonly scoreService: ScoreService) {}
 
   /**
-   * @description 获取所有得分数据，按年份分组
+   * @description 获取所有评分数据，按年份分组
    */
   @Post('list')
   list() {
@@ -20,7 +20,7 @@ export class ScoreController {
   }
 
   /**
-   * @description 获取所有得分数据，按国家分组
+   * @description 获取所有评分数据，按国家分组
    */
   @Post('listByCountry')
   listByCountry() {
@@ -28,7 +28,7 @@ export class ScoreController {
   }
 
   /**
-   * @description 创建或更新得分记录
+   * @description 创建或更新评分记录
    */
   @Post('create')
   create(@Body() data: CreateScoreDto) {
@@ -36,7 +36,7 @@ export class ScoreController {
   }
 
   /**
-   * @description 获取特定国家和年份的得分详情
+   * @description 获取特定国家和年份的评分详情
    */
   @Post('detail')
   detail(@Body() params: ScoreDetailReqDto) {
@@ -44,7 +44,7 @@ export class ScoreController {
   }
 
   /**
-   * @description 检查特定国家和年份的得分数据是否存在
+   * @description 检查特定国家和年份的评分数据是否存在
    */
   @Post('checkExisting')
   checkExistingData(@Body() params: ScoreDetailReqDto) {
@@ -52,7 +52,7 @@ export class ScoreController {
   }
 
   /**
-   * @description 删除得分记录
+   * @description 删除评分记录
    */
   @Post('delete')
   delete(@Body() params: DeleteScoreDto) {
@@ -60,7 +60,7 @@ export class ScoreController {
   }
 
   /**
-   * @description 获取所有得分评价规则
+   * @description 获取所有评分评价规则
    */
   @Post('evaluation/list')
   findAllEvaluations() {
@@ -68,7 +68,7 @@ export class ScoreController {
   }
 
   /**
-   * @description 批量创建得分评价规则 (会先清空旧数据)
+   * @description 批量创建评分评价规则 (会先清空旧数据)
    */
   @Post('evaluation/create')
   createEvaluations(@Body() data: ScoreEvaluationItemDto[]) {

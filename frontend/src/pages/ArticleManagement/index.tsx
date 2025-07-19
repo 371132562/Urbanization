@@ -1,8 +1,11 @@
-import { Button, Input, message, Modal, Table ,Space} from 'antd';
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
-import useArticleStore from '@/stores/articleStore';
-import OrderConfigModal from './OrderConfigModal';
+import { Button, Input, message, Modal, Space, Table } from 'antd'
+import dayjs from 'dayjs'
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router'
+
+import useArticleStore from '@/stores/articleStore'
+
+import OrderConfigModal from './OrderConfigModal'
 
 const { Search } = Input;
 
@@ -56,7 +59,7 @@ const ArticleManagement: React.FC = () => {
       title: '更新时间',
       dataIndex: 'updateTime',
       key: 'updateTime',
-      render: (text: string) => new Date(text).toLocaleString(),
+      render: (text: string) => dayjs(text).format('YYYY-MM-DD HH:mm:ss')
     },
     {
       title: '操作',

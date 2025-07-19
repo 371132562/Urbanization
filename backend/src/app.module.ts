@@ -40,7 +40,7 @@ import { ScoreModule } from './businessComponent/score/score.module';
     IndicatorModule, // 指标查询模块
     CountryAndContinentModule, // 国家和大洲模块
     ArticleModule, // 文章管理模块
-    ScoreModule, // 得分评价模块
+    ScoreModule, // 评分评价模块
   ],
   controllers: [],
   providers: [],

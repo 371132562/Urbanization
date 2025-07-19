@@ -23,6 +23,7 @@ import { Component as MapEdit } from '@/pages/Map/MapEdit'
 import { Component as UrbanizationRate } from '@/pages/Map/UrbanizationRate'
 import { Component as Home } from '@/pages/Home'
 import { Component as ComprehensiveEvaluation } from '@/pages/ComprehensiveEvaluation'
+import { Component as ComprehensiveEvaluationDetail } from '@/pages/ComprehensiveEvaluation/Detail'
 import { Component as HumanDynamics } from '@/pages/HumanDynamics'
 import { Component as MaterialDynamics } from '@/pages/MaterialDynamics'
 import { Component as SpatialDynamics } from '@/pages/SpatialDynamics'
@@ -40,32 +41,40 @@ export const topRoutes: RouteItem[] = [
     path: '/comprehensiveEvaluation',
     title: '综合评价',
     icon: <BarChartOutlined />,
-    component: ComprehensiveEvaluation
+    component: ComprehensiveEvaluation,
+    children: [
+      {
+        path: '/comprehensiveEvaluation/detail/:countryId/:year',
+        title: '评价详情',
+        component: ComprehensiveEvaluationDetail,
+        hideInMenu: true
+      }
+    ]
   },
-  {
-    path: '/urbanizationProcess',
-    title: '城镇化进程',
-    icon: <RiseOutlined />,
-    component: UrbanizationProcess
-  },
-  {
-    path: '/humanDynamics',
-    title: '人性动力',
-    icon: <TeamOutlined />,
-    component: HumanDynamics
-  },
-  {
-    path: '/materialDynamics',
-    title: '物性动力',
-    icon: <GoldOutlined />,
-    component: MaterialDynamics
-  },
-  {
-    path: '/spatialDynamics',
-    title: '空间动力',
-    icon: <GlobalOutlined />,
-    component: SpatialDynamics
-  }
+  // {
+  //   path: '/urbanizationProcess',
+  //   title: '城镇化进程',
+  //   icon: <RiseOutlined />,
+  //   component: UrbanizationProcess
+  // },
+  // {
+  //   path: '/humanDynamics',
+  //   title: '人性动力',
+  //   icon: <TeamOutlined />,
+  //   component: HumanDynamics
+  // },
+  // {
+  //   path: '/materialDynamics',
+  //   title: '物性动力',
+  //   icon: <GoldOutlined />,
+  //   component: MaterialDynamics
+  // },
+  // {
+  //   path: '/spatialDynamics',
+  //   title: '空间动力',
+  //   icon: <GlobalOutlined />,
+  //   component: SpatialDynamics
+  // }
 ]
 
 // 侧边栏导航菜单配置

@@ -1,6 +1,7 @@
 import { Empty, List, Skeleton, Tag } from 'antd'
 import { EChartsOption } from 'echarts'
 import { FC, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router'
 
 import WorldMap from '@/components/WorldMap'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
@@ -11,10 +12,12 @@ const ComprehensiveEvaluation: FC = () => {
   // 从Zustand store中获取数据和方法
   const { scoreListByCountry, getScoreListByCountry, listLoading } = useScoreStore()
   const { countries, getCountries } = useCountryAndContinentStore()
+  const navigate = useNavigate()
 
   // 本地state，用于存储当前选中的国家信息
   const [selectedCountry, setSelectedCountry] = useState<{
     name: string
+    enName: string
     years: number[]
   } | null>(null)
 
@@ -25,19 +28,19 @@ const ComprehensiveEvaluation: FC = () => {
   }, [getScoreListByCountry, getCountries])
 
   // 使用useMemo对处理后的数据进行缓存，只有在原始数据变化时才重新计算
-  const { mapData, nameMap, valueMap, countryYearsMap } = useMemo(
+  const { mapData, nameMap, valueMap, countryYearsMap, countryEnNameToIdMap } = useMemo(
     () => processScoreDataForMap(scoreListByCountry, countries),
     [scoreListByCountry, countries]
   )
 
   // 地图点击事件处理函数
   const handleMapClick = (params: EChartsOption) => {
-    const countryName = (params.name as string) || ''
-    const years = countryYearsMap.get(countryName)
+    const countryEnName = (params.name as string) || ''
+    const years = countryYearsMap.get(countryEnName)
     // 根据英文名从 nameMap 获取中文名
-    const countryCnName = nameMap[countryName]
+    const countryCnName = nameMap[countryEnName]
     if (years && countryCnName) {
-      setSelectedCountry({ name: countryCnName, years: years })
+      setSelectedCountry({ name: countryCnName, enName: countryEnName, years: years })
     }
   }
 
@@ -87,11 +90,17 @@ const ComprehensiveEvaluation: FC = () => {
             <List
               dataSource={selectedCountry.years}
               renderItem={year => (
-                <List.Item className="!p-0">
-                  <Tag
-                  
-                    className="w-full cursor-pointer text-center !py-2 !text-base"
-                  >
+                <List.Item
+                  className="!p-0"
+                  onClick={() =>
+                    navigate(
+                      `/comprehensiveEvaluation/detail/${countryEnNameToIdMap.get(
+                        selectedCountry.enName
+                      )}/${year}`
+                    )
+                  }
+                >
+                  <Tag className="w-full cursor-pointer text-center !py-2 !text-base">
                     {year}
                   </Tag>
                 </List.Item>

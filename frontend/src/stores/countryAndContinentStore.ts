@@ -87,6 +87,7 @@ const useCountryAndContinentStore = create<CountryAndContinentStore>(set => ({
       })
     } catch (error) {
       console.error('获取国家信息失败:', error)
+      set({ countries: [] })
     } finally {
       set({ countriesLoading: false })
     }
@@ -103,7 +104,7 @@ const useCountryAndContinentStore = create<CountryAndContinentStore>(set => ({
       })
     } catch (error) {
       console.error('获取世界地图城镇化数据失败:', error)
-      set({ urbanizationMapDataLoading: false }) // 确保在出错时也设置loading为false
+      set({ urbanizationMapData: [], urbanizationMapDataLoading: false }) // 确保在出错时也设置loading为false
     }
   },
 

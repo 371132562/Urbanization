@@ -157,14 +157,14 @@ model ArticleOrder {
   @@index([page, delete])
 }
 
-// 得分管理表
+// 评分管理表
 model Score {
   id                                String   @id @default(uuid()) // 主键ID
-  totalScore                        Decimal // 综合得分
-  urbanizationProcessDimensionScore Decimal // 城镇化进程维度得分
-  humanDynamicsDimensionScore       Decimal // 人性动力维度得分
-  materialDynamicsDimensionScore    Decimal // 物性动力维度得分
-  spatialDynamicsDimensionScore     Decimal // 空间动力维度得分
+  totalScore                        Decimal // 综合评分
+  urbanizationProcessDimensionScore Decimal // 城镇化进程维度评分
+  humanDynamicsDimensionScore       Decimal // 人性动力维度评分
+  materialDynamicsDimensionScore    Decimal // 物性动力维度评分
+  spatialDynamicsDimensionScore     Decimal // 空间动力维度评分
   year                              DateTime // 年份
   countryId                         String // 国家ID
   country                           Country  @relation(fields: [countryId], references: [id]) // 所属国家
@@ -175,11 +175,11 @@ model Score {
   @@index([year, countryId, delete])
 }
 
-// 得分评价表 包含多组得分评价
+// 评分评价表 包含多组评分评价
 model ScoreEvaluation {
   id             String   @id @default(uuid()) // 主键ID
-  minScore       Decimal // 最小得分
-  maxScore       Decimal // 最大得分
+  minScore       Decimal // 最小评分
+  maxScore       Decimal // 最大评分
   evaluationText String // 评价文案
   createTime     DateTime @default(now())
   updateTime     DateTime @updatedAt

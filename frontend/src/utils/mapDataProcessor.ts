@@ -8,7 +8,8 @@
 import type {
   UrbanizationWorldMapDataDto,
   CountryScoreData,
-  CountryScoreDataItem
+  CountryScoreDataItem,
+  CountryListResDto
 } from 'urbanization-backend/types/dto'
 
 import type { WorldMapProps } from '@/components/WorldMap'
@@ -199,6 +200,7 @@ export interface ProcessedScoreMapData {
   nameMap: Record<string, string>
   valueMap: Record<string | number, { text: string; color: string }>
   countryYearsMap: Map<string, number[]>
+  countryEnNameToIdMap: Map<string, string>
 }
 
 /**
@@ -210,16 +212,19 @@ export interface ProcessedScoreMapData {
  * - `nameMap`: 用于 `WorldMap` 组件，国家英文名到中文名的映射。
  * - `valueMap`: 用于 `WorldMap` 组件的 `visualMap`，定义了不同数值对应的颜色和图例文字。
  * - `countryYearsMap`: 一个映射，key为国家英文名，value为该国有评分的所有年份的数组。
+ * - `countryEnNameToIdMap`: 一个映射，key为国家英文名，value为国家ID。
  */
 export const processScoreDataForMap = (
   scoreData: CountryScoreData[],
-  allCountries: any[]
+  allCountries: CountryListResDto
 ): ProcessedScoreMapData => {
   const nameMap: Record<string, string> = {}
-  // 首先，用所有国家的数据填充nameMap，确保全覆盖
+  const countryEnNameToIdMap = new Map<string, string>()
+  // 首先，用所有国家的数据填充nameMap和countryEnNameToIdMap，确保全覆盖
   if (allCountries) {
     allCountries.forEach(country => {
       nameMap[country.enName] = country.cnName
+      countryEnNameToIdMap.set(country.enName, country.id)
     })
   }
 
@@ -228,7 +233,8 @@ export const processScoreDataForMap = (
       mapData: [],
       nameMap, // 返回包含所有国家名字的nameMap
       valueMap: {},
-      countryYearsMap: new Map()
+      countryYearsMap: new Map(),
+      countryEnNameToIdMap
     }
   }
 
@@ -246,6 +252,9 @@ export const processScoreDataForMap = (
     if (!nameMap[country.enName]) {
       nameMap[country.enName] = country.cnName
     }
+    if (!countryEnNameToIdMap.has(country.enName)) {
+      countryEnNameToIdMap.set(country.enName, country.countryId)
+    }
 
     // 2. 填充 mapData，所有有数据的国家使用相同的value
     mapData.push({ name: country.enName, value: dataValue })
@@ -257,5 +266,5 @@ export const processScoreDataForMap = (
     countryYearsMap.set(country.enName, years)
   })
 
-  return { mapData, nameMap, valueMap, countryYearsMap }
+  return { mapData, nameMap, valueMap, countryYearsMap, countryEnNameToIdMap }
 }

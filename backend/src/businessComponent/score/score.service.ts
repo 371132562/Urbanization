@@ -19,7 +19,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 /**
  * @class ScoreService
- * @description 封装与得分和得分评价相关的业务逻辑
+ * @description 封装与评分和评分评价相关的业务逻辑
  */
 @Injectable()
 export class ScoreService {
@@ -27,13 +27,13 @@ export class ScoreService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * @description 获取所有得分数据，并按年份进行分组。
-   * @returns {Promise<ScoreListDto>} 按年份分组的得分数据。
+   * @description 获取所有评分数据，并按年份进行分组。
+   * @returns {Promise<ScoreListDto>} 按年份分组的评分数据。
    */
   async list(): Promise<ScoreListDto> {
-    this.logger.log('开始从数据库获取所有得分数据。');
+    this.logger.log('开始从数据库获取所有评分数据。');
 
-    // 1. 从数据库查询所有未被软删除的得分记录
+    // 1. 从数据库查询所有未被软删除的评分记录
     //    - 包含关联的国家信息
     //    - 按年份降序排序
     const scores = await this.prisma.score.findMany({
@@ -53,13 +53,13 @@ export class ScoreService {
 
     // 如果查询结果为空，直接返回空数组
     if (!scores || scores.length === 0) {
-      this.logger.log('未找到任何得分数据，返回空数组。');
+      this.logger.log('未找到任何评分数据，返回空数组。');
       return [];
     }
 
     // 2. 使用 Map 按年份对数据进行分组
     //    - Key: 年份 (number)
-    //    - Value: 当年的所有得分记录数组 (Score with Country)
+    //    - Value: 当年的所有评分记录数组 (Score with Country)
     const groupedByYear = new Map<number, (Score & { country: Country })[]>();
     for (const score of scores) {
       const year = dayjs(score.year).year();
@@ -76,7 +76,7 @@ export class ScoreService {
     for (const [year, yearScores] of groupedByYear.entries()) {
       const yearData: YearScoreData = {
         year: dayjs().year(year).startOf('year').toDate(), // 将年份数字转换为 Date 对象
-        // 遍历当年的所有得分记录，并将其映射为 DTO 格式
+        // 遍历当年的所有评分记录，并将其映射为 DTO 格式
         data: yearScores.map((score) => {
           const s = score as Score & { country: Country };
           return {
@@ -113,18 +113,18 @@ export class ScoreService {
       result.push(yearData);
     }
 
-    this.logger.log('得分数据处理完成。');
+    this.logger.log('评分数据处理完成。');
     return result;
   }
 
   /**
-   * @description 获取所有得分数据，并按国家进行分组。
-   * @returns {Promise<CountryScoreData[]>} 按国家分组的得分数据。
+   * @description 获取所有评分数据，并按国家进行分组。
+   * @returns {Promise<CountryScoreData[]>} 按国家分组的评分数据。
    */
   async listByCountry(): Promise<CountryScoreData[]> {
-    this.logger.log('开始从数据库获取所有得分数据，并按国家分组。');
+    this.logger.log('开始从数据库获取所有评分数据，并按国家分组。');
 
-    // 1. 从数据库查询所有未被软删除的得分记录
+    // 1. 从数据库查询所有未被软删除的评分记录
     //    - 包含关联的国家信息
     //    - 按国家中文名升序, 年份降序排序
     const scores = await this.prisma.score.findMany({
@@ -151,13 +151,13 @@ export class ScoreService {
 
     // 如果查询结果为空，直接返回空数组
     if (!scores || scores.length === 0) {
-      this.logger.log('未找到任何得分数据，返回空数组。');
+      this.logger.log('未找到任何评分数据，返回空数组。');
       return [];
     }
 
     // 2. 使用 Map 按国家对数据进行分组
     //    - Key: countryId (number)
-    //    - Value: 当个国家的所有得分记录数组 (Score with Country)
+    //    - Value: 当个国家的所有评分记录数组 (Score with Country)
     const groupedByCountry = new Map<
       string,
       (Score & { country: Country })[]
@@ -180,7 +180,7 @@ export class ScoreService {
         countryId: firstScore.countryId,
         cnName: firstScore.country.cnName,
         enName: firstScore.country.enName,
-        // 遍历该国家的所有得分记录，并将其映射为 DTO 格式
+        // 遍历该国家的所有评分记录，并将其映射为 DTO 格式
         data: countryScores.map((score): CountryScoreDataItem => {
           return {
             id: score.id,
@@ -213,14 +213,14 @@ export class ScoreService {
       result.push(countryData);
     }
 
-    this.logger.log('按国家分组的得分数据处理完成。');
+    this.logger.log('按国家分组的评分数据处理完成。');
     return result;
   }
 
   /**
-   * @description 创建或更新一个得分记录。如果给定国家和年份的记录已存在，则更新它；否则，创建新记录。
-   * @param {CreateScoreDto} data - 创建或更新得分所需的数据。
-   * @returns {Promise<Score>} 创建或更新后的得分记录。
+   * @description 创建或更新一个评分记录。如果给定国家和年份的记录已存在，则更新它；否则，创建新记录。
+   * @param {CreateScoreDto} data - 创建或更新评分所需的数据。
+   * @returns {Promise<Score>} 创建或更新后的评分记录。
    */
   async create(data: CreateScoreDto): Promise<Score> {
     // 1. 从 DTO 中解构所需参数
@@ -247,7 +247,7 @@ export class ScoreService {
       );
     }
 
-    // 3. 检查该国家在该年份是否已存在得分记录
+    // 3. 检查该国家在该年份是否已存在评分记录
     const existingScore = await this.prisma.score.findFirst({
       where: {
         countryId,
@@ -256,7 +256,7 @@ export class ScoreService {
       },
     });
 
-    // 4. 准备要写入数据库的得分数据
+    // 4. 准备要写入数据库的评分数据
     const scoreData = {
       totalScore,
       urbanizationProcessDimensionScore,
@@ -270,7 +270,7 @@ export class ScoreService {
     if (existingScore) {
       // 如果记录已存在，则更新现有记录
       this.logger.log(
-        `正在更新国家 ${countryId} 在 ${dayjs(year).year()} 年的得分记录。`,
+        `正在更新国家 ${countryId} 在 ${dayjs(year).year()} 年的评分记录。`,
       );
       return this.prisma.score.update({
         where: { id: existingScore.id },
@@ -279,7 +279,7 @@ export class ScoreService {
     } else {
       // 如果记录不存在，则创建新记录
       this.logger.log(
-        `正在为国家 ${countryId} 在 ${dayjs(year).year()} 年创建新的得分记录。`,
+        `正在为国家 ${countryId} 在 ${dayjs(year).year()} 年创建新的评分记录。`,
       );
       return this.prisma.score.create({
         data: {
@@ -293,15 +293,15 @@ export class ScoreService {
   }
 
   /**
-   * @description 获取特定国家和年份的得分详情。
+   * @description 获取特定国家和年份的评分详情。
    * @param {ScoreDetailReqDto} params - 包含 countryId 和 year。
-   * @returns {Promise<Score>} 得分详情记录。
+   * @returns {Promise<Score>} 评分详情记录。
    */
   async detail(params: ScoreDetailReqDto): Promise<Score> {
     const { countryId, year } = params;
     const yearDate = dayjs(year).startOf('year').toDate(); // 标准化年份
 
-    // 查询特定国家和年份的得分记录
+    // 查询特定国家和年份的评分记录
     const score = await this.prisma.score.findFirst({
       where: { countryId, year: yearDate, delete: 0 },
       include: {
@@ -313,14 +313,14 @@ export class ScoreService {
     if (!score) {
       throw new BusinessException(
         ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到国家 ID ${countryId} 在 ${dayjs(year).year()} 年的得分记录`,
+        `未找到国家 ID ${countryId} 在 ${dayjs(year).year()} 年的评分记录`,
       );
     }
     return score;
   }
 
   /**
-   * @description 检查特定国家和年份的得分数据是否存在.
+   * @description 检查特定国家和年份的评分数据是否存在.
    * @param {ScoreDetailReqDto} params - 包含 countryId 和 year.
    * @returns {Promise<CheckExistingDataResDto>} 包含存在状态和计数的对象.
    */
@@ -345,9 +345,9 @@ export class ScoreService {
   }
 
   /**
-   * @description 删除一个得分记录（软删除）。
+   * @description 删除一个评分记录（软删除）。
    * @param {DeleteScoreDto} params - 包含要删除的记录的 ID。
-   * @returns {Promise<Score>} 已更新的得分记录（标记为已删除）。
+   * @returns {Promise<Score>} 已更新的评分记录（标记为已删除）。
    */
   async delete(params: DeleteScoreDto): Promise<Score> {
     const { id } = params;
@@ -358,7 +358,7 @@ export class ScoreService {
     if (!score) {
       throw new BusinessException(
         ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到 ID 为 ${id} 的得分记录`,
+        `未找到 ID 为 ${id} 的评分记录`,
       );
     }
 
@@ -370,20 +370,20 @@ export class ScoreService {
   }
 
   /**
-   * @description 获取所有得分评价规则。
-   * @returns {Promise<ScoreEvaluation[]>} 按最小得分升序排列的评价规则列表。
+   * @description 获取所有评分评价规则。
+   * @returns {Promise<ScoreEvaluation[]>} 按最小评分升序排列的评价规则列表。
    */
   findAllEvaluations() {
     return this.prisma.scoreEvaluation.findMany({
       orderBy: {
-        minScore: 'asc', // 按最小得分升序排序
+        minScore: 'asc', // 按最小评分升序排序
       },
     });
   }
 
   /**
-   * @description 批量创建得分评价规则，此操作会先清空所有现有规则。
-   * @param {ScoreEvaluationItemDto[]} data - 新的得分评价规则数组。
+   * @description 批量创建评分评价规则，此操作会先清空所有现有规则。
+   * @param {ScoreEvaluationItemDto[]} data - 新的评分评价规则数组。
    * @returns {Promise<Prisma.BatchPayload>} 创建操作的结果。
    */
   async createEvaluations(data: ScoreEvaluationItemDto[]) {

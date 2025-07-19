@@ -26,6 +26,7 @@ const MapEdit: FC = () => {
 
   const [editedData, setEditedData] = useState<Record<string, boolean>>({})
   const [searchTerm, setSearchTerm] = useState('')
+  const [activeCollapseKeys, setActiveCollapseKeys] = useState<string | string[]>([])
 
   useEffect(() => {
     getUrbanizationMapData()
@@ -168,7 +169,8 @@ const MapEdit: FC = () => {
             </div>
             <Collapse
               accordion
-              key={searchTerm ? 'search-mode' : 'normal-mode'}
+              activeKey={activeCollapseKeys}
+              onChange={keys => setActiveCollapseKeys(keys as string[])}
             >
               {filteredGroupedData.map(({ continent, countries }) => (
                 <Collapse.Panel

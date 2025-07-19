@@ -179,25 +179,27 @@ export const Component = () => {
         return
       }
 
-      // 使用 indicatorHierarchy 作为唯一数据源来创建 enName -> id 的映射表
-      if (!indicatorHierarchy) {
+      // 根据编辑或新建模式，选择正确的指标结构作为数据源
+      const sourceIndicators = isEdit ? detailData?.indicators : indicatorHierarchy
+      if (!sourceIndicators || sourceIndicators.length === 0) {
         message.error('指标层级数据加载失败，无法保存')
         return
       }
-      const enNameToIdMap = new Map<string, string>()
-      indicatorHierarchy.forEach(top => {
+
+      // 基于指标结构来安全地构造要保存的数据，而不是遍历表单返回值
+      const indicatorsToSave: { detailedIndicatorId: string; value: number | null }[] = []
+      sourceIndicators.forEach(top => {
         top.secondaryIndicators.forEach(sec => {
           sec.detailedIndicators.forEach(det => {
-            enNameToIdMap.set(det.enName, det.id)
+            const formValue = values[det.enName]
+            indicatorsToSave.push({
+              detailedIndicatorId: det.id,
+              // 处理表单中可能不存在该字段的情况（理论上不应发生，但作为保护）
+              value: formValue === undefined ? null : (formValue as number | null)
+            })
           })
         })
       })
-
-      // 直接遍历表单返回的值，构造要保存的数据
-      const indicatorsToSave = Object.entries(values).map(([enName, value]) => ({
-        detailedIndicatorId: enNameToIdMap.get(enName)!,
-        value: value as number | null
-      }))
 
       const dataToSave: CreateIndicatorValuesDto = {
         countryId: selectedCountry,
@@ -252,9 +254,8 @@ export const Component = () => {
         await doSave(dataToSave)
       }
     } catch (error) {
-      // Antd Form.validateFields() 会在校验失败时抛出错误
-      console.error('表单校验失败:', error)
       message.error('表单校验失败，请检查输入')
+      console.log('表单校验或保存失败:', error)
     }
   }
 
@@ -403,7 +404,7 @@ export const Component = () => {
                   type="primary"
                   onClick={handleSave}
                   loading={saveLoading}
-                  disabled={isEdit ? true : !selectedCountry || !selectedYear} // 新建模式下，如果没有选择国家和年份，禁用保存按钮
+                  disabled={isEdit ? false : !selectedCountry || !selectedYear} // 新建模式下，如果没有选择国家和年份，禁用保存按钮
                 >
                   保存
                 </Button>
