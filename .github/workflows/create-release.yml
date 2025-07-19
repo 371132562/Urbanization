@@ -30,9 +30,9 @@ jobs:
 
       - name: 打包发布文件
         run: |
-          zip -r urbanization.zip PortableGit/ docker-compose.yml 使用说明.txt \
+          zip urbanization.zip docker-compose.yml 使用说明.txt \
           start-app.bat backup-data.bat restore-data.bat \
-          start-app.sh backup-data.sh restore-data.sh
+          start-app.ps1 backup-data.ps1 restore-data.ps1
         
       - name: 生成版本号 (北京时间)
         id: version
@@ -46,14 +46,13 @@ jobs:
           tag_name: release-v${{ steps.version.outputs.tag }}
           name: "客户端运行包 v${{ steps.version.outputs.tag }}"
           body: |
-            自动打包的客户端运行文件。
+            自动打包的客户端运行文件 (PowerShell 版本)。
             
             本次发布包含了最新的：
             - 使用说明文档 (`使用说明.txt`)
-            - 便携版 Shell 环境 (`PortableGit/`)
             - Docker Compose 配置文件 (`docker-compose.yml`)
             - Windows 启动脚本 (`start-app.bat`, `backup-data.bat`, `restore-data.bat`)
-            - 核心 Shell 脚本 (`start-app.sh`, `backup-data.sh`, `restore-data.sh`)
+            - 核心 PowerShell 脚本 (`start-app.ps1`, `backup-data.ps1`, `restore-data.ps1`)
 
             请下载下面的 `urbanization.zip` 文件，解压后即可使用。
           files: urbanization.zip 
