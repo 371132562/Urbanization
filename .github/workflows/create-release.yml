@@ -30,7 +30,9 @@ jobs:
 
       - name: 打包发布文件
         run: |
-          zip urbanization.zip start-app.bat backup-data.bat restore-data.bat 使用说明.txt docker-compose.yml
+          zip -r urbanization.zip PortableGit/ docker-compose.yml 使用说明.txt \
+          start-app.bat backup-data.bat restore-data.bat \
+          start-app.sh backup-data.sh restore-data.sh
         
       - name: 生成版本号 (北京时间)
         id: version
@@ -48,10 +50,10 @@ jobs:
             
             本次发布包含了最新的：
             - 使用说明文档 (`使用说明.txt`)
-            - 一键启动脚本 (`start-app.bat`)
-            - 数据备份脚本 (`backup-data.bat`)
-            - 数据恢复脚本 (`restore-data.bat`)
+            - 便携版 Shell 环境 (`PortableGit/`)
             - Docker Compose 配置文件 (`docker-compose.yml`)
+            - Windows 启动脚本 (`start-app.bat`, `backup-data.bat`, `restore-data.bat`)
+            - 核心 Shell 脚本 (`start-app.sh`, `backup-data.sh`, `restore-data.sh`)
 
-            请下载下面的 `urbanization.zip` 文件。
+            请下载下面的 `urbanization.zip` 文件，解压后即可使用。
           files: urbanization.zip 
