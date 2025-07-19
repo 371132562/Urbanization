@@ -48,7 +48,7 @@ const ScoreImportPage = () => {
       fixed: 'left' as const,
       render: (text: string, record: PreviewRow) => (
         <div className="flex items-center">
-          <span className="mb-1">{text}</span>
+          <span className="mb-2">{text}</span>
           {record.isExisting && (
             <Tag color="warning" className="ml-2">
               已存在
@@ -140,9 +140,9 @@ const ScoreImportPage = () => {
             content: (
               <div>
                 <p>以下国家在系统中未找到匹配项，这些行将被忽略：</p>
-                <div style={{ maxHeight: '200px', overflowY: 'auto', marginTop: '10px' }}>
+                <div className="mt-2 max-h-48 overflow-y-auto">
                   {unmatchedCountries.map((name, index) => (
-                    <Tag color="error" key={index} style={{ margin: '2px' }}>
+                    <Tag color="error" key={index} className="m-1">
                       {name}
                     </Tag>
                   ))}
@@ -224,15 +224,15 @@ const ScoreImportPage = () => {
 
   return (
     <div className="flex w-full max-w-7xl flex-col rounded-lg p-6 shadow-md">
-      <div className="mb-8 text-center">
+      <div className="mb-4 text-center">
         <h1 className="text-2xl font-bold text-gray-800 md:text-3xl">得分数据导入</h1>
-        <p className="mt-2 text-gray-500">请按照以下步骤上传、预览并导入您的 Excel 数据文件。</p>
+        <p className="text-gray-500">请按照以下步骤上传、预览并导入您的 Excel 数据文件。</p>
       </div>
 
       <Steps
         current={currentStep}
         items={[{ title: '选择年份并上传文件' }, { title: '预览数据' }, { title: '完成导入' }]}
-        className="mx-auto !mb-6 w-full"
+        className="mx-auto !mb-4 w-full"
       />
 
       <div className="mx-auto w-full max-w-6xl overflow-y-auto rounded-lg border border-gray-200 bg-gray-50/50 p-4">
@@ -283,7 +283,7 @@ const ScoreImportPage = () => {
               。请检查以下数据，<Tag color="warning">已存在</Tag>
               标记的数据将在导入后被覆盖。
             </p>
-            <Space className="mb-2 flex w-full justify-end">
+            <Space className="mb-4 flex w-full justify-end">
               <Button onClick={handleReUpload}>重新上传</Button>
               <Button type="primary" onClick={handleImport} loading={isImporting} disabled={isImporting}>
                 {isImporting ? '正在导入...' : '确认并导入'}
@@ -303,7 +303,7 @@ const ScoreImportPage = () => {
         {currentStep === 2 && (
           <div className="flex h-full items-center justify-center">
             <div className="p-12 text-center">
-              <CheckCircleFilled className="mb-6 text-6xl text-green-500" />
+              <CheckCircleFilled className="mb-4 text-6xl text-green-500" />
               <h2 className="mb-4 text-2xl font-semibold text-gray-800">导入处理完成</h2>
               {importResult && (
                 <Alert

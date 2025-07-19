@@ -10,18 +10,19 @@ import { CountryScoreData, YearScoreData } from 'urbanization-backend/types/dto'
 import FeatureButton from '@/components/FeatureButton'
 import { SCORE_DIMENSIONS } from '@/config/dataImport'
 import useScoreStore from '@/stores/scoreStore'
+import { filterDataByCountry } from '@/utils'
 
 const { Panel } = Collapse
 const { Search } = Input
 
 const ScoreManagementSkeleton = () => (
   <div>
-    <div className="mb-8 flex">
+    <div className="mb-4 flex">
       <Skeleton.Button active style={{ width: 280, height: 96, marginRight: 24 }} />
       <Skeleton.Button active style={{ width: 280, height: 96, marginRight: 24 }} />
       <Skeleton.Button active style={{ width: 280, height: 96 }} />
     </div>
-    <div className="mb-6">
+    <div className="mb-4">
       <Skeleton.Input active style={{ width: 320 }} />
     </div>
     <div className="space-y-4">
@@ -43,7 +44,6 @@ const ScoreManagement = () => {
   const data = useScoreStore(state => state.data)
   const loading = useScoreStore(state => state.listLoading)
   const getScoreList = useScoreStore(state => state.getScoreList)
-  const filteredDataByCountry = useScoreStore(state => state.filteredDataByCountry)
   const deleteData = useScoreStore(state => state.deleteData)
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -114,8 +114,8 @@ const ScoreManagement = () => {
   }, [])
 
   const filteredData = useMemo(() => {
-    return filteredDataByCountry(debouncedSearchTerm, data)
-  }, [debouncedSearchTerm, data, filteredDataByCountry])
+    return filterDataByCountry(debouncedSearchTerm, data)
+  }, [debouncedSearchTerm, data])
 
   if (loading) {
     return <ScoreManagementSkeleton />
@@ -123,11 +123,11 @@ const ScoreManagement = () => {
 
   return (
     <div className="w-full max-w-7xl">
-      <div className="mb-8 flex">
+      <div className="mb-4 flex">
         <FeatureButton
           className="mr-6"
           icon={<UploadOutlined className="text-[28px] text-blue-500" />}
-          title="数据导入"
+          title="得分导入"
           description="从Excel文件导入得分数据"
           actionText="开始导入"
           color="#FF9500"
@@ -137,7 +137,7 @@ const ScoreManagement = () => {
         />
         <FeatureButton
           icon={<FormOutlined className="text-[28px] text-blue-500" />}
-          title="数据录入"
+          title="得分录入"
           description="手动录入和编辑得分数据"
           actionText="开始录入"
           color="#34C759"
@@ -147,13 +147,14 @@ const ScoreManagement = () => {
         />
       </div>
 
-      <div className="mb-6 flex justify-between">
+      <div className="mb-4 flex justify-between">
         <Search
           placeholder="按国家名称搜索"
           allowClear
           onChange={e => setSearchTerm(e.target.value)}
           style={{ width: 300 }}
         />
+        <Button onClick={() => navigate('/scoreManagement/evaluation')}>配置得分评价</Button>
       </div>
 
       {filteredData.length > 0 ? (

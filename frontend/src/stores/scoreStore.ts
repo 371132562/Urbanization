@@ -1,12 +1,11 @@
 import { create } from 'zustand'
 import {
   CheckExistingDataResDto,
-  CountryScoreData,
   CreateScoreDto,
   DeleteScoreDto,
   ScoreDetailReqDto,
-  ScoreListDto,
-  YearScoreData
+  ScoreEvaluationItemDto,
+  ScoreListDto
 } from 'urbanization-backend/types/dto'
 
 import * as apis from '@/services/apis'
@@ -21,12 +20,16 @@ interface ScoreStore {
   detailData: ScoreFormData | null
   detailLoading: boolean
   saveLoading: boolean
+  evaluations: ScoreEvaluationItemDto[]
+  evaluationsLoading: boolean
+  evaluationsSaveLoading: boolean
   getScoreList: () => Promise<void>
   getScoreDetail: (params: ScoreDetailReqDto) => Promise<void>
   createScore: (data: CreateScoreDto) => Promise<boolean>
   checkScoreExistingData: (params: ScoreDetailReqDto) => Promise<CheckExistingDataResDto>
   deleteData: (params: DeleteScoreDto) => Promise<boolean>
-  filteredDataByCountry: (searchTerm: string, originalData: ScoreListDto) => ScoreListDto
+  getEvaluations: () => Promise<void>
+  saveEvaluations: (data: ScoreEvaluationItemDto[]) => Promise<boolean>
   resetDetailData: () => void
   initializeNewData: () => void
 }
@@ -37,6 +40,9 @@ const useScoreStore = create<ScoreStore>()(set => ({
   detailData: null,
   detailLoading: false,
   saveLoading: false,
+  evaluations: [],
+  evaluationsLoading: false,
+  evaluationsSaveLoading: false,
 
   getScoreList: async () => {
     set({ listLoading: true })
@@ -67,6 +73,28 @@ const useScoreStore = create<ScoreStore>()(set => ({
     }
   },
 
+  getEvaluations: async () => {
+    set({ evaluationsLoading: true })
+    try {
+      const res = await http.post<ScoreEvaluationItemDto[]>(apis.scoreEvaluationList, {})
+      set({ evaluations: res.data || [], evaluationsLoading: false })
+    } catch (error) {
+      set({ evaluationsLoading: false })
+    }
+  },
+
+  saveEvaluations: async (data: ScoreEvaluationItemDto[]) => {
+    set({ evaluationsSaveLoading: true })
+    try {
+      await http.post(apis.scoreEvaluationCreate, data)
+      set({ evaluationsSaveLoading: false })
+      return true
+    } catch (error) {
+      set({ evaluationsSaveLoading: false })
+      return false
+    }
+  },
+
   createScore: async (data: CreateScoreDto) => {
     set({ saveLoading: true })
     try {
@@ -86,24 +114,6 @@ const useScoreStore = create<ScoreStore>()(set => ({
     } catch (error) {
       return false
     }
-  },
-
-  filteredDataByCountry: (searchTerm: string, originalData: ScoreListDto) => {
-    if (!searchTerm) {
-      return originalData
-    }
-    const lowercasedFilter = searchTerm.toLowerCase()
-    const filtered = originalData
-      .map((yearData: YearScoreData) => {
-        const filteredCountries = yearData.data.filter(
-          (country: CountryScoreData) =>
-            country.cnName.toLowerCase().includes(lowercasedFilter) ||
-            country.enName.toLowerCase().includes(lowercasedFilter)
-        )
-        return { ...yearData, data: filteredCountries }
-      })
-      .filter(yearData => yearData.data.length > 0)
-    return filtered
   },
 
   resetDetailData: () => {

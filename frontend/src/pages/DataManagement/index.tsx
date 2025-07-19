@@ -9,13 +9,14 @@ import type { CountryData, YearData } from 'urbanization-backend/types/dto'
 
 import FeatureButton from '@/components/FeatureButton'
 import useDataManagementStore from '@/stores/dataManagementStore'
+import { filterDataByCountry } from '@/utils'
 
 const { Panel } = Collapse
 const { Search } = Input
 
 const DataManagementSkeleton = () => (
   <div>
-    <div className="mb-8 flex">
+    <div className="mb-4 flex">
       <Skeleton.Button
         active
         style={{ width: 280, height: 96, marginRight: 24 }}
@@ -29,7 +30,7 @@ const DataManagementSkeleton = () => (
         style={{ width: 280, height: 96 }}
       />
     </div>
-    <div className="mb-6">
+    <div className="mb-4">
       <Skeleton.Input
         active
         style={{ width: 320 }}
@@ -65,7 +66,6 @@ const DataManagement = () => {
   const data = useDataManagementStore(state => state.data)
   const loading = useDataManagementStore(state => state.listLoading)
   const getDataManagementList = useDataManagementStore(state => state.getDataManagementList)
-  const filteredDataByCountry = useDataManagementStore(state => state.filteredDataByCountry)
   const deleteData = useDataManagementStore(state => state.deleteData)
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -155,8 +155,8 @@ const DataManagement = () => {
   ]
 
   const filteredData = useMemo(() => {
-    return filteredDataByCountry(debouncedSearchTerm, data)
-  }, [debouncedSearchTerm, data, filteredDataByCountry])
+    return filterDataByCountry(debouncedSearchTerm, data)
+  }, [debouncedSearchTerm, data])
 
   if (loading) {
     return <DataManagementSkeleton />
@@ -164,7 +164,7 @@ const DataManagement = () => {
 
   return (
     <div className="w-full max-w-7xl">
-      <div className="mb-8 flex">
+      <div className="mb-4 flex">
         <FeatureButton
           className="mr-6"
           icon={<DownloadOutlined className="text-[28px] text-blue-500" />}
@@ -198,7 +198,7 @@ const DataManagement = () => {
         />
       </div>
 
-      <div className="mb-6 flex justify-between">
+      <div className="mb-4 flex justify-between">
         <Search
           placeholder="按国家名称搜索"
           allowClear

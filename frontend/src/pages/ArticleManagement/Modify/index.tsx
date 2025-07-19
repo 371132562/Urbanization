@@ -125,7 +125,7 @@ const ArticleModify: FC = () => {
           active
           title={false}
           paragraph={{ rows: 8 }}
-          className="mt-8"
+          className="mt-4"
         />
       </div>
     )
@@ -156,6 +156,7 @@ const ArticleModify: FC = () => {
         form={form}
         layout="vertical"
         onFinish={handleSave}
+        className="space-y-2"
       >
         <Form.Item
           name="title"

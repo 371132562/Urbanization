@@ -47,3 +47,29 @@ export const hexToRgba = (hex: string, alpha: number): string => {
   // 返回最终的RGBA字符串
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
+
+/**
+ * @description 通用的按国家中英文名称过滤数据函数。
+ * @param searchTerm - 搜索关键词。
+ * @param data - 包含年份和国家数据的数组 (例如 ScoreListDto 或 DataManagementListDto)。
+ * @returns 过滤后的数据数组。
+ */
+export const filterDataByCountry = <T extends { data: { cnName: string; enName: string }[] }>(
+  searchTerm: string,
+  data: T[]
+): T[] => {
+  const lowercasedTerm = searchTerm.trim().toLowerCase()
+  if (!lowercasedTerm) {
+    return data
+  }
+  return data
+    .map(yearData => {
+      const filteredCountries = yearData.data.filter(
+        country =>
+          country.cnName.toLowerCase().includes(lowercasedTerm) ||
+          country.enName.toLowerCase().includes(lowercasedTerm)
+      )
+      return { ...yearData, data: filteredCountries }
+    })
+    .filter(yearData => yearData.data.length > 0)
+}

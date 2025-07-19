@@ -11,7 +11,7 @@ import useScoreStore from '@/stores/scoreStore'
 const { Title } = Typography
 
 const ModifyScoreSkeleton = () => (
-  <div className="space-y-6">
+  <div className="space-y-4">
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow">
       <Skeleton active title={false} paragraph={{ rows: 2 }} />
       <Skeleton.Input style={{ width: '100%', marginTop: '1rem' }} active />
@@ -117,7 +117,7 @@ export const Component = () => {
         </Title>
       </div>
 
-      <div className="mb-6 rounded-lg bg-white p-6 shadow-sm">
+      <div className="mb-4 rounded-lg bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-end justify-between">
           <div className="flex flex-wrap items-end gap-4">
             <div className="min-w-80">
@@ -168,7 +168,7 @@ export const Component = () => {
 
       <Form form={form} layout="vertical" autoComplete="off">
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow">
-          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
             {/* Form Items */}
             <Form.Item
               label="综合得分"

@@ -175,7 +175,7 @@ model Score {
   @@index([year, countryId, delete])
 }
 
-// 得分评价表
+// 得分评价表 包含多组得分评价
 model ScoreEvaluation {
   id             String   @id @default(uuid()) // 主键ID
   minScore       Decimal // 最小得分

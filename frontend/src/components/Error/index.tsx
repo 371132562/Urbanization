@@ -56,7 +56,7 @@ const ErrorPage = ({ error: propsError, resetErrorBoundary }: IProps) => {
         <pre
           style={{
             textAlign: 'left',
-            margin: '20px',
+            margin: '1rem',
             padding: '10px',
             background: '#f0f0f0',
             borderRadius: '4px',

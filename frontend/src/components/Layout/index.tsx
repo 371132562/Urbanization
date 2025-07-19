@@ -124,9 +124,9 @@ export const Component: FC = () => {
           />
         </Sider>
         <Layout>
-          <Content className="!flex flex-grow flex-col bg-gray-100 p-8 pb-2 pt-6">
+          <Content className="!flex flex-grow flex-col bg-gray-100 p-6">
             {/* 添加面包屑导航 */}
-            <div className="mb-3">
+            <div className="mb-2">
               <Breadcrumb items={breadcrumbItems} />
             </div>
             <div className="flex flex-grow justify-center overflow-y-auto rounded-lg bg-white p-6 shadow-md box-border">

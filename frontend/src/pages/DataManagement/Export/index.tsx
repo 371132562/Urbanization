@@ -81,7 +81,7 @@ const DataExport = () => {
 
   return (
     <div className="w-full max-w-2xl">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <Title
           level={2}
           className="!mb-0"
@@ -144,7 +144,7 @@ const DataExport = () => {
             </Radio.Group>
           </Form.Item>
 
-          <Form.Item className="mt-8">
+          <Form.Item className="mt-4">
             <Space>
               <Button
                 onClick={() => navigate('/dataManagement')}

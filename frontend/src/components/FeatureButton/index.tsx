@@ -56,7 +56,7 @@ const FeatureButton: FC<FeatureButtonProps> = ({
         <div className="flex-grow text-base leading-relaxed text-gray-500">{description}</div>
       </div>
       <div
-        className="mt-6 flex items-center text-lg font-medium"
+        className="mt-4 flex items-center text-lg font-medium"
         style={{ color: themeColor }}
       >
         <span>{actionText}</span>

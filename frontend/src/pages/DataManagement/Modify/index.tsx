@@ -55,9 +55,10 @@ const ModifyPageSkeleton = () => (
               className="p-6"
             >
               <Skeleton.Input
-                style={{ width: '150px', marginBottom: '1rem' }}
+                style={{ width: '150px' }}
                 active
                 size="small"
+                className="mb-2"
               />
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {[...Array(3)].map((_, itemIndex) => (

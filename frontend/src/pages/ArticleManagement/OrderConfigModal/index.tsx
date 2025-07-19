@@ -192,17 +192,19 @@ const OrderConfigModal: React.FC<OrderConfigModalProps> = ({
               label: page.label,
             }))}
           />
-          <div className="mt-4 p-4 border rounded-md min-h-[300px]">
+          <div className="p-4 border rounded-md min-h-[300px]">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
+             
             >
               <SortableContext
                 items={selectedArticles.map((item) => item.uniqueId)}
                 strategy={verticalListSortingStrategy}
+             
               >
-                <div className="space-y-4">
+                <div className="space-y-4 mb-4">
                   {selectedArticles.map((article) => (
                     <SortableItem
                       key={article.uniqueId}
@@ -220,7 +222,7 @@ const OrderConfigModal: React.FC<OrderConfigModalProps> = ({
             <Button
               type="dashed"
               onClick={handleAddArticle}
-              style={{ width: '100%', marginTop: '16px' }}
+              className="w-full"
             >
               + 添加文章
             </Button>

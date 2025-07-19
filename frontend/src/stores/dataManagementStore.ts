@@ -1,14 +1,12 @@
 import type {
   CheckExistingDataResDto,
-  CountryData,
   CountryDetailReqDto,
   CountryDetailResDto,
   CountryYearQueryDto,
   CreateIndicatorValuesDto,
   DataManagementListDto,
   ExportDataReqDto,
-  TopIndicatorItem,
-  YearData
+  TopIndicatorItem
 } from 'urbanization-backend/types/dto'
 import { create } from 'zustand'
 
@@ -37,7 +35,6 @@ type DataManagementStore = {
   exportData: (params: ExportDataReqDto) => Promise<boolean>
   resetDetailData: () => void
   initializeNewData: (indicatorHierarchy: TopIndicatorItem[]) => void
-  filteredDataByCountry: (term: string, data: DataManagementListDto) => DataManagementListDto
 }
 
 const useDataManagementStore = create<DataManagementStore>(set => ({
@@ -187,24 +184,6 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
       }
     })
   },
-
-  // 按国家名称过滤数据
-  filteredDataByCountry: (term: string, data: DataManagementListDto) => {
-    const lowercasedTerm = term.trim().toLowerCase()
-    if (!lowercasedTerm) {
-      return data
-    }
-    return data
-      .map((yearData: YearData) => {
-        const filteredCountries = yearData.data.filter(
-          (country: CountryData) =>
-            country.cnName.toLowerCase().includes(lowercasedTerm) ||
-            country.enName.toLowerCase().includes(lowercasedTerm)
-        )
-        return { ...yearData, data: filteredCountries }
-      })
-      .filter((yearData: YearData) => yearData.data.length > 0)
-  }
 }))
 
 export default useDataManagementStore

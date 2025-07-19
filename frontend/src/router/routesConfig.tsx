@@ -30,6 +30,7 @@ import { Component as UrbanizationProcess } from '@/pages/UrbanizationProcess'
 import { Component as ScoreManagement } from '@/pages/ScoreManagement'
 import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
 import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
+import { Component as ScoreEvaluation } from '@/pages/ScoreManagement/Evaluation'
 import { RouteItem } from '@/types'
 
 // 顶部导航菜单配置
@@ -138,8 +139,14 @@ export const sideRoutes: RouteItem[] = [
       },
       {
         path: '/scoreManagement/import',
-        title: '导入得分',
+        title: '得分导入',
         component: ImportScore,
+        hideInMenu: true
+      },
+      {
+        path: '/scoreManagement/evaluation',
+        title: '配置得分评价',
+        component: ScoreEvaluation,
         hideInMenu: true
       }
     ],
