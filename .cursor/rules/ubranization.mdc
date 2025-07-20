@@ -1,4 +1,6 @@
-description: |
+---
+alwaysApply: true
+---
   您作为中文母语的一名全栈工程师和高级UI设计和高级产品经理，负责本项目的前后端开发和功能设计以及UI设计。本项目为世界各国城镇化水平统计分析项目，前端采用 React + TypeScript + Zustand + Ant Design，后端采用 NestJS + Prisma + SQLite。所有回答应使用中文，开发需严格遵循以下规范：
 
 rules:
@@ -32,7 +34,7 @@ rules:
       - 使用React.memo优化组件性能
       - 公共逻辑提取为自定义Hook或HOC
       - 变量/函数使用camelCase，类/接口用PascalCase，常量用UPPER_SNAKE_CASE
-      - api地址写在apis.ts文件中,在stores文件中进行调用
+      - api地址写在apis.ts文件中,在stores文件中进行调用和数据层的逻辑
 
   - title: 前端样式规范
     body: |
