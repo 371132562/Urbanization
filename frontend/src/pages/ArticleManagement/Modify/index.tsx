@@ -1,10 +1,10 @@
 import { Button, Form, Input, message, Modal, Skeleton, Space } from 'antd'
-import { FC, useEffect, useMemo, useState } from 'react'
+import { FC, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import type { CreateArticleDto, UpdateArticleDto } from 'urbanization-backend/types/dto'
 
 // 引入自定义的富文本编辑器组件和文章状态管理 store
-import RichEditor from '@/components/RichEditor'
+import RichEditor, { type RichEditorRef } from '@/components/RichEditor'
 import useArticleStore from '@/stores/articleStore'
 
 /**
@@ -18,6 +18,8 @@ const ArticleModify: FC = () => {
   const navigate = useNavigate()
   // antd 表单实例，用于控制表单行为
   const [form] = Form.useForm()
+  // 创建一个 Ref 来引用富文本编辑器实例，以便调用其内部方法
+  const editorRef = useRef<RichEditorRef>(null)
 
   // --- Modal 状态 ---
   const [isPreviewVisible, setIsPreviewVisible] = useState(false)
@@ -70,24 +72,42 @@ const ArticleModify: FC = () => {
    * @param values - antd Form 自动收集的表单值
    */
   const handleSave = async (values: { title: string; content: string }) => {
-    // --- 手动校验富文本编辑器内容 ---
-    // 由于 antd Form 无法直接校验富文本编辑器的空状态（例如 <p><br></p>），需要手动检查
-    const textContent = values.content.replace(/<[^>]*>/g, '').trim()
-    if (!textContent) {
-      message.error('请输入文章内容')
-      return // 如果内容为空，则中断提交
+ 
+    // 从 RichEditor ref 中获取图片列表
+    if (!editorRef.current) {
+      message.error('编辑器实例未准备好，请稍后再试')
+      return
     }
+    const { images, deletedImages } = editorRef.current.getImages()
+
+    // 根据用户需求，只保留 URL 中的文件名部分
+    const extractFilename = (url: string) => {
+      // 从 URL 中找到最后一个 "/" 的位置，并截取之后的部分
+      return url.substring(url.lastIndexOf('/') + 1)
+    }
+    const processedImages = images.map(extractFilename)
+    const processedDeletedImages = deletedImages.map(extractFilename)
 
     let success = false // 用于追踪 API 调用是否成功
 
     // 根据是否为编辑模式，调用不同的 store 方法
     if (isEditMode) {
       // 编辑模式：需要传入文章 ID
-      const data: UpdateArticleDto = { id: id as string, ...values }
+      const data: UpdateArticleDto = {
+        id: id as string,
+        ...values,
+        images: processedImages,
+        deletedImages: processedDeletedImages
+      }
       success = await updateArticle(data)
     } else {
       // 新增模式：直接使用表单数据
-      const data: CreateArticleDto = values
+      const data: CreateArticleDto = {
+        ...values,
+        images: processedImages,
+        deletedImages: processedDeletedImages
+      }
+      console.log(data)
       success = await createArticle(data)
     }
 
@@ -172,7 +192,11 @@ const ArticleModify: FC = () => {
           rules={[{ required: true, message: '请输入文章内容' }]}
           valuePropName="value" // 告诉 Form.Item 将 `value` prop 传递给子组件
         >
-          <RichEditor placeholder="请输入文章内容..." />
+          <RichEditor
+            ref={editorRef}
+            placeholder="请输入文章内容..."
+            initialImages={isEditMode && articleDetail ? articleDetail.images : []}
+          />
         </Form.Item>
       </Form>
 

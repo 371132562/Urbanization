@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Article, ArticleOrder } from '@prisma/client';
 import { BusinessException } from 'src/exceptions/businessException';
 import {
@@ -11,18 +11,24 @@ import {
   ArticleMetaItem,
 } from '../../../types/dto';
 import { ErrorCode } from '../../../types/response';
+import { UploadService } from '../../upload/upload.service';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class ArticleService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ArticleService.name);
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   private mapToDto(article: Article): ArticleItem {
     return {
       id: article.id,
       title: article.title,
       content: article.content,
+      images: article.images as string[], // images 字段从 JSON 转换为 string[]
       createTime: article.createTime,
       updateTime: article.updateTime,
     };
@@ -124,18 +130,38 @@ export class ArticleService {
   }
 
   async create(createArticleDto: CreateArticleDto): Promise<ArticleItem> {
+    const { deletedImages, ...articleData } = createArticleDto;
+
     const article = await this.prisma.article.create({
-      data: createArticleDto,
+      data: articleData,
     });
+
+    // 异步清理不再使用的图片，不阻塞主流程
+    if (deletedImages && deletedImages.length > 0) {
+      this._handleImageCleanup(deletedImages).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        this.logger.error(`后台图片清理任务失败: ${errorMessage}`);
+      });
+    }
+
     return this.mapToDto(article);
   }
 
   async update(updateArticleDto: UpdateArticleDto): Promise<ArticleItem> {
-    const { id, ...data } = updateArticleDto;
+    const { id, deletedImages, ...data } = updateArticleDto;
     const article = await this.prisma.article.update({
       where: { id },
       data,
     });
+
+    // 异步清理不再使用的图片，不阻塞主流程
+    if (deletedImages && deletedImages.length > 0) {
+      this._handleImageCleanup(deletedImages).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        this.logger.error(`后台图片清理任务失败: ${errorMessage}`);
+      });
+    }
+
     return this.mapToDto(article);
   }
 
@@ -145,6 +171,50 @@ export class ArticleService {
       data: { delete: 1 },
     });
     return this.mapToDto(article);
+  }
+
+  /**
+   * 清理已删除的图片文件。
+   * 仅当图片在所有文章中都未被引用时，才会执行物理删除。
+   * @param deletedImages - 包含待删除图片文件名的数组
+   */
+  private async _handleImageCleanup(deletedImages: string[]) {
+    this.logger.log(
+      `开始图片清理任务，待处理图片: ${deletedImages.join(', ')}`,
+    );
+
+    // 1. 获取所有未删除文章中正在使用的图片
+    const allInUseImagesResult = await this.prisma.article.findMany({
+      where: { delete: 0 },
+      select: { images: true },
+    });
+
+    // 2. 将所有正在使用的图片文件名收集到一个 Set 中，以便快速查找
+    const inUseImageSet = new Set<string>();
+    allInUseImagesResult.forEach((article) => {
+      const images = article.images as string[]; // Prisma 返回的 Json 类型需要断言
+      if (Array.isArray(images)) {
+        images.forEach((img) => inUseImageSet.add(img));
+      }
+    });
+
+    // 3. 遍历待删除列表，判断是否可以安全删除
+    for (const filename of deletedImages) {
+      try {
+        if (!inUseImageSet.has(filename)) {
+          // 如果图片已不在任何文章中使用，则进行物理删除
+          await this.uploadService.deleteFile(filename);
+          this.logger.log(`成功删除孤立图片: ${filename}`);
+        } else {
+          this.logger.log(`图片 ${filename} 仍在被其他文章使用，跳过删除。`);
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        this.logger.error(`删除图片 ${filename} 失败: ${errorMessage}`);
+        // 不向上抛出异常，以确保单个文件删除失败不影响其他文件处理
+      }
+    }
   }
 
   async upsertArticleOrder(

@@ -257,6 +257,7 @@ export type ArticleItem = {
   id: string;
   title: string;
   content: string;
+  images: string[]; // 文章内包含的图片 为图片id组成的数组
   createTime: Date;
   updateTime: Date;
 };
@@ -269,26 +270,30 @@ export type ArticleListResponse = {
 };
 
 /**
- * 创建文章 DTO
+ * @description 创建新文章时使用的数据传输对象 (DTO)
  */
 export type CreateArticleDto = {
   title: string;
   content: string;
+  images: string[];
+  deletedImages: string[];
 };
 
 /**
- * 更新文章 DTO
+ * @description 更新现有文章时使用的数据传输对象 (DTO)
  */
 export type UpdateArticleDto = {
   id: string;
   title?: string;
   content?: string;
+  images: string[];
+  deletedImages: string[];
 };
 
 /**
- * 文章元信息 DTO (不含content)
+ * 文章元数据 - 用于列表，不包含文章内容
  */
-export type ArticleMetaItem = Omit<ArticleItem, 'content'>;
+export type ArticleMetaItem = Omit<ArticleItem, 'content' | 'images'>;
 
 /**
  * 删除文章 DTO

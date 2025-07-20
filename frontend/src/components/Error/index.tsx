@@ -1,7 +1,7 @@
 import { Button, Result } from 'antd'
 import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router'
 
-type IProps = {
+interface IProps {
   error?: Error
   resetErrorBoundary?: () => void
 }
@@ -19,10 +19,27 @@ const ErrorPage = ({ error: propsError, resetErrorBoundary }: IProps) => {
   let subTitle
 
   if (isRouteErrorResponse(error)) {
-    status = error.status as any
-    title = error.statusText || '发生未知路由错误'
     subTitle = error.data
+    switch (error.status) {
+      case 403:
+        status = '403'
+        title = '抱歉，您无权访问此页面'
+        break
+      case 404:
+        status = '404'
+        title = '抱歉，您访问的页面不存在'
+        break
+      case 500:
+        status = '500'
+        title = '抱歉，服务器出错了'
+        break
+      default:
+        status = 'error'
+        title = `请求错误: ${error.status}`
+        break
+    }
   } else if (error instanceof Error) {
+    status = 'error'
     title = '抱歉，页面出现了一些问题'
     subTitle = error.message
   }
@@ -33,7 +50,7 @@ const ErrorPage = ({ error: propsError, resetErrorBoundary }: IProps) => {
       resetErrorBoundary()
     } else {
       // 对于路由错误，我们可以刷新页面来重试
-      navigate(0)
+      navigate('/')
     }
   }
 
@@ -47,7 +64,7 @@ const ErrorPage = ({ error: propsError, resetErrorBoundary }: IProps) => {
           type="primary"
           onClick={handleRetry}
         >
-          重试
+          返回
         </Button>
       }
     >
@@ -56,7 +73,7 @@ const ErrorPage = ({ error: propsError, resetErrorBoundary }: IProps) => {
         <pre
           style={{
             textAlign: 'left',
-            margin: '1rem',
+            margin: '20px',
             padding: '10px',
             background: '#f0f0f0',
             borderRadius: '4px',

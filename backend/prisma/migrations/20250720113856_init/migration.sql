@@ -91,6 +91,7 @@ CREATE TABLE "Article" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
+    "images" JSONB NOT NULL,
     "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateTime" DATETIME NOT NULL,
     "delete" INTEGER NOT NULL DEFAULT 0
@@ -130,6 +131,17 @@ CREATE TABLE "ScoreEvaluation" (
     "evaluationText" TEXT NOT NULL,
     "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateTime" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "Image" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "filename" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "hash" TEXT NOT NULL,
+    "delete" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
 -- CreateIndex
@@ -230,3 +242,12 @@ CREATE INDEX "ArticleOrder_page_delete_idx" ON "ArticleOrder"("page", "delete");
 
 -- CreateIndex
 CREATE INDEX "Score_year_countryId_delete_idx" ON "Score"("year", "countryId", "delete");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Image_filename_key" ON "Image"("filename");
+
+-- CreateIndex
+CREATE INDEX "Image_id_delete_idx" ON "Image"("id", "delete");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Image_hash_delete_key" ON "Image"("hash", "delete");
