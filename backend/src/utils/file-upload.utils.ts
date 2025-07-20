@@ -1,7 +1,12 @@
 import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs'; // 导入 unlinkSync
-import { diskStorage } from 'multer';
+import { existsSync, mkdirSync } from 'fs';
+import { diskStorage, FileFilterCallback } from 'multer';
 import { v4 as uuid } from 'uuid';
+import { Request } from 'express';
+
+// 定义 multer 的回调类型
+type DestinationCallback = (error: Error | null, destination: string) => void;
+type FileNameCallback = (error: Error | null, filename: string) => void;
 
 // 定义上传文件的根目录，所有文件都将存放在这里
 export const UPLOAD_DIR = process.env.UPLOAD_DIR as string; // 直接指定一个通用文件夹
@@ -14,7 +19,11 @@ export const multerOptions = {
   },
   // 文件存储配置
   storage: diskStorage({
-    destination: (req: any, file: any, cb: any) => {
+    destination: (
+      req: Request,
+      file: Express.Multer.File,
+      cb: DestinationCallback,
+    ) => {
       // 检查目录是否存在，如果不存在则递归创建
       if (!existsSync(UPLOAD_DIR)) {
         mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -22,7 +31,11 @@ export const multerOptions = {
       cb(null, UPLOAD_DIR); // 直接使用通用上传目录
     },
     // 定义上传文件的文件名
-    filename: (req: any, file: any, cb: any) => {
+    filename: (
+      req: Request,
+      file: Express.Multer.File,
+      cb: FileNameCallback,
+    ) => {
       // 解决中文文件名乱码问题
       file.originalname = Buffer.from(file.originalname, 'latin1').toString(
         'utf8',
@@ -32,11 +45,15 @@ export const multerOptions = {
     },
   }),
   // 文件过滤：只允许图片类型（jpg, jpeg, png, gif）
-  fileFilter: (req: any, file: any, cb: any) => {
+  fileFilter: (
+    req: Request,
+    file: Express.Multer.File,
+    cb: FileFilterCallback,
+  ) => {
     if (file.mimetype.match(/^image\//)) {
       cb(null, true); // 允许上传
     } else {
-      cb(new Error(`不支持的文件类型: ${extname(file.originalname)}`), false); // 拒绝上传
+      cb(new Error(`不支持的文件类型: ${extname(file.originalname)}`)); // 拒绝上传
     }
   },
 };

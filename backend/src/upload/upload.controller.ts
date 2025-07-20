@@ -19,7 +19,10 @@ export class UploadController {
 
   @Post()
   @UseInterceptors(FileInterceptor('file', multerOptions)) // 'file' 是表单字段名
-  uploadImage(@UploadedFile() file: Express.Multer.File, @Res() res: Response) {
+  async uploadImage(
+    @UploadedFile() file: Express.Multer.File,
+    @Res() res: Response,
+  ) {
     try {
       // 基本校验
       if (!file) {
@@ -31,7 +34,7 @@ export class UploadController {
       }
 
       // 注意：service 层可以保持不变，因为 controller 需要根据 wangeditor 的要求来定制响应
-      const result = this.uploadService.processUploadedFile(file);
+      const result = await this.uploadService.processUploadedFile(file);
 
       // 直接返回 wangeditor 要求的成功格式
       return res.status(200).json({

@@ -314,7 +314,7 @@ async function main() {
   await seedContinentsAndCountries(continentCache, countryCache);
   await seedUrbanizationWorldMap(countryCache); // 在国家数据创建后，立即为其创建对应的地图展示数据。
   await seedIndicators(topIndicatorCache, secondaryIndicatorCache, detailedIndicatorCache);
-  await seedIndicatorValues(countryCache, detailedIndicatorCache);
+  // await seedIndicatorValues(countryCache, detailedIndicatorCache);
 }
 
 // 脚本的执行入口点。
