@@ -45,4 +45,4 @@ jobs:
           #   ${{ env.DOCKER_IMAGE_NAME }}:latest
           #   ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} # 使用 commit SHA 作为标签，唯一标识每次构建
           build-args: | # 传递构建参数给 Dockerfile
-            DATABASE_URL_BUILD=file:../db/urbanization.db # 你的 DATABASE_URL_BUILD 参数
+            DATABASE_URL_BUILD=file:../../db/urbanization.db # 你的 DATABASE_URL_BUILD 参数
