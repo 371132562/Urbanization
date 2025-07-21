@@ -166,11 +166,34 @@ export class ArticleService {
   }
 
   async delete(id: string): Promise<ArticleItem> {
-    const article = await this.prisma.article.update({
+    // 1. 查找要删除的文章，以获取其图片列表
+    const articleToDelete = await this.prisma.article.findFirst({
+      where: { id, delete: 0 },
+    });
+
+    if (!articleToDelete) {
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `文章ID ${id} 不存在或已被删除`,
+      );
+    }
+
+    // 2. 执行软删除
+    const softDeletedArticle = await this.prisma.article.update({
       where: { id },
       data: { delete: 1 },
     });
-    return this.mapToDto(article);
+
+    // 3. 异步清理该文章关联的图片
+    const imagesToCheck = articleToDelete.images as string[];
+    if (imagesToCheck && imagesToCheck.length > 0) {
+      this._handleImageCleanup(imagesToCheck).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        this.logger.error(`后台图片清理任务失败 (文章删除时): ${errorMessage}`);
+      });
+    }
+
+    return this.mapToDto(softDeletedArticle);
   }
 
   /**
