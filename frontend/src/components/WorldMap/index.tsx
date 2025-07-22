@@ -71,6 +71,39 @@ const WorldMap: FC<WorldMapProps> = ({
         return `${countryName}: ${value}`
       }
 
+      // 只有当有数据时才显示visualMap
+      const visualMapOption =
+        data && data.length > 0
+          ? valueMap
+            ? {
+                type: 'piecewise' as const, // 分段型
+                pieces: Object.entries(valueMap).map(([value, { text, color }]) => ({
+                  value: Number(value),
+                  label: text,
+                  color: color
+                })),
+                left: 'left',
+                top: 'bottom',
+                orient: 'vertical' as const,
+                backgroundColor: 'rgba(245, 245, 245, 0.75)',
+                padding: 10
+              }
+            : {
+                type: 'continuous' as const, // 连续型
+                left: 'left',
+                top: 'bottom',
+                min: 0,
+                max: 100, // 此处 max 可以根据实际数据动态设置
+                inRange: {
+                  color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
+                },
+                text: ['高', '低'],
+                calculable: true,
+                backgroundColor: 'rgba(245, 245, 245, 0.75)',
+                padding: 10
+              }
+          : undefined
+
       const option: EChartsOption = {
         backgroundColor: '#F7F7F7',
         tooltip: {
@@ -91,34 +124,7 @@ const WorldMap: FC<WorldMapProps> = ({
           }
         },
         // 视觉映射组件，用于根据数据值展现颜色
-        visualMap: valueMap
-          ? {
-              type: 'piecewise', // 分段型
-              pieces: Object.entries(valueMap).map(([value, { text, color }]) => ({
-                value: Number(value),
-                label: text,
-                color: color
-              })),
-              left: 'left',
-              top: 'bottom',
-              orient: 'vertical',
-              backgroundColor: 'rgba(245, 245, 245, 0.75)',
-              padding: 10
-            }
-          : {
-              type: 'continuous', // 连续型
-              left: 'left',
-              top: 'bottom',
-              min: 0,
-              max: 100, // 此处 max 可以根据实际数据动态设置
-              inRange: {
-                color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
-              },
-              text: ['高', '低'],
-              calculable: true,
-              backgroundColor: 'rgba(245, 245, 245, 0.75)',
-              padding: 10
-            },
+        visualMap: visualMapOption,
         // 数据系列
         series: [
           {

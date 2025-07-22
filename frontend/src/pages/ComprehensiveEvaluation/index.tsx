@@ -1,4 +1,4 @@
-import { Empty, List, Skeleton, Tag } from 'antd'
+import { Button, Empty, List, Skeleton, Tag } from 'antd'
 import { EChartsOption } from 'echarts'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -44,6 +44,11 @@ const ComprehensiveEvaluation: FC = () => {
     }
   }
 
+  // “前往添加” 按钮的点击处理函数
+  const handleGoToImport = () => {
+    navigate('/scoreManagement')
+  }
+
   // 自定义tooltip格式化函数
   const tooltipFormatter = (params: EChartsOption): string => {
     const countryName = nameMap[params.name as string] || params.name
@@ -81,6 +86,20 @@ const ComprehensiveEvaluation: FC = () => {
             title={false}
             paragraph={{ rows: 8 }}
           />
+        ) : scoreListByCountry.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={<span className="text-gray-500">暂无评分数据</span>}
+            >
+              <Button
+                type="primary"
+                onClick={handleGoToImport}
+              >
+                前往添加评分
+              </Button>
+            </Empty>
+          </div>
         ) : selectedCountry ? (
           <div>
             <h2 className="mb-4 border-b pb-2 text-xl font-bold text-gray-800">
