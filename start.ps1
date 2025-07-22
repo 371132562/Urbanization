@@ -48,6 +48,7 @@ try {
     Handle-Error "无法设置正确的工作目录: $_"
 }
 
+# <#
 # 确保Docker Desktop正在运行
 try {
     Write-Host "检查Docker服务状态..." -ForegroundColor Gray
@@ -172,6 +173,7 @@ try {
 } catch {
     Write-Host "配置镜像源过程中出现错误，将使用默认配置: $_" -ForegroundColor Red
 }
+#>
 
 # 停止并删除当前正在运行的容器
 try {
@@ -213,36 +215,6 @@ try {
 }
 
 
-# 删除相关的旧镜像
-# try {
-#     Write-Host "正在查找旧镜像..." -ForegroundColor Yellow
-#     $images = docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | Select-String -Pattern "linstar666/urbanization"
-
-#     if ($images) {
-#         Write-Host "发现以下旧镜像，将被删除:" -ForegroundColor Yellow
-#         foreach ($image in $images) {
-#             Write-Host $image -ForegroundColor Gray
-#         }
-
-#         # 使用prune命令，删除未使用的镜像
-#         Write-Host "正在删除旧镜像..." -ForegroundColor Yellow
-#         try {
-#             docker image rm -f $(docker images --format "{{.ID}}" --filter=reference="linstar666/urbanization*")
-#             if ($LASTEXITCODE -ne 0) {
-#                 Write-Host "删除旧镜像时遇到问题，但将继续启动" -ForegroundColor Yellow
-#             }
-#         } catch {
-#             Write-Host "删除镜像时出现警告: $_" -ForegroundColor Yellow
-#             Write-Host "这可能是因为镜像正在使用中，将继续启动" -ForegroundColor Yellow
-#         }
-#     } else {
-#         Write-Host "未发现旧镜像" -ForegroundColor Green
-#     }
-# } catch {
-#     Write-Host "查找旧镜像时出现警告: $_" -ForegroundColor Yellow
-#     Write-Host "将继续尝试启动" -ForegroundColor Yellow
-# }
-
 # 启动容器
 try {
     Write-Host "`n正在启动容器..." -ForegroundColor Yellow
@@ -273,6 +245,20 @@ try {
     Write-Host "`n警告: 无法检查容器状态: $_" -ForegroundColor Red
     Write-Host "请手动运行 'docker compose logs' 查看详情。" -ForegroundColor Yellow
 }
+
+# 清理无用的旧镜像
+try {
+    Write-Host "`n正在清理无用的旧镜像以释放磁盘空间..." -ForegroundColor Yellow
+    docker image prune -f
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "清理旧镜像时遇到问题，但这不影响当前应用运行。" -ForegroundColor Yellow
+    } else {
+        Write-Host "清理完成。" -ForegroundColor Green
+    }
+} catch {
+    Write-Host "清理旧镜像时出现警告: $_" -ForegroundColor Yellow
+}
+
 
 Write-Host "`n==== 操作完成 ====" -ForegroundColor Green
 Write-Host "按任意键继续..." -ForegroundColor Gray
