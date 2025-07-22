@@ -196,17 +196,8 @@ try {
         }
         Write-Host "主应用镜像加载成功。" -ForegroundColor Green
     } else {
-        Write-Host "`n未找到主应用镜像文件 'urbanization.tar'，将尝试从远程仓库拉取..." -ForegroundColor Yellow
-    }
-
-    $alpineTarFile = "alpine.tar"
-    if (Test-Path $alpineTarFile) {
-        Write-Host "`n正在从本地文件 'alpine.tar' 加载 alpine 镜像..." -ForegroundColor Yellow
-        docker load -i $alpineTarFile
-        if ($LASTEXITCODE -ne 0) {
-            Handle-Error "从 'alpine.tar' 加载镜像失败，错误码: $LASTEXITCODE"
-        }
-        Write-Host "Alpine 镜像加载成功。" -ForegroundColor Green
+        Write-Host "`n未找到主应用镜像文件 'urbanization.tar'，将中止启动。" -ForegroundColor Red
+        Handle-Error "缺少必要的应用镜像 'urbanization.tar'。"
     }
 } catch {
     Handle-Error "加载本地镜像过程中出错: $_"
