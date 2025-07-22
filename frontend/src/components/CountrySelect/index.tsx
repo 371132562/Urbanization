@@ -2,30 +2,32 @@
 import { Select, Skeleton } from 'antd'
 import { useEffect, useMemo } from 'react'
 import type { Country, CountryData, CountryWithContinentDto } from 'urbanization-backend/types/dto'
+import type { SelectProps } from 'antd/es/select'
 
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 
 const { Option, OptGroup } = Select
 
+/**
+ * 通用国家选择器组件
+ * @description
+ * 1. 默认展示所有国家，并按大洲分组
+ * 2. 如果传入`options`，则只展示`options`中的国家，不分组
+ */
 type CountrySelectProps = {
-  value?: string | string[] | null
-  onChange?: (value: string | string[]) => void
-  disabled?: boolean
-  style?: React.CSSProperties
-  mode?: 'multiple' | 'tags'
-  placeholder?: string
   options?: (Country | CountryData)[] // 外部传入的国家选项
-}
+} & Omit<SelectProps, 'options' | 'value' | 'onChange' | 'mode' | 'placeholder' | 'style' | 'disabled'>
 
-const CountrySelect: React.FC<CountrySelectProps> = ({
+const CountrySelect: React.FC<CountrySelectProps & SelectProps> = ({
   value,
   onChange,
   disabled,
   style,
   mode,
   placeholder = '请选择国家',
-  options
-}: CountrySelectProps) => {
+  options,
+  ...rest
+}: CountrySelectProps & SelectProps) => {
   // --- CountryAndContinent Store ---
   const continents = useCountryAndContinentStore(state => state.continents)
   const countries = useCountryAndContinentStore(state => state.countries)
@@ -108,6 +110,7 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
 
   return (
     <Select
+      {...rest}
       showSearch
       mode={mode}
       placeholder={placeholder}

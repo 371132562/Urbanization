@@ -54,6 +54,13 @@ const DataExport = () => {
     form.setFieldsValue({ countryIds: [] }) // 年份变化时清空已选国家
   }
 
+  const handleSelectAllCountries = () => {
+    // 错误信息表明 data.country 是 undefined，因此 countryOptions 应该是 Country 对象的数组
+    // 直接从 data 对象上获取 id
+    const allCountryIds = (countryOptions as any[]).map(data => data.id)
+    form.setFieldsValue({ countryIds: allCountryIds })
+  }
+
   const handleExport = async (values: { countryIds: string[]; format: ExportFormat }) => {
     if (!selectedYear) {
       message.error('请先选择年份')
@@ -108,15 +115,31 @@ const DataExport = () => {
           </Form.Item>
 
           <Form.Item
-            name="countryIds"
             label="选择导出国家"
+            required
           >
-            <CountrySelect
-              mode="multiple"
-              placeholder="请先选择年份，再选择国家"
-              disabled={!selectedYear}
-              options={countryOptions as CountryData[]}
-            />
+            <div className="flex w-full items-start">
+              <Form.Item
+                name="countryIds"
+                className="mb-0 flex-grow"
+                rules={[{ required: true, message: '请选择要导出的国家' }]}
+              >
+                <CountrySelect
+                  mode="multiple"
+                  placeholder="请先选择年份，再选择国家"
+                  disabled={!selectedYear}
+                  options={countryOptions as CountryData[]}
+                  className="w-full"
+                />
+              </Form.Item>
+              <Button
+                onClick={handleSelectAllCountries}
+                disabled={!selectedYear}
+                className="!ml-2"
+              >
+                全选
+              </Button>
+            </div>
           </Form.Item>
 
           <Form.Item
