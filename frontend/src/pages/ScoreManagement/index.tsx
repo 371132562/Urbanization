@@ -1,13 +1,11 @@
 /* 评分管理列表页 */
-import { FormOutlined, UploadOutlined } from '@ant-design/icons'
 import { useDebounce } from 'ahooks'
-import { Button, Collapse, Empty, Input, message, Popconfirm, Skeleton, Space, Table, Tag } from 'antd'
+import { Button, Collapse, Empty, Input, message, Popconfirm, Skeleton, Space, Table } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router'
-import { CountryScoreData, YearScoreData } from 'urbanization-backend/types/dto'
+import { useNavigate } from 'react-router'
+import { ScoreDataItem, YearScoreData } from 'urbanization-backend/types/dto'
 
-import FeatureButton from '@/components/FeatureButton'
 import { SCORE_DIMENSIONS } from '@/config/dataImport'
 import useScoreStore from '@/stores/scoreStore'
 import { filterDataByCountry } from '@/utils'
@@ -18,21 +16,44 @@ const { Search } = Input
 const ScoreManagementSkeleton = () => (
   <div>
     <div className="mb-4 flex">
-      <Skeleton.Button active style={{ width: 280, height: 96, marginRight: 24 }} />
-      <Skeleton.Button active style={{ width: 280, height: 96, marginRight: 24 }} />
-      <Skeleton.Button active style={{ width: 280, height: 96 }} />
+      <Skeleton.Button
+        active
+        style={{ width: 280, height: 96, marginRight: 24 }}
+      />
+      <Skeleton.Button
+        active
+        style={{ width: 280, height: 96, marginRight: 24 }}
+      />
+      <Skeleton.Button
+        active
+        style={{ width: 280, height: 96 }}
+      />
     </div>
     <div className="mb-4">
-      <Skeleton.Input active style={{ width: 320 }} />
+      <Skeleton.Input
+        active
+        style={{ width: 320 }}
+      />
     </div>
     <div className="space-y-4">
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="rounded-lg border border-gray-200">
+        <div
+          key={i}
+          className="rounded-lg border border-gray-200"
+        >
           <div className="border-b border-gray-200 p-4">
-            <Skeleton.Input style={{ width: '100px' }} active size="small" />
+            <Skeleton.Input
+              style={{ width: '100px' }}
+              active
+              size="small"
+            />
           </div>
           <div className="p-4">
-            <Skeleton active title={false} paragraph={{ rows: 3, width: '100%' }} />
+            <Skeleton
+              active
+              title={false}
+              paragraph={{ rows: 3, width: '100%' }}
+            />
           </div>
         </div>
       ))}
@@ -54,7 +75,7 @@ const ScoreManagement = () => {
     getScoreList()
   }, [])
 
-  const handleDelete = async (record: CountryScoreData) => {
+  const handleDelete = async (record: ScoreDataItem) => {
     const success = await deleteData({ id: record.id })
     if (success) {
       message.success('删除成功')
@@ -64,13 +85,13 @@ const ScoreManagement = () => {
     }
   }
 
-  const countryTableColumns = useMemo(() => {
+  const getCountryTableColumns = (year: Date) => {
     const baseColumns = [
       {
         title: '国家',
         dataIndex: 'cnName',
         key: 'cnName',
-        render: (_: any, record: CountryScoreData) => (
+        render: (_: any, record: ScoreDataItem) => (
           <div className="flex flex-col">
             <span className="truncate font-medium">{record.cnName}</span>
             <span className="truncate text-xs text-gray-500">{record.enName}</span>
@@ -89,20 +110,28 @@ const ScoreManagement = () => {
       title: '操作',
       dataIndex: 'action',
       key: 'action',
-      render: (_: any, record: CountryScoreData) => (
+      render: (_: any, record: ScoreDataItem) => (
         <Space>
-          <NavLink to={`/scoreManagement/modify/${record.countryId}/${dayjs(record.year).format('YYYY')}`}>
-            <Button color="primary" variant="outlined">
-              编辑
-            </Button>
-          </NavLink>
+          <Button
+            color="primary"
+            variant="outlined"
+            onClick={() => {
+              navigate(`/scoreManagement/modify/${record.countryId}/${dayjs(year).format('YYYY')}`)
+            }}
+          >
+            编辑
+          </Button>
+
           <Popconfirm
             title="确定删除这条数据吗？"
             onConfirm={() => handleDelete(record)}
             okText="确定"
             cancelText="取消"
           >
-            <Button color="danger" variant="outlined">
+            <Button
+              color="danger"
+              variant="outlined"
+            >
               删除
             </Button>
           </Popconfirm>
@@ -111,7 +140,7 @@ const ScoreManagement = () => {
     }
 
     return [...baseColumns, ...scoreColumns, actionColumn]
-  }, [])
+  }
 
   const filteredData = useMemo(() => {
     return filterDataByCountry(debouncedSearchTerm, data)
@@ -133,11 +162,17 @@ const ScoreManagement = () => {
       </div>
 
       {filteredData.length > 0 ? (
-        <Collapse accordion defaultActiveKey={filteredData[0]?.year ? String(dayjs(filteredData[0].year).year()) : ''}>
+        <Collapse
+          accordion
+          defaultActiveKey={filteredData[0]?.year ? String(dayjs(filteredData[0].year).year()) : ''}
+        >
           {filteredData.map((yearData: YearScoreData) => (
-            <Panel header={`${dayjs(yearData.year).year()} 年`} key={String(dayjs(yearData.year).year())}>
+            <Panel
+              header={`${dayjs(yearData.year).year()} 年`}
+              key={String(dayjs(yearData.year).year())}
+            >
               <Table
-                columns={countryTableColumns}
+                columns={getCountryTableColumns(yearData.year)}
                 dataSource={yearData.data}
                 rowKey="id"
                 pagination={false}
@@ -147,11 +182,11 @@ const ScoreManagement = () => {
         </Collapse>
       ) : (
         <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 p-8">
-        <Empty description="暂无数据" />
-      </div>
+          <Empty description="暂无数据" />
+        </div>
       )}
     </div>
   )
 }
 
-export const Component = ScoreManagement 
+export const Component = ScoreManagement

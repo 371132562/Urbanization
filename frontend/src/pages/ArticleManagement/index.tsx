@@ -1,7 +1,8 @@
-import { Button, Input, message, Modal, Table } from 'antd'
+import { Button, Input, message, Popconfirm, Space, Table } from 'antd'
 import dayjs from 'dayjs'
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router'
+import { ArticleItem } from 'urbanization-backend/types/dto'
 
 import useArticleStore from '@/stores/articleStore'
 
@@ -31,19 +32,14 @@ const ArticleManagement: React.FC = () => {
     getArticleList(pagination.current, pagination.pageSize)
   }
 
-  const handleDelete = (id: string) => {
-    Modal.confirm({
-      title: '确定要删除这篇文章吗？',
-      content: '此操作不可恢复。',
-      onOk: async () => {
-        const success = await deleteArticle(id)
-        if (success) {
-          message.success('文章删除成功')
-        } else {
-          message.error('文章删除失败')
-        }
-      }
-    })
+  const handleDelete = async (id: string) => {
+    const success = await deleteArticle(id)
+    if (success) {
+      message.success('文章删除成功')
+      getArticleList(currentPage, pageSize)
+    } else {
+      message.error('文章删除失败')
+    }
   }
 
   const columns = [
@@ -61,22 +57,30 @@ const ArticleManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: any) => (
-        <span>
+      render: (_: any, record: ArticleItem) => (
+        <Space>
           <Button
-            type="link"
+            color="primary"
+            variant="outlined"
             onClick={() => navigate(`/article/modify/${record.id}`)}
           >
             编辑
           </Button>
-          <Button
-            type="link"
-            danger
-            onClick={() => handleDelete(record.id)}
+          <Popconfirm
+            title="确定要删除这篇文章吗？"
+            description="此操作不可恢复。"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
           >
-            删除
-          </Button>
-        </span>
+            <Button
+            color="danger"
+            variant="outlined"
+            >
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
       )
     }
   ]
