@@ -48,7 +48,6 @@ try {
     Handle-Error "无法设置正确的工作目录: $_"
 }
 
-# <#
 # 确保Docker Desktop正在运行
 try {
     Write-Host "检查Docker服务状态..." -ForegroundColor Gray
@@ -59,121 +58,120 @@ try {
 }
 
 # 配置Docker镜像源
-try {
-    Write-Host "`n=== Docker镜像源配置（可选） ===" -ForegroundColor Cyan
-    Write-Host "说明：镜像源可以加速Docker下载镜像的速度。首次使用时可以跳过此步骤(输入n)，" -ForegroundColor White
-    Write-Host "      如果后续遇到镜像下载缓慢或超时问题，再重新运行脚本并配置镜像源。" -ForegroundColor White
+# try {
+#     Write-Host "`n=== Docker镜像源配置（可选） ===" -ForegroundColor Cyan
+#     Write-Host "说明：镜像源可以加速Docker下载镜像的速度。首次使用时可以跳过此步骤(输入n)，" -ForegroundColor White
+#     Write-Host "      如果后续遇到镜像下载缓慢或超时问题，再重新运行脚本并配置镜像源。" -ForegroundColor White
     
-    $configureRegistry = Read-Host "`n是否要配置Docker镜像源？请输入y(是)或n(否)，然后按回车键。默认为n(否)"
+#     $configureRegistry = Read-Host "`n是否要配置Docker镜像源？请输入y(是)或n(否)，然后按回车键。默认为n(否)"
     
-    if ($configureRegistry -eq "y" -or $configureRegistry -eq "Y") {
-        Write-Host "`n可用的Docker镜像源选项:" -ForegroundColor Cyan
-        Write-Host "════════════════════════════════════════════"
-        Write-Host " [1] 1Panel镜像站 (推荐)"
-        Write-Host "     - 地址: https://docker.1panel.live"
-        Write-Host " [2] DaoCloud镜像站"
-        Write-Host "     - 地址: https://docker.m.daocloud.io" 
-        Write-Host " [3] 自定义镜像源 (需要您输入地址)"
-        Write-Host " [0] 取消，不设置镜像源"
-        Write-Host "════════════════════════════════════════════"
-        Write-Host "操作说明: 请输入上方选项前的数字(0、1、2或3)，然后按回车键。" -ForegroundColor Yellow
-        Write-Host "注意: 只能选择一个镜像源，不支持多选。" -ForegroundColor Yellow
+#     if ($configureRegistry -eq "y" -or $configureRegistry -eq "Y") {
+#         Write-Host "`n可用的Docker镜像源选项:" -ForegroundColor Cyan
+#         Write-Host "════════════════════════════════════════════"
+#         Write-Host " [1] 1Panel镜像站 (推荐)"
+#         Write-Host "     - 地址: https://docker.1panel.live"
+#         Write-Host " [2] DaoCloud镜像站"
+#         Write-Host "     - 地址: https://docker.m.daocloud.io" 
+#         Write-Host " [3] 自定义镜像源 (需要您输入地址)"
+#         Write-Host " [0] 取消，不设置镜像源"
+#         Write-Host "════════════════════════════════════════════"
+#         Write-Host "操作说明: 请输入上方选项前的数字(0、1、2或3)，然后按回车键。" -ForegroundColor Yellow
+#         Write-Host "注意: 只能选择一个镜像源，不支持多选。" -ForegroundColor Yellow
         
-        $choice = Read-Host "`n您的选择"
+#         $choice = Read-Host "`n您的选择"
         
-        $registryUrl = ""
-        switch ($choice) {
-         "1" { 
-            $registryUrl = "https://docker.1panel.live" 
-            Write-Host "您选择了: 1Panel镜像站" -ForegroundColor Green
-         }
-         "2" { 
-            $registryUrl = "https://docker.m.daocloud.io" 
-            Write-Host "您选择了: DaoCloud镜像站" -ForegroundColor Green
-         }
-         "3" { 
-            Write-Host "您选择了: 自定义镜像源" -ForegroundColor Green
-            Write-Host "请输入镜像源的完整网址，例如: https://docker.mirrors.ustc.edu.cn" -ForegroundColor Yellow
-            $registryUrl = Read-Host "镜像源地址"
-            if ($registryUrl -eq "") {
-                Write-Host "您没有输入有效的地址，将不设置镜像源" -ForegroundColor Yellow
-            } else {
-                Write-Host "您输入的镜像源地址: $registryUrl" -ForegroundColor Green
-            }
-         }
-         "0" { 
-            Write-Host "您选择了不设置镜像源，将使用Docker默认设置" -ForegroundColor Yellow 
-         }
-         default { 
-            Write-Host "无效的选择，将使用Docker默认设置" -ForegroundColor Yellow 
-         }
-        }
+#         $registryUrl = ""
+#         switch ($choice) {
+#          "1" { 
+#             $registryUrl = "https://docker.1panel.live" 
+#             Write-Host "您选择了: 1Panel镜像站" -ForegroundColor Green
+#          }
+#          "2" { 
+#             $registryUrl = "https://docker.m.daocloud.io" 
+#             Write-Host "您选择了: DaoCloud镜像站" -ForegroundColor Green
+#          }
+#          "3" { 
+#             Write-Host "您选择了: 自定义镜像源" -ForegroundColor Green
+#             Write-Host "请输入镜像源的完整网址，例如: https://docker.mirrors.ustc.edu.cn" -ForegroundColor Yellow
+#             $registryUrl = Read-Host "镜像源地址"
+#             if ($registryUrl -eq "") {
+#                 Write-Host "您没有输入有效的地址，将不设置镜像源" -ForegroundColor Yellow
+#             } else {
+#                 Write-Host "您输入的镜像源地址: $registryUrl" -ForegroundColor Green
+#             }
+#          }
+#          "0" { 
+#             Write-Host "您选择了不设置镜像源，将使用Docker默认设置" -ForegroundColor Yellow 
+#          }
+#          default { 
+#             Write-Host "无效的选择，将使用Docker默认设置" -ForegroundColor Yellow 
+#          }
+#         }
         
-        if ($registryUrl -ne "") {
-            # Docker Desktop的配置文件路径
-            $configPath = "$env:USERPROFILE\.docker\config.json"
+#         if ($registryUrl -ne "") {
+#             # Docker Desktop的配置文件路径
+#             $configPath = "$env:USERPROFILE\.docker\config.json"
             
-            try {
-                # 检查配置文件是否存在
-                if (Test-Path $configPath) {
-                    # 读取现有配置
-                    $config = Get-Content -Path $configPath -Raw | ConvertFrom-Json
+#             try {
+#                 # 检查配置文件是否存在
+#                 if (Test-Path $configPath) {
+#                     # 读取现有配置
+#                     $config = Get-Content -Path $configPath -Raw | ConvertFrom-Json
                     
-                    # 如果没有registry-mirrors字段，添加它
-                    if (-not ($config.PSObject.Properties.Name -contains "registry-mirrors")) {
-                        Add-Member -InputObject $config -MemberType NoteProperty -Name "registry-mirrors" -Value @()
-                    }
+#                     # 如果没有registry-mirrors字段，添加它
+#                     if (-not ($config.PSObject.Properties.Name -contains "registry-mirrors")) {
+#                         Add-Member -InputObject $config -MemberType NoteProperty -Name "registry-mirrors" -Value @()
+#                     }
                     
-                    # 更新registry-mirrors
-                    $config."registry-mirrors" = @($registryUrl)
+#                     # 更新registry-mirrors
+#                     $config."registry-mirrors" = @($registryUrl)
                     
-                    # 保存配置
-                    $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath
-                } else {
-                    # 创建新的配置文件
-                    $config = @{
-                        "registry-mirrors" = @($registryUrl)
-                    }
+#                     # 保存配置
+#                     $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath
+#                 } else {
+#                     # 创建新的配置文件
+#                     $config = @{
+#                         "registry-mirrors" = @($registryUrl)
+#                     }
                     
-                    # 确保目录存在
-                    New-Item -ItemType Directory -Path "$env:USERPROFILE\.docker" -Force | Out-Null
+#                     # 确保目录存在
+#                     New-Item -ItemType Directory -Path "$env:USERPROFILE\.docker" -Force | Out-Null
                     
-                    # 保存配置
-                    $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath
-                }
+#                     # 保存配置
+#                     $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath
+#                 }
                 
-                Write-Host "`n镜像源配置成功! 已设置为: $registryUrl" -ForegroundColor Green
-                Write-Host "注意: 您需要重启Docker才能使新的设置生效" -ForegroundColor Yellow
+#                 Write-Host "`n镜像源配置成功! 已设置为: $registryUrl" -ForegroundColor Green
+#                 Write-Host "注意: 您需要重启Docker才能使新的设置生效" -ForegroundColor Yellow
                 
-                $restartDocker = Read-Host "`n是否现在重启Docker? 请输入y(是)或n(否)，然后按回车键。默认为n(否)"
-                if ($restartDocker -eq "y" -or $restartDocker -eq "Y") {
-                    Write-Host "正在尝试重启Docker引擎..." -ForegroundColor Yellow
-                    try {
-                        # 尝试使用Docker CLI重启引擎
-                        docker system info > $null 2>&1
-                        if ($?) {
-                            Write-Host "请手动重启Docker Desktop以应用新配置。" -ForegroundColor Yellow
-                            Write-Host "请在重启完成后，按回车键继续..." -ForegroundColor Yellow
-                            $confirm = Read-Host " "
-                        }
-                    } catch {
-                        Write-Host "无法自动重启Docker引擎，请手动重启Docker Desktop。" -ForegroundColor Red
-                        Write-Host "请在重启完成后，按回车键继续..." -ForegroundColor Yellow
-                        $confirm = Read-Host " "
-                    }
-                }
-            } catch {
-                Write-Host "配置Docker镜像源时出错: $_" -ForegroundColor Red
-                Write-Host "将继续使用默认镜像源" -ForegroundColor Yellow
-            }
-        }
-    } else {
-        Write-Host "您选择了跳过镜像源配置，将使用Docker默认设置" -ForegroundColor Yellow
-    }
-} catch {
-    Write-Host "配置镜像源过程中出现错误，将使用默认配置: $_" -ForegroundColor Red
-}
-#>
+#                 $restartDocker = Read-Host "`n是否现在重启Docker? 请输入y(是)或n(否)，然后按回车键。默认为n(否)"
+#                 if ($restartDocker -eq "y" -or $restartDocker -eq "Y") {
+#                     Write-Host "正在尝试重启Docker引擎..." -ForegroundColor Yellow
+#                     try {
+#                         # 尝试使用Docker CLI重启引擎
+#                         docker system info > $null 2>&1
+#                         if ($?) {
+#                             Write-Host "请手动重启Docker Desktop以应用新配置。" -ForegroundColor Yellow
+#                             Write-Host "请在重启完成后，按回车键继续..." -ForegroundColor Yellow
+#                             $confirm = Read-Host " "
+#                         }
+#                     } catch {
+#                         Write-Host "无法自动重启Docker引擎，请手动重启Docker Desktop。" -ForegroundColor Red
+#                         Write-Host "请在重启完成后，按回车键继续..." -ForegroundColor Yellow
+#                         $confirm = Read-Host " "
+#                     }
+#                 }
+#             } catch {
+#                 Write-Host "配置Docker镜像源时出错: $_" -ForegroundColor Red
+#                 Write-Host "将继续使用默认镜像源" -ForegroundColor Yellow
+#             }
+#         }
+#     } else {
+#         Write-Host "您选择了跳过镜像源配置，将使用Docker默认设置" -ForegroundColor Yellow
+#     }
+# } catch {
+#     Write-Host "配置镜像源过程中出现错误，将使用默认配置: $_" -ForegroundColor Red
+# }
 
 # 停止并删除当前正在运行的容器
 try {
