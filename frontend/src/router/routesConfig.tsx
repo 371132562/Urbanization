@@ -52,30 +52,30 @@ export const topRoutes: RouteItem[] = [
       }
     ]
   },
-  // {
-  //   path: '/urbanizationProcess',
-  //   title: '城镇化进程',
-  //   icon: <RiseOutlined />,
-  //   component: UrbanizationProcess
-  // },
-  // {
-  //   path: '/humanDynamics',
-  //   title: '人性动力',
-  //   icon: <TeamOutlined />,
-  //   component: HumanDynamics
-  // },
-  // {
-  //   path: '/materialDynamics',
-  //   title: '物性动力',
-  //   icon: <GoldOutlined />,
-  //   component: MaterialDynamics
-  // },
-  // {
-  //   path: '/spatialDynamics',
-  //   title: '空间动力',
-  //   icon: <GlobalOutlined />,
-  //   component: SpatialDynamics
-  // }
+  {
+    path: '/urbanizationProcess',
+    title: '城镇化进程',
+    icon: <RiseOutlined />,
+    component: UrbanizationProcess
+  },
+  {
+    path: '/humanDynamics',
+    title: '人性动力',
+    icon: <TeamOutlined />,
+    component: HumanDynamics
+  },
+  {
+    path: '/materialDynamics',
+    title: '物性动力',
+    icon: <GoldOutlined />,
+    component: MaterialDynamics
+  },
+  {
+    path: '/spatialDynamics',
+    title: '空间动力',
+    icon: <GlobalOutlined />,
+    component: SpatialDynamics
+  }
 ]
 
 // 侧边栏导航菜单配置

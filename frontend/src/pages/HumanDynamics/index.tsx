@@ -1,7 +1,53 @@
-import { FC } from 'react'
+import { Button, Empty, Spin } from 'antd'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router'
 
-const HumanDynamics: FC = () => {
-  return <div>HumanDynamics Page</div>
+import ArticleDisplay from '@/components/ArticleDisplay'
+import useArticleStore from '@/stores/articleStore'
+
+export const Component = () => {
+  const navigate = useNavigate()
+  const getArticlesByPage = useArticleStore(state => state.getArticlesByPage)
+  const pageArticles = useArticleStore(state => state.pageArticles)
+  const orderConfigLoading = useArticleStore(state => state.orderConfigLoading)
+
+  useEffect(() => {
+    getArticlesByPage('humanDynamics')
+  }, [getArticlesByPage])
+
+  const goToConfig = () => {
+    navigate('/article/list')
+  }
+
+  if (orderConfigLoading) {
+    return (
+      <div className="flex h-full items-center justify-center pt-20">
+        <Spin size="large" />
+      </div>
+    )
+  }
+
+  if (!pageArticles || pageArticles.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center pt-20">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="人性动力暂无内容"
+        >
+          <Button
+            type="primary"
+            onClick={goToConfig}
+          >
+            前往配置
+          </Button>
+        </Empty>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-full">
+      <ArticleDisplay articles={pageArticles} />
+    </div>
+  )
 }
-
-export const Component = HumanDynamics

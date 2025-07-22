@@ -85,7 +85,13 @@ const SortableItem: React.FC<SortableItemProps> = ({
   )
 }
 
-const PAGES = [{ key: 'home', label: '首页' }]
+const PAGES = [
+  { key: 'home', label: '首页' },
+  { key: 'urbanizationProcess', label: '城镇化进程' },
+  { key: 'humanDynamics', label: '人性动力' },
+  { key: 'materialDynamics', label: '物性动力' },
+  { key: 'spatialDynamics', label: '空间动力' }
+]
 
 const OrderConfig = () => {
   const allArticles = useArticleStore(state => state.allArticles)
