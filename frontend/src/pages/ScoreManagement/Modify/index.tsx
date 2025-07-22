@@ -93,7 +93,7 @@ export const Component = () => {
       const success = await createScore(dataToSave)
       if (success) {
         message.success(`评分数据${isEdit ? '编辑' : '录入'}成功`)
-        navigate('/scoreManagement')
+        navigate('/scoreManagement/list')
       } else {
         message.error('保存失败')
       }
@@ -109,11 +109,7 @@ export const Component = () => {
 
   return (
     <div className="w-full max-w-7xl">
-      <div className="mb-4 flex items-center justify-between">
-        <Title level={2} className="!mb-0">
-          评分{isEdit ? '编辑' : '录入'}
-        </Title>
-      </div>
+    
 
       <div className="mb-4 rounded-lg bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-end justify-between">
@@ -147,7 +143,7 @@ export const Component = () => {
             </div>
           </div>
           <Space>
-            <Button onClick={() => navigate('/scoreManagement')}>返回</Button>
+            <Button onClick={() => navigate('/scoreManagement/list')}>返回</Button>
             <Tooltip title={!isEdit && (!selectedCountry || !selectedYear) ? '请先选择国家和年份' : ''}>
               <span>
                 <Button

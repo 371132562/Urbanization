@@ -372,7 +372,6 @@ const DataImportPage = () => {
   return (
     <div className="flex w-full max-w-7xl flex-col rounded-lg p-6 shadow-md">
       <div className="mb-4 text-center">
-        <h1 className="text-2xl font-bold text-gray-800 md:text-3xl">指标数据导入</h1>
         <p className="text-gray-500">请按照以下步骤上传、预览并导入您的 Excel 数据文件。</p>
       </div>
 
@@ -508,7 +507,7 @@ const DataImportPage = () => {
                 <Button
                   type="primary"
                   size="large"
-                  onClick={() => navigate('/dataManagement')}
+                  onClick={() => navigate('/dataManagement/list')}
                 >
                   返回数据列表
                 </Button>

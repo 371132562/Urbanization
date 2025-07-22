@@ -16,7 +16,7 @@ export const Component = () => {
   }, [getArticlesByPage])
 
   const goToConfig = () => {
-    navigate('/article')
+    navigate('/article/list')
   }
 
   if (orderConfigLoading) {

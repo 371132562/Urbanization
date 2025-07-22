@@ -81,15 +81,6 @@ const DataExport = () => {
 
   return (
     <div className="w-full max-w-2xl">
-      <div className="mb-4 flex items-center justify-between">
-        <Title
-          level={2}
-          className="!mb-0"
-        >
-          数据导出
-        </Title>
-      </div>
-
       <div className="rounded-lg bg-white p-8 shadow-sm">
         <Form
           form={form}
@@ -147,7 +138,7 @@ const DataExport = () => {
           <Form.Item className="mt-4">
             <Space>
               <Button
-                onClick={() => navigate('/dataManagement')}
+                onClick={() => navigate('/dataManagement/list')}
                 disabled={exportLoading}
               >
                 返回

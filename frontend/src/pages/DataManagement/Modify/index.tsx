@@ -163,7 +163,7 @@ export const Component = () => {
     const success = await saveDataManagementDetail(dataToSave)
     if (success) {
       message.success('保存成功')
-      navigate('/dataManagement')
+      navigate('/dataManagement/list')
     } else {
       message.error('保存失败')
     }
@@ -357,15 +357,6 @@ export const Component = () => {
 
   return (
     <div className="w-full max-w-7xl">
-      <div className="mb-2 flex items-center justify-between">
-        <Title
-          level={2}
-          className="!mb-0"
-        >
-          数据{isEdit ? '编辑' : '录入'}
-        </Title>
-      </div>
-
       <div className="mb-6 rounded-lg bg-white p-6 pt-4 shadow-sm">
         <div className="flex flex-wrap items-end justify-between">
           <div className="flex flex-wrap items-end gap-4">
@@ -395,7 +386,7 @@ export const Component = () => {
           </div>
 
           <Space>
-            <Button onClick={() => navigate('/dataManagement')}>返回</Button>
+            <Button onClick={() => navigate('/dataManagement/list')}>返回</Button>
             <Tooltip
               title={!isEdit && (!selectedCountry || !selectedYear) ? '请选择国家和年份' : ''}
             >

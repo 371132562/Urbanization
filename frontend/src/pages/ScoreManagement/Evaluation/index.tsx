@@ -41,7 +41,7 @@ const ScoreEvaluationPage = () => {
     const success = await saveEvaluations(values.evaluations)
     if (success) {
       message.success('评价体系保存成功！')
-      navigate('/scoreManagement')
+      navigate('/scoreManagement/list')
     } else {
       message.error('保存失败，请重试。')
     }
@@ -60,13 +60,12 @@ const ScoreEvaluationPage = () => {
 
   return (
     <div className="w-full max-w-4xl">
-      <Title level={2}>配置评分评价体系</Title>
       <Text type="secondary" className="mb-4 block">
         定义不同的评分区间及其对应的评价文案。系统将根据综合评分匹配相应的评价，请确保区间连续且不重叠。
       </Text>
       <div className="mb-4 flex justify-end">
         <Space>
-          <Button onClick={() => navigate('/scoreManagement')}>返回</Button>
+          <Button onClick={() => navigate('/scoreManagement/list')}>返回</Button>
           <Button type="primary" onClick={() => form.submit()} loading={evaluationsSaveLoading}>
             保存评价体系
           </Button>

@@ -13,6 +13,7 @@ import {
 
 import { Component as ArticleManagement } from '@/pages/ArticleManagement'
 import { Component as ModifyArticle } from '@/pages/ArticleManagement/Modify'
+import { Component as OrderConfig } from '@/pages/ArticleManagement/OrderConfig'
 
 import { Component as DataManagement } from '@/pages/DataManagement'
 import { Component as ExportData } from '@/pages/DataManagement/Export'
@@ -83,30 +84,31 @@ export const sideRoutes: RouteItem[] = [
     path: '/dataManagement',
     title: '数据管理',
     icon: <DatabaseOutlined />,
-    component: DataManagement,
     children: [
       {
-        path: '/dataManagement/modify/:countryId/:year',
-        title: '数据编辑',
-        component: ModifyData,
-        hideInMenu: true
-      },
-      {
-        path: '/dataManagement/create',
-        title: '数据录入',
-        component: ModifyData,
-        hideInMenu: true
+        path: '/dataManagement/list',
+        title: '数据列表',
+        component: DataManagement
       },
       {
         path: '/dataManagement/import',
         title: '数据导入',
-        component: ImportData,
-        hideInMenu: true
+        component: ImportData
       },
       {
         path: '/dataManagement/export',
         title: '数据导出',
-        component: ExportData,
+        component: ExportData
+      },
+      {
+        path: '/dataManagement/create',
+        title: '数据录入',
+        component: ModifyData
+      },
+      {
+        path: '/dataManagement/modify/:countryId/:year',
+        title: '数据编辑',
+        component: ModifyData,
         hideInMenu: true
       }
     ]
@@ -132,33 +134,34 @@ export const sideRoutes: RouteItem[] = [
     path: '/scoreManagement',
     title: '评分管理',
     icon: <CalculatorOutlined />,
-    component: ScoreManagement,
     children: [
       {
-        path: '/scoreManagement/modify/:countryId/:year',
-        title: '评分编辑',
-        component: ModifyScore,
-        hideInMenu: true,
-      },
-      {
-        path: '/scoreManagement/create',
-        title: '评分录入',
-        component: ModifyScore,
-        hideInMenu: true,
+        path: '/scoreManagement/list',
+        title: '评分列表',
+        component: ScoreManagement
       },
       {
         path: '/scoreManagement/import',
         title: '评分导入',
-        component: ImportScore,
-        hideInMenu: true
+        component: ImportScore
+      },
+      {
+        path: '/scoreManagement/create',
+        title: '评分录入',
+        component: ModifyScore
       },
       {
         path: '/scoreManagement/evaluation',
-        title: '配置评分评价',
-        component: ScoreEvaluation,
+        title: '配置评分体系',
+        component: ScoreEvaluation
+      },
+      {
+        path: '/scoreManagement/modify/:countryId/:year',
+        title: '评分编辑',
+        component: ModifyScore,
         hideInMenu: true
       }
-    ],
+    ]
   },
   // {
   //   path: '/evaluationModel',
@@ -170,13 +173,21 @@ export const sideRoutes: RouteItem[] = [
     path: '/article',
     title: '文章管理',
     icon: <FileTextOutlined />,
-    component: ArticleManagement,
     children: [
+      {
+        path: '/article/list',
+        title: '文章列表',
+        component: ArticleManagement
+      },
       {
         path: '/article/create',
         title: '新增文章',
-        component: ModifyArticle,
-        hideInMenu: true
+        component: ModifyArticle
+      },
+      {
+        path: '/article/order',
+        title: '配置文章顺序',
+        component: OrderConfig
       },
       {
         path: '/article/modify/:id',

@@ -164,40 +164,6 @@ const DataManagement = () => {
 
   return (
     <div className="w-full max-w-7xl">
-      <div className="mb-4 flex">
-        <FeatureButton
-          className="mr-6"
-          icon={<DownloadOutlined className="text-[28px] text-blue-500" />}
-          title="数据导出"
-          description="导出数据，支持多种格式"
-          actionText="立即导出"
-          onClick={() => {
-            navigate('/dataManagement/export')
-          }}
-        />
-        <FeatureButton
-          className="mr-6"
-          icon={<UploadOutlined className="text-[28px] text-blue-500" />}
-          title="数据导入"
-          description="从Excel文件导入数据"
-          actionText="开始导入"
-          color="#FF9500"
-          onClick={() => {
-            navigate('/dataManagement/import')
-          }}
-        />
-        <FeatureButton
-          icon={<FormOutlined className="text-[28px] text-blue-500" />}
-          title="数据录入"
-          description="手动录入和编辑数据"
-          actionText="开始录入"
-          color="#34C759"
-          onClick={() => {
-            navigate('/dataManagement/create')
-          }}
-        />
-      </div>
-
       <div className="mb-4 flex justify-between">
         <Search
           placeholder="按国家名称搜索"

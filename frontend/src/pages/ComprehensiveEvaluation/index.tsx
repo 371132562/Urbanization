@@ -46,7 +46,7 @@ const ComprehensiveEvaluation: FC = () => {
 
   // “前往添加” 按钮的点击处理函数
   const handleGoToImport = () => {
-    navigate('/scoreManagement')
+    navigate('/scoreManagement/list')
   }
 
   // 自定义tooltip格式化函数

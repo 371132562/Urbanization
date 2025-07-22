@@ -1,11 +1,9 @@
-import { Button, Input, message, Modal, Space, Table } from 'antd'
+import { Button, Input, message, Modal, Table } from 'antd'
 import dayjs from 'dayjs'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 
 import useArticleStore from '@/stores/articleStore'
-
-import OrderConfigModal from './OrderConfigModal'
 
 const { Search } = Input
 
@@ -19,7 +17,6 @@ const ArticleManagement: React.FC = () => {
   const getArticleList = useArticleStore(state => state.getArticleList)
   const setSearchTitle = useArticleStore(state => state.setSearchTitle)
   const deleteArticle = useArticleStore(state => state.deleteArticle)
-  const [isModalVisible, setIsModalVisible] = useState(false)
 
   useEffect(() => {
     getArticleList(1, 10, '')
@@ -92,15 +89,6 @@ const ArticleManagement: React.FC = () => {
           onSearch={handleSearch}
           style={{ width: 200 }}
         />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => navigate('/article/create')}
-          >
-            新增文章
-          </Button>
-          <Button onClick={() => setIsModalVisible(true)}>配置文章顺序</Button>
-        </Space>
       </div>
       <Table
         columns={columns}
@@ -115,12 +103,6 @@ const ArticleManagement: React.FC = () => {
         loading={loading}
         onChange={handleTableChange}
       />
-      {isModalVisible && (
-        <OrderConfigModal
-          visible={isModalVisible}
-          onClose={() => setIsModalVisible(false)}
-        />
-      )}
     </div>
   )
 }

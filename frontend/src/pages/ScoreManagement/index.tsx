@@ -123,30 +123,6 @@ const ScoreManagement = () => {
 
   return (
     <div className="w-full max-w-7xl">
-      <div className="mb-4 flex">
-        <FeatureButton
-          className="mr-6"
-          icon={<UploadOutlined className="text-[28px] text-blue-500" />}
-          title="评分导入"
-          description="从Excel文件导入评分数据"
-          actionText="开始导入"
-          color="#FF9500"
-          onClick={() => {
-            navigate('/scoreManagement/import')
-          }}
-        />
-        <FeatureButton
-          icon={<FormOutlined className="text-[28px] text-blue-500" />}
-          title="评分录入"
-          description="手动录入和编辑评分数据"
-          actionText="开始录入"
-          color="#34C759"
-          onClick={() => {
-            navigate('/scoreManagement/create')
-          }}
-        />
-      </div>
-
       <div className="mb-4 flex justify-between">
         <Search
           placeholder="按国家名称搜索"
@@ -154,7 +130,6 @@ const ScoreManagement = () => {
           onChange={e => setSearchTerm(e.target.value)}
           style={{ width: 300 }}
         />
-        <Button onClick={() => navigate('/scoreManagement/evaluation')}>配置评分评价</Button>
       </div>
 
       {filteredData.length > 0 ? (

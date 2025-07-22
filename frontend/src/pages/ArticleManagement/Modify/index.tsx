@@ -114,7 +114,7 @@ const ArticleModify: FC = () => {
     // 根据操作结果给出反馈，并跳转页面
     if (success) {
       message.success(isEditMode ? '文章更新成功' : '文章创建成功')
-      navigate('/article') // 成功后返回文章列表页
+      navigate('/article/list') // 成功后返回文章列表页
     } else {
       message.error(isEditMode ? '文章更新失败' : '文章创建失败')
     }
@@ -155,9 +155,9 @@ const ArticleModify: FC = () => {
     <div className="w-full max-w-7xl">
       {/* 页面头部：标题和操作按钮 */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{isEditMode ? '编辑文章' : '新增文章'}</h1>
+        <h1 className="text-2xl font-bold"></h1>
         <Space>
-          <Button onClick={() => navigate('/article')}>返回</Button>
+          <Button onClick={() => navigate('/article/list')}>返回</Button>
           <Button onClick={handlePreview}>预览</Button>
           <Button
             type="primary"
