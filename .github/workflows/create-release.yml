@@ -46,7 +46,7 @@ jobs:
           tags: linstar666/urbanization:latest
           build-args: |
             DATABASE_URL_BUILD=file:../../db/urbanization.db
-          outputs: type=oci,dest=./urbanization.tar # 将镜像导出为 tar 包
+          outputs: type=docker,dest=./urbanization.tar # 将镜像导出为与 docker load 兼容的 tar 包
 
       - name: 拉取 alpine 镜像
         run: docker pull alpine:latest
