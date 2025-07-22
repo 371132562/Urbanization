@@ -35,12 +35,20 @@ export type IndicatorValue = {
   value: number | null;
 };
 
+export type IndicatorDataItem = {
+  id: string; // detailedIndicatorId
+  cnName: string;
+  enName: string;
+  value: number | null;
+};
+
 export type CountryData = {
   id: string;
   cnName: string;
   enName: string;
   year: Date;
   isComplete: boolean; // 69个三级指标中是否包含null字段，如果包含null字段，则isComplete为false，否则为true
+  indicators: IndicatorDataItem[];
   createTime: Date; // 所有该年该国家下数据最早的时间作为创建时间
   updateTime: Date; // 所有该年该国家下数据最晚的时间作为更新时间
 };

@@ -14,8 +14,9 @@ import {
   CountryYearQueryDto,
   ExportDataReqDto,
   ExportFormat,
+  IndicatorDataItem,
 } from '../../../types/dto';
-import { IndicatorValue, Country } from '@prisma/client';
+import { IndicatorValue, Country, DetailedIndicator } from '@prisma/client';
 import * as dayjs from 'dayjs';
 import * as xlsx from 'xlsx';
 import { BusinessException } from '../../exceptions/businessException';
@@ -33,7 +34,7 @@ export class DataManagementService {
    */
   async list(): Promise<DataManagementListDto> {
     this.logger.log('从数据库获取所有指标数据。');
-    // 从数据库查询所有指标值，并包含关联的国家信息
+    // 从数据库查询所有指标值，并包含关联的国家和三级指标信息
     const indicatorValues = await this.prisma.indicatorValue.findMany({
       where: {
         delete: 0,
@@ -43,6 +44,7 @@ export class DataManagementService {
       },
       include: {
         country: true,
+        detailedIndicator: true, // 包含三级指标信息
       },
     });
 
@@ -51,35 +53,47 @@ export class DataManagementService {
       return [];
     }
 
-    // 定义一个包含国家信息的指标值类型，方便后续处理
-    type IndicatorValueWithCountry = IndicatorValue & { country: Country };
+    // 获取所有三级指标定义，用于填充缺失的数据
+    const allDetailedIndicators = await this.prisma.detailedIndicator.findMany({
+      where: { delete: 0 },
+    });
+    const allIndicatorsMap = new Map(
+      allDetailedIndicators.map((i) => [
+        i.id,
+        {
+          cnName: i.indicatorCnName,
+          enName: i.indicatorEnName,
+        },
+      ]),
+    );
+
+    // 定义一个包含国家和三级指标信息的指标值类型
+    type IndicatorValueWithDetails = IndicatorValue & {
+      country: Country;
+      detailedIndicator: DetailedIndicator;
+    };
 
     // 使用 Map 按年份和国家/地区 ID 对数据进行分组
-    // 外部 Map 的键是年份，内部 Map 的键是国家 ID
     const groupedByCountryYear = new Map<
       number,
-      Map<string, IndicatorValueWithCountry[]>
+      Map<string, IndicatorValueWithDetails[]>
     >();
 
-    // 遍历所有指标值，进行分组
-    for (const iv of indicatorValues) {
-      // 统一处理年份，只保留年份信息
+    for (const iv of indicatorValues as IndicatorValueWithDetails[]) {
       const year = dayjs(iv.year).year();
       const countryId = iv.country.id;
 
-      // 如果年份不存在，则在 Map 中创建一个新的条目
       if (!groupedByCountryYear.has(year)) {
         groupedByCountryYear.set(
           year,
-          new Map<string, IndicatorValueWithCountry[]>(),
+          new Map<string, IndicatorValueWithDetails[]>(),
         );
       }
       const countryMap = groupedByCountryYear.get(year)!;
-      // 如果国家/地区 ID 不存在，则在内部 Map 中创建一个新的条目
+
       if (!countryMap.has(countryId)) {
         countryMap.set(countryId, []);
       }
-      // 将当前指标值添加到对应的分组中
       countryMap.get(countryId)!.push(iv);
     }
 
@@ -87,39 +101,54 @@ export class DataManagementService {
     const result: DataManagementListDto = [];
     for (const [year, countryMap] of groupedByCountryYear.entries()) {
       const yearData: YearData = {
-        year: dayjs().year(year).startOf('year').toDate(), // 统一使用年初日期
+        year: dayjs().year(year).startOf('year').toDate(),
         data: [],
       };
-      // 遍历每个国家/地区的数据
-      for (const [, values] of countryMap.entries()) {
+      for (const [countryId, values] of countryMap.entries()) {
         if (values.length === 0) continue;
 
-        // 获取国家/地区的中文和英文名称
-        const { id, cnName, enName, createTime, updateTime } =
-          values[0].country;
+        const { cnName, enName, createTime, updateTime } = values[0].country;
 
-        // 检查数据是否完整（即是否存在 null 值）
-        const isComplete = !values.some((v) => v.value === null);
+        // 创建一个指标值映射表，方便查找
+        const valuesMap = new Map(
+          values.map((v) => [
+            v.detailedIndicatorId,
+            v.value !== null ? v.value.toNumber() : null,
+          ]),
+        );
+
+        // 构建完整的指标列表，包括没有值的指标
+        const indicators: IndicatorDataItem[] = [];
+        for (const [id, indicatorInfo] of allIndicatorsMap.entries()) {
+          indicators.push({
+            id,
+            cnName: indicatorInfo.cnName,
+            enName: indicatorInfo.enName,
+            value: valuesMap.has(id) ? valuesMap.get(id)! : null,
+          });
+        }
+
+        const isComplete = !indicators.some((v) => v.value === null);
 
         const countryData: CountryData = {
-          id,
+          id: countryId,
           cnName,
           enName,
-          year: dayjs(values[0].year).startOf('year').toDate(), // 统一使用年初日期
+          year: dayjs(values[0].year).startOf('year').toDate(),
           isComplete,
-          createTime: createTime,
-          updateTime: updateTime,
+          indicators,
+          createTime,
+          updateTime,
         };
         yearData.data.push(countryData);
       }
-      // 对当前年份下的国家/地区数据按更新时间降序排序
       yearData.data.sort(
         (a, b) => b.updateTime.getTime() - a.updateTime.getTime(),
       );
       result.push(yearData);
     }
 
-    // 按年份降序排序，最新的年份在前
+    // 按年份降序排序
     this.logger.log('指标数据处理完成并按年份排序。');
     return result.sort((a, b) => b.year.getTime() - a.year.getTime());
   }
