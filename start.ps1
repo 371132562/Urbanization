@@ -185,39 +185,68 @@ try {
     Write-Host "这可能是因为没有运行中的容器，将继续尝试启动" -ForegroundColor Yellow
 }
 
-# 删除相关的旧镜像
+# 加载本地Docker镜像
 try {
-    Write-Host "正在查找旧镜像..." -ForegroundColor Yellow
-    $images = docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | Select-String -Pattern "linstar666/urbanization"
-
-    if ($images) {
-        Write-Host "发现以下旧镜像，将被删除:" -ForegroundColor Yellow
-        foreach ($image in $images) {
-            Write-Host $image -ForegroundColor Gray
+    $imageTarFile = "urbanization.tar"
+    if (Test-Path $imageTarFile) {
+        Write-Host "`n正在从本地文件 'urbanization.tar' 加载Docker镜像..." -ForegroundColor Yellow
+        docker load -i $imageTarFile
+        if ($LASTEXITCODE -ne 0) {
+            Handle-Error "从 'urbanization.tar' 加载镜像失败，错误码: $LASTEXITCODE"
         }
-
-        # 使用prune命令，删除未使用的镜像
-        Write-Host "正在删除旧镜像..." -ForegroundColor Yellow
-        try {
-            docker image rm -f $(docker images --format "{{.ID}}" --filter=reference="linstar666/urbanization*")
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "删除旧镜像时遇到问题，但将继续启动" -ForegroundColor Yellow
-            }
-        } catch {
-            Write-Host "删除镜像时出现警告: $_" -ForegroundColor Yellow
-            Write-Host "这可能是因为镜像正在使用中，将继续启动" -ForegroundColor Yellow
-        }
+        Write-Host "主应用镜像加载成功。" -ForegroundColor Green
     } else {
-        Write-Host "未发现旧镜像" -ForegroundColor Green
+        Write-Host "`n未找到主应用镜像文件 'urbanization.tar'，将尝试从远程仓库拉取..." -ForegroundColor Yellow
+    }
+
+    $alpineTarFile = "alpine.tar"
+    if (Test-Path $alpineTarFile) {
+        Write-Host "`n正在从本地文件 'alpine.tar' 加载 alpine 镜像..." -ForegroundColor Yellow
+        docker load -i $alpineTarFile
+        if ($LASTEXITCODE -ne 0) {
+            Handle-Error "从 'alpine.tar' 加载镜像失败，错误码: $LASTEXITCODE"
+        }
+        Write-Host "Alpine 镜像加载成功。" -ForegroundColor Green
     }
 } catch {
-    Write-Host "查找旧镜像时出现警告: $_" -ForegroundColor Yellow
-    Write-Host "将继续尝试启动" -ForegroundColor Yellow
+    Handle-Error "加载本地镜像过程中出错: $_"
 }
 
-# 拉取最新镜像并启动容器
+
+# 删除相关的旧镜像
+# try {
+#     Write-Host "正在查找旧镜像..." -ForegroundColor Yellow
+#     $images = docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | Select-String -Pattern "linstar666/urbanization"
+
+#     if ($images) {
+#         Write-Host "发现以下旧镜像，将被删除:" -ForegroundColor Yellow
+#         foreach ($image in $images) {
+#             Write-Host $image -ForegroundColor Gray
+#         }
+
+#         # 使用prune命令，删除未使用的镜像
+#         Write-Host "正在删除旧镜像..." -ForegroundColor Yellow
+#         try {
+#             docker image rm -f $(docker images --format "{{.ID}}" --filter=reference="linstar666/urbanization*")
+#             if ($LASTEXITCODE -ne 0) {
+#                 Write-Host "删除旧镜像时遇到问题，但将继续启动" -ForegroundColor Yellow
+#             }
+#         } catch {
+#             Write-Host "删除镜像时出现警告: $_" -ForegroundColor Yellow
+#             Write-Host "这可能是因为镜像正在使用中，将继续启动" -ForegroundColor Yellow
+#         }
+#     } else {
+#         Write-Host "未发现旧镜像" -ForegroundColor Green
+#     }
+# } catch {
+#     Write-Host "查找旧镜像时出现警告: $_" -ForegroundColor Yellow
+#     Write-Host "将继续尝试启动" -ForegroundColor Yellow
+# }
+
+# 启动容器
 try {
-    Write-Host "`n正在拉取最新镜像并启动..." -ForegroundColor Yellow
+    Write-Host "`n正在启动容器..." -ForegroundColor Yellow
+    # docker compose pull # 如果使用本地tar包，可以注释掉此行
     docker compose up -d
     if ($LASTEXITCODE -ne 0) {
         Handle-Error "启动容器失败，错误码: $LASTEXITCODE"

@@ -81,5 +81,9 @@ ENV DATABASE_URL ${DATABASE_URL_BUILD}
 # 暴露后端端口
 EXPOSE 3333
 
+# 将 alpine 镜像的文件系统复制到最终镜像中，以确保 alpine 镜像在构建过程中被拉取和缓存
+# 这使得我们可以在后续步骤中 save alpine 镜像，用于离线环境的备份和恢复脚本
+COPY --from=alpine:latest / /alpine-rootfs
+
 # 使用ENTRYPOINT执行启动脚本
 ENTRYPOINT ["./entrypoint.sh"]

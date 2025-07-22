@@ -37,6 +37,22 @@ function Handle-Error {
     exit 1
 }
 
+# 加载 alpine 镜像（用于恢复）
+try {
+    $alpineTarFile = "alpine.tar"
+    if (Test-Path $alpineTarFile) {
+        Write-Host "`n检查到 alpine.tar，尝试加载..." -ForegroundColor Yellow
+        docker load -i $alpineTarFile
+        if ($LASTEXITCODE -ne 0) {
+            Handle-Error "从 'alpine.tar' 加载镜像失败，错误码: $LASTEXITCODE"
+        }
+        Write-Host "Alpine 镜像已加载，可用于恢复。" -ForegroundColor Green
+    }
+    # 如果文件不存在，我们假定 Docker 中可能已经有 alpine 镜像，或者可以从网络拉取，脚本会继续尝试
+} catch {
+    Handle-Error "加载 alpine 镜像过程中出错: $_"
+}
+
 # 确保当前目录正确（如果从其他目录运行脚本）
 try {
     # 获取脚本所在目录
