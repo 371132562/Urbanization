@@ -1,4 +1,4 @@
-import { Button, Empty, Spin } from 'antd'
+import { Button, Empty, Skeleton } from 'antd'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 
@@ -22,7 +22,11 @@ export const Component = () => {
   if (orderConfigLoading) {
     return (
       <div className="flex h-full items-center justify-center pt-20">
-        <Spin size="large" />
+        {/* 物性动力骨架屏 */}
+        <Skeleton.Input
+          active
+          style={{ width: 320, height: 48, borderRadius: 8 }}
+        />
       </div>
     )
   }

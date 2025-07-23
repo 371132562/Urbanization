@@ -1,8 +1,8 @@
 import { DeleteOutlined, MenuOutlined } from '@ant-design/icons'
 import {
+  closestCenter,
   DndContext,
   DragEndEvent,
-  closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -16,10 +16,10 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Button, message, Modal, Select, Spin, Tabs, Space } from 'antd'
+import { Button, message, Modal, Select, Skeleton, Space, Tabs } from 'antd'
 import React, { useEffect, useState } from 'react'
-import { v4 as uuidv4 } from 'uuid'
 import type { ArticleItem, ArticleMetaItem } from 'urbanization-backend/types/dto'
+import { v4 as uuidv4 } from 'uuid'
 
 import ArticleDisplay from '@/components/ArticleDisplay'
 import useArticleStore from '@/stores/articleStore'
@@ -68,7 +68,9 @@ const SortableItem: React.FC<SortableItemProps> = ({
         placeholder="请选择一篇文章"
         style={{ flex: 1 }}
         onChange={value => onSelect(article.uniqueId, value)}
-        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+        filterOption={(input, option) =>
+          (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+        }
         options={allArticles.map(a => ({
           value: a.id,
           label: a.title,
@@ -106,7 +108,9 @@ const OrderConfig = () => {
   const getArticleDetailsByIds = useArticleStore(state => state.getArticleDetailsByIds)
 
   const [activePage, setActivePage] = useState(PAGES[0].key)
-  const [selectedArticles, setSelectedArticles] = useState<(ArticleItem & { uniqueId: string })[]>([])
+  const [selectedArticles, setSelectedArticles] = useState<(ArticleItem & { uniqueId: string })[]>(
+    []
+  )
   const [previewVisible, setPreviewVisible] = useState(false)
 
   useEffect(() => {
@@ -197,6 +201,31 @@ const OrderConfig = () => {
   const hasUnselectedArticles = selectedArticles.some(item => !item.id)
   const selectedArticleIds = new Set(selectedArticles.map(item => item.id).filter(Boolean))
 
+  // 文章排序骨架屏组件
+  const OrderConfigSkeleton = () => (
+    <div>
+      <div className="mb-4">
+        <Skeleton.Input
+          active
+          style={{ width: 320, height: 40, marginBottom: 16 }}
+        />
+      </div>
+      <div className="mb-4 space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton.Input
+            key={i}
+            active
+            style={{ width: '100%', height: 48 }}
+          />
+        ))}
+      </div>
+      <Skeleton.Button
+        active
+        style={{ width: '100%', height: 40 }}
+      />
+    </div>
+  )
+
   return (
     <div className="w-full max-w-4xl">
       <div className="mb-4 flex items-center justify-between">
@@ -209,50 +238,65 @@ const OrderConfig = () => {
           >
             预览
           </Button>
-          <Button key="submit" type="primary" loading={submitLoading} onClick={handleSave}>
+          <Button
+            key="submit"
+            type="primary"
+            loading={submitLoading}
+            onClick={handleSave}
+          >
             保存
           </Button>
         </Space>
       </div>
-      <Spin spinning={orderConfigLoading}>
-        <Tabs
-          activeKey={activePage}
-          onChange={setActivePage}
-          items={PAGES.map(page => ({
-            key: page.key,
-            label: page.label
-          }))}
-        />
-        <div className="min-h-[300px] rounded-md border border-gray-300 p-4">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={selectedArticles.map(item => item.uniqueId)}
-              strategy={verticalListSortingStrategy}
+      {/* 加载时显示骨架屏 */}
+      {orderConfigLoading ? (
+        <OrderConfigSkeleton />
+      ) : (
+        <>
+          <Tabs
+            activeKey={activePage}
+            onChange={setActivePage}
+            type="card"
+            items={PAGES.map(page => ({
+              key: page.key,
+              label: page.label
+            }))}
+          />
+          <div className="min-h-[300px] rounded-md border border-gray-300 p-4">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <div className="mb-4 space-y-4">
-                {selectedArticles.map(article => (
-                  <SortableItem
-                    key={article.uniqueId}
-                    id={article.uniqueId}
-                    article={article}
-                    allArticles={allArticles}
-                    selectedArticleIds={selectedArticleIds}
-                    onSelect={handleSelectArticle}
-                    onRemove={handleRemoveArticle}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-          <Button type="dashed" onClick={handleAddArticle} className="w-full">
-            + 添加文章
-          </Button>
-        </div>
-      </Spin>
+              <SortableContext
+                items={selectedArticles.map(item => item.uniqueId)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="mb-4 space-y-4">
+                  {selectedArticles.map(article => (
+                    <SortableItem
+                      key={article.uniqueId}
+                      id={article.uniqueId}
+                      article={article}
+                      allArticles={allArticles}
+                      selectedArticleIds={selectedArticleIds}
+                      onSelect={handleSelectArticle}
+                      onRemove={handleRemoveArticle}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+            <Button
+              type="dashed"
+              onClick={handleAddArticle}
+              className="w-full"
+            >
+              + 添加文章
+            </Button>
+          </div>
+        </>
+      )}
 
       <Modal
         title="预览"
@@ -262,12 +306,10 @@ const OrderConfig = () => {
         width="80%"
         destroyOnClose
       >
-        <Spin spinning={previewLoading}>
-          <ArticleDisplay articles={previewArticles} />
-        </Spin>
+        <ArticleDisplay articles={previewArticles} />
       </Modal>
     </div>
   )
 }
 
-export const Component = OrderConfig 
+export const Component = OrderConfig
