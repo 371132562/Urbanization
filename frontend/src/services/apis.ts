@@ -8,6 +8,7 @@ export const dataManagementExport = '/dataManagement/export'
 
 // 指标API
 export const indicatorHierarchy = '/indicator/indicatorsHierarchy'
+export const updateIndicatorWeights = '/indicator/updateWeights'
 
 // 国家与大洲API
 export const continentList = '/countryAndContinent/continents'
@@ -32,6 +33,6 @@ export const scoreCreate = '/score/create'
 export const scoreDetail = '/score/detail'
 export const scoreDelete = '/score/delete'
 export const scoreCheckExisting = '/score/checkExisting'
-export const scoreListByCountry = '/score/listByCountry';
+export const scoreListByCountry = '/score/listByCountry'
 export const scoreEvaluationList = '/score/evaluation/list'
 export const scoreEvaluationCreate = '/score/evaluation/create'

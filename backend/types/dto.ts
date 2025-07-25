@@ -77,6 +77,7 @@ export type DetailedIndicatorItem = {
   enName: string; // 指标英文名称
   unit: string; // 单位
   value: number | null; // 指标值，可能为空
+  weight: number; // 权重
 };
 
 export type SecondaryIndicatorItem = {
@@ -84,6 +85,7 @@ export type SecondaryIndicatorItem = {
   cnName: string; // 二级指标中文名称
   enName: string; // 二级指标英文名称
   detailedIndicators: DetailedIndicatorItem[]; // 包含的三级指标
+  weight: number; // 权重
 };
 
 export type TopIndicatorItem = {
@@ -91,6 +93,7 @@ export type TopIndicatorItem = {
   cnName: string; // 一级指标中文名称
   enName: string; // 一级指标英文名称
   secondaryIndicators: SecondaryIndicatorItem[]; // 包含的二级指标
+  weight: number; // 权重
 };
 
 /**
@@ -178,6 +181,19 @@ export type DetailedIndicatorDto = DetailedIndicator & {
  * 统一指标层级结构响应DTO
  */
 export type IndicatorHierarchyResDto = TopIndicatorItem[];
+
+/**
+ * 更新指标权重 DTO
+ */
+export type UpdateIndicatorWeightItemDto = {
+  id: string; // 指标ID
+  level: 'top' | 'secondary' | 'detailed'; // 指标层级
+  weight: number; // 新的权重值
+};
+
+export type UpdateWeightsDto = {
+  weights: UpdateIndicatorWeightItemDto[];
+};
 
 /*
  * ==================== 国家和大洲管理模块 ====================

@@ -33,6 +33,7 @@ import { Component as ScoreManagement } from '@/pages/ScoreManagement'
 import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
 import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
 import { Component as ScoreEvaluation } from '@/pages/ScoreManagement/Evaluation'
+import { Component as WeightManagement } from '@/pages/EvaluationModel/WeightManagement'
 import { RouteItem } from '@/types'
 
 // 顶部导航菜单配置
@@ -163,12 +164,18 @@ export const sideRoutes: RouteItem[] = [
       }
     ]
   },
-  // {
-  //   path: '/evaluationModel',
-  //   title: '评估模型',
-  //   icon: <CalculatorOutlined />,
-  //   component: EvaluationModel
-  // },
+  {
+    path: '/evaluationModel',
+    title: '评估模型',
+    icon: <CalculatorOutlined />,
+    children: [
+      {
+        path: '/evaluationModel/weight',
+        title: '权重管理',
+        component: WeightManagement,
+      },
+    ],
+  },
   {
     path: '/article',
     title: '文章管理',

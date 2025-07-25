@@ -1,6 +1,6 @@
-import { Controller, Post, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { IndicatorService } from './indicator.service';
-import { IndicatorHierarchyResDto } from '../../../types/dto';
+import { IndicatorHierarchyResDto, UpdateWeightsDto } from '../../../types/dto';
 
 @Controller('indicator')
 export class IndicatorController {
@@ -13,5 +13,17 @@ export class IndicatorController {
   @Post('indicatorsHierarchy')
   async getIndicatorsHierarchy(): Promise<IndicatorHierarchyResDto> {
     return this.indicatorService.getIndicatorsHierarchy();
+  }
+
+  /**
+   * 批量更新指标权重
+   * @param {UpdateWeightsDto} params - 包含多个指标权重更新信息的参数
+   * @returns {Promise<{ success: boolean }>} - 指示操作是否成功
+   */
+  @Post('updateWeights')
+  async updateWeights(
+    @Body() params: UpdateWeightsDto,
+  ): Promise<{ success: boolean }> {
+    return this.indicatorService.updateWeights(params);
   }
 }

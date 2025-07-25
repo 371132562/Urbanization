@@ -357,6 +357,7 @@ export class DataManagementService {
           indicatorValue && indicatorValue.value !== null
             ? indicatorValue.value.toNumber()
             : null,
+        weight: Number(indicator.weight), // 修复：Decimal转number
       };
 
       // 处理二级指标
@@ -366,6 +367,7 @@ export class DataManagementService {
           cnName: secondaryIndicator.indicatorCnName,
           enName: secondaryIndicator.indicatorEnName,
           detailedIndicators: [],
+          weight: Number(secondaryIndicator.weight), // 修复：Decimal转number
         });
       }
 
@@ -381,6 +383,7 @@ export class DataManagementService {
           cnName: topIndicator.indicatorCnName,
           enName: topIndicator.indicatorEnName,
           secondaryIndicators: [],
+          weight: Number(topIndicator.weight), // 修复：Decimal转number
         });
       }
     }
