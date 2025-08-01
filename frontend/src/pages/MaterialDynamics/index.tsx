@@ -16,7 +16,7 @@ export const Component = () => {
   }, [])
 
   const goToConfig = () => {
-    navigate('/article/order'))
+    navigate('/article/order')
   }
 
   if (orderConfigLoading) {
