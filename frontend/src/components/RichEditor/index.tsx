@@ -72,13 +72,14 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
     const [allInsertedImages, setAllInsertedImages] = useState<string[]>([])
 
     // 当外部传入的初始图片列表变化时，更新 allInsertedImages 状态
+    // 只在非只读模式下执行，因为只读模式下不需要追踪图片变化
     useEffect(() => {
-      // 使用 Set 来合并初始图片和当前已插入的图片，并自动去重
-      // 这可以确保在编辑模式下，从详情加载的图片被正确追踪
       if (!readOnly) {
+        // 使用 Set 来合并初始图片和当前已插入的图片，并自动去重
+        // 这可以确保在编辑模式下，从详情加载的图片被正确追踪
         setAllInsertedImages(prev => [...new Set([...prev, ...initialImages])])
       }
-    }, [initialImages])
+    }, [initialImages, readOnly]) // 依赖 readOnly 状态，确保模式切换时正确处理
 
     // --- 编辑器配置 ---
 
@@ -138,8 +139,11 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
           onInsertedImage(imageNode: ImageElement | null) {
             if (imageNode == null) return
             const { src } = imageNode
-            // 使用 Set 去重，确保 src 唯一
-            setAllInsertedImages(prevSrcs => [...new Set([...prevSrcs, src])])
+            // 只在非只读模式下追踪图片，避免不必要的状态更新
+            if (!readOnly) {
+              // 使用 Set 去重，确保 src 唯一
+              setAllInsertedImages(prevSrcs => [...new Set([...prevSrcs, src])])
+            }
           },
           parseImageSrc: (src: string) => {
             return (
@@ -158,11 +162,18 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
     useImperativeHandle(ref, () => ({
       /**
        * 获取最终保留和已删除的图片
+       * 只在非只读模式下返回有意义的图片信息
        */
       getImages: () => {
+        // 只读模式下不需要追踪图片变化，直接返回空数组
+        if (readOnly) {
+          return { images: [], deletedImages: [] }
+        }
+
         if (!editor) {
           return { images: [], deletedImages: [] }
         }
+
         // 1. 获取当前编辑器中所有图片元素
         const currentImageNodes = editor.getElemsByType('image') as unknown as ImageElement[]
         const images = currentImageNodes.map(node => node.src)
