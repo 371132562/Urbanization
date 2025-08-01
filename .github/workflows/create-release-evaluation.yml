@@ -44,7 +44,7 @@ jobs:
           context: .
           file: ./Dockerfile.evaluation
           push: true
-          tags: linstar666/urbanization:latest
+          tags: linstar666/urbanization-evaluation:latest
           build-args: |
             DATABASE_URL_BUILD=file:../../db/urbanization.db
           outputs: type=docker,dest=./urbanization.tar # 将镜像导出为与 docker load 兼容的 tar 包
@@ -54,6 +54,9 @@ jobs:
 
       - name: 保存 alpine 镜像为 tar 包
         run: docker save alpine:latest -o alpine.tar
+
+      - name: 重命名docker-compose文件
+        run: cp docker-compose.evaluation.yml docker-compose.yml
 
       - name: 打包发布文件
         run: |

@@ -6,7 +6,7 @@ $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 $ErrorActionPreference = "Stop"
 
 # 标题和版本信息
-$scriptVersion = "1.0.1"
+$scriptVersion = "1.0.0"
 $scriptTitle = "==== 正在启动 v$scriptVersion ===="
 
 # 显示标题
