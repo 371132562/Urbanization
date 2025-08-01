@@ -1,0 +1,71 @@
+name: Electron Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        
+      - name: 设置Node.js环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 安装pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          
+      - name: 安装依赖
+        run: |
+          pnpm install
+          cd electron && pnpm install
+          
+      - name: 安装Wine和依赖
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y wine wine32 wine64 libwine-dev fonts-wine
+          sudo apt-get install -y mono-complete
+          
+      - name: 安装electron-builder
+        run: npm install -g electron-builder
+        
+      - name: 设置虚拟显示环境
+        run: |
+          export DISPLAY=:99.0
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          
+      - name: 构建和打包
+        run: |
+          cd electron
+          export DISPLAY=:99.0
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          pnpm build
+        env:
+          DISPLAY: :99.0
+          
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-release-files
+          path: electron/release/
+          retention-days: 30
+          
+      - name: 创建Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: electron/release/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

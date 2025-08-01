@@ -4,6 +4,9 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "build:frontend": "pnpm --filter ../frontend build",
+    "build:backend": "pnpm --filter ../backend build",
+    "build": "rm -rf ./release && pnpm build:frontend && pnpm build:backend && electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -12,5 +15,54 @@
   "devDependencies": {
     "electron": "^37.2.5",
     "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "Urbanization",
+    "productName": "Urbanization",
+    "publish": null,
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend/dist",
+        "to": "backend/dist"
+      },
+      {
+        "from": "../backend/prisma",
+        "to": "backend/prisma"
+      },
+      {
+        "from": "../backend/node_modules",
+        "to": "backend/node_modules"
+      },
+      {
+        "from": "../node_modules",
+        "to": "node_modules"
+      },
+      {
+        "from": "../frontend/dist",
+        "to": "frontend/dist"
+      }
+    ],
+    "mac": {
+      "target": "zip"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "frontend/public/icon.png",
+      "signAndEditExecutable": false,
+      "artifactName": "${productName}-v${version}.${ext}"
+    }
+  },
+  "dependencies": {
+    "electron-log": "^5.4.2"
   }
 }
