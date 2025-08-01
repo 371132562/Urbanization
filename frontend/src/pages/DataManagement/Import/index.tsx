@@ -1,26 +1,14 @@
 import { CheckCircleFilled, InboxOutlined } from '@ant-design/icons'
-import {
-  Alert,
-  Button,
-  DatePicker,
-  Form,
-  message,
-  Modal,
-  Space,
-  Steps,
-  Table,
-  Tag,
-  Upload
-} from 'antd'
+import { Alert, Button, DatePicker, Form, message, Space, Steps, Table, Tag, Upload } from 'antd'
 import type { RcFile, UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import * as XLSX from 'xlsx'
 
-import { DETAILED_INDICATORS } from '@/config/dataImport'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
+import useIndicatorStore from '@/stores/indicatorStore'
 
 const { Dragger } = Upload
 
@@ -54,12 +42,26 @@ const DataImportPage = () => {
   // --- 从 Zustand stores 中获取全局状态和方法 ---
   // 所有国家的基础信息列表，用于匹配 Excel 中的国家名称
   const countries = useCountryAndContinentStore(state => state.countries)
+  // 指标的层级结构，用于解析 Excel 列并生成预览表格
+  const indicatorHierarchy = useIndicatorStore(state => state.indicatorHierarchy)
   // 检查指定国家和年份的数据是否已存在的方法
   const checkDataManagementExistingData = useDataManagementStore(
     state => state.checkDataManagementExistingData
   )
   // 保存单条国家数据（包含所有指标）的方法
   const saveDataManagementDetail = useDataManagementStore(state => state.saveDataManagementDetail)
+
+  /**
+   * @description 从指标层级结构中提取并展平所有三级指标。
+   * 使用 useMemo 进行性能优化，仅在 indicatorHierarchy 变化时重新计算。
+   * 这个列表的顺序与 Excel 文件中的指标列顺序严格对应。
+   */
+  const tertiaryIndicators = useMemo(() => {
+    if (!indicatorHierarchy) return []
+    return indicatorHierarchy.flatMap(top =>
+      top.secondaryIndicators.flatMap(sec => sec.detailedIndicators)
+    )
+  }, [indicatorHierarchy])
 
   // --- 组件内部状态管理 ---
   // 当前所处的步骤，0: 上传, 1: 预览, 2: 完成
@@ -88,7 +90,7 @@ const DataImportPage = () => {
    * - 后续列根据三级指标列表动态生成，列头为指标的中文名称。
    */
   const previewColumns = useMemo(() => {
-    if (DETAILED_INDICATORS.length === 0) return []
+    if (tertiaryIndicators.length === 0) return []
 
     // 固定国家列
     const countryColumn = {
@@ -115,15 +117,15 @@ const DataImportPage = () => {
     }
 
     // 根据三级指标动态生成数据列
-    const indicatorColumns = DETAILED_INDICATORS.map(indicator => ({
+    const indicatorColumns = tertiaryIndicators.map(indicator => ({
       title: indicator.cnName,
-      dataIndex: indicator.enName,
-      key: indicator.enName,
+      dataIndex: indicator.id,
+      key: indicator.id,
       width: 120
     }))
 
     return [countryColumn, ...indicatorColumns]
-  }, [])
+  }, [tertiaryIndicators])
 
   /**
    * @description 处理重新上传操作，重置所有相关状态，返回到第一步。
@@ -213,13 +215,13 @@ const DataImportPage = () => {
             // 5. 依次读取所有指标值
             // 遍历预定义的69个三级指标，并从行数据中按顺序提取对应的值
             // 将无效或非数字的值转换为空字符串，以便在预览中显示为空白
-            DETAILED_INDICATORS.forEach((indicator, index) => {
+            tertiaryIndicators.forEach((indicator, index) => {
               // `index + 1` 是因为第0列是国家名称
               const rawValue = row[index + 1]
               // 清洗数据：移除千位分隔符(,)，并将 null/undefined 转为空字符串
               const cleanedValue = String(rawValue || '').replace(/,/g, '')
               const parsedValue = parseFloat(cleanedValue)
-              rowData[indicator.enName] = isNaN(parsedValue) ? '' : parsedValue
+              rowData[indicator.id] = isNaN(parsedValue) ? '' : parsedValue
             })
             // 将处理好的行数据添加到最终结果中
             processedData.push(rowData)
@@ -305,14 +307,14 @@ const DataImportPage = () => {
     const importPromises = previewData.map(async row => {
       // 2a. 构造指标负载(payload)
       // 遍历所有三级指标，从当前行数据中提取对应的值
-      const indicatorsPayload = DETAILED_INDICATORS.map(indicator => {
-        const rawValue = row[indicator.enName]
+      const indicatorsPayload = tertiaryIndicators.map(indicator => {
+        const rawValue = row[indicator.id]
         // 清洗数据：移除千位分隔符(,)，并将 null/undefined 转为空字符串
         const cleanedValue = String(rawValue || '').replace(/,/g, '')
         // 再次将值解析为浮点数。对于在预览步骤中设置的空字符串''，`parseFloat('')` 会返回 NaN。
         const parsedValue = parseFloat(cleanedValue)
         return {
-          detailedIndicatorId: indicator.enName,
+          detailedIndicatorId: indicator.id,
           // 如果解析结果是 NaN (例如，空字符串或无效字符)，则将值设为 null，否则使用解析后的数值。
           // 这是为了确保发送给后端的数据格式正确。
           value: isNaN(parsedValue) ? null : parsedValue

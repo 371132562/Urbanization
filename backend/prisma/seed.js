@@ -259,7 +259,7 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
         console.warn({ indicatorCn: valueData.indicatorCnName, indicatorEn: valueData.indicatorEnName }, `在缓存中未找到指标, 跳过此条目.`);
         continue;
       }
-      // 将年份转换为 Date 对象，例如：2023 -> new Date('2023-01-01')
+      // 将年份转换为 Date 对象，例如：2023 -> new Date('2023-06-01')
       const yearDate = dayjs(countryData.year.toString()).month(5).date(1).toDate();
 
       // 步骤 2.3: 在将数据添加到待创建列表前，检查其唯一性。
