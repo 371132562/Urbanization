@@ -1,6 +1,9 @@
 packages:
   - frontend
   - backend
+  - frontend-data
+  - frontend-evaluation
+  - frontend-score
   - electron
   - loading-frontend
   - common
