@@ -19,25 +19,23 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 检出代码
+      - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: 设置Node.js环境
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-          
-      - name: 安装pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          
-      - name: 安装依赖
-        run: |
-          pnpm install
-          cd electron && pnpm install
-          
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+        
       - name: 安装Wine和依赖
         run: |
           sudo dpkg --add-architecture i386
