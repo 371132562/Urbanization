@@ -1,5 +1,5 @@
-import { UserOutlined, DatabaseOutlined } from '@ant-design/icons' // 导入图标
-import { Breadcrumb, Layout, Menu, MenuProps, Typography, Divider } from 'antd'
+import { DatabaseOutlined, UserOutlined } from '@ant-design/icons' // 导入图标
+import { Breadcrumb, Divider, Layout, Menu, MenuProps, Typography } from 'antd'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { Link, useLocation, useNavigate, useOutlet } from 'react-router'
@@ -88,10 +88,13 @@ export const Component: FC = () => {
   return (
     <Layout className="h-screen w-full bg-slate-50">
       {/* 深色商务风格头部 */}
-      <Header className="flex items-center justify-between px-6 py-0 shadow-lg" style={{ 
-        background: 'linear-gradient(90deg, #1f2937 0%, #374151 50%, #4b5563 100%)',
-        borderBottom: '2px solid #f59e0b'
-      }}>
+      <Header
+        className="flex items-center justify-between px-6 py-0 shadow-lg"
+        style={{
+          background: 'linear-gradient(90deg, #1f2937 0%, #374151 50%, #4b5563 100%)',
+          borderBottom: '2px solid #f59e0b'
+        }}
+      >
         {/* 左侧品牌区域 */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-3">
@@ -99,15 +102,18 @@ export const Component: FC = () => {
               <DatabaseOutlined className="text-2xl text-white" />
             </div>
             <div className="flex flex-col">
-              <Title level={4} className="!mb-0 !text-white">
-              城镇化发展质量打分管理平台
+              <Title
+                level={4}
+                className="!mb-0 !text-white"
+              >
+                城镇化发展质量打分管理平台
               </Title>
             </div>
           </div>
         </div>
 
         {/* 中间导航菜单 */}
-        <div className="flex-1 flex justify-center">
+        <div className="flex flex-1 justify-center">
           <Menu
             theme="dark"
             mode="horizontal"
@@ -115,7 +121,7 @@ export const Component: FC = () => {
             selectedKeys={topNavSelectedKey}
             onClick={handleMenuClick}
             className="border-none bg-transparent"
-            style={{ 
+            style={{
               background: 'transparent',
               borderBottom: 'none'
             }}
@@ -156,19 +162,17 @@ export const Component: FC = () => {
           {/* 内容区域 */}
           <Content className="!flex flex-grow flex-col p-6">
             {/* 面包屑导航 */}
-            <div className="mb-6 rounded-xl bg-white p-4 shadow-md border border-slate-200">
-              <Breadcrumb 
+            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-md">
+              <Breadcrumb
                 items={breadcrumbItems}
                 className="text-sm"
               />
             </div>
-            
+
             {/* 主要内容区域 */}
-            <div className="flex-grow overflow-hidden rounded-2xl bg-white shadow-xl border border-slate-200">
+            <div className="flex-grow overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
               <div className="h-full overflow-y-auto p-8">
-                <ErrorBoundary FallbackComponent={ErrorPage}>
-                  {outlet}
-                </ErrorBoundary>
+                <ErrorBoundary FallbackComponent={ErrorPage}>{outlet}</ErrorBoundary>
               </div>
             </div>
           </Content>

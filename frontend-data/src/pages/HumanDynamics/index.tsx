@@ -22,7 +22,7 @@ export const Component = () => {
   if (orderConfigLoading) {
     return (
       <div className="flex h-full items-center justify-center pt-20">
-        {/* 人性动力骨架屏 */}
+        {/* 人口迁徙动力骨架屏 */}
         <Skeleton.Input
           active
           style={{ width: 320, height: 48, borderRadius: 8 }}
@@ -36,7 +36,7 @@ export const Component = () => {
       <div className="flex h-full items-center justify-center pt-20">
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="人性动力暂无内容"
+          description="人口迁徙动力暂无内容"
         >
           <Button
             type="primary"

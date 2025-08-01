@@ -60,19 +60,19 @@ export const topRoutes: RouteItem[] = [
   // },
   // {
   //   path: '/humanDynamics',
-  //   title: '人性动力',
+  //   title: '人口迁徙动力',
   //   icon: <TeamOutlined />,
   //   component: HumanDynamics
   // },
   // {
   //   path: '/materialDynamics',
-  //   title: '物性动力',
+  //   title: '经济发展动力',
   //   icon: <GoldOutlined />,
   //   component: MaterialDynamics
   // },
   // {
   //   path: '/spatialDynamics',
-  //   title: '空间动力',
+  //   title: '空间发展动力',
   //   icon: <GlobalOutlined />,
   //   component: SpatialDynamics
   // }
@@ -179,7 +179,7 @@ export const sideRoutes: RouteItem[] = [
         component: WeightManagement
       }
     ]
-  },
+  }
   // {
   //   path: '/article',
   //   title: '文章管理',

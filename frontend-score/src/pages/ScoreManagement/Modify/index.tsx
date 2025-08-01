@@ -212,7 +212,7 @@ export const Component = () => {
               />
             </Form.Item>
             <Form.Item
-              label="人性动力维度评分"
+              label="人口迁徙动力维度评分"
               name="humanDynamicsDimensionScore"
               rules={[{ required: true, message: '请输入评分' }]}
             >
@@ -223,7 +223,7 @@ export const Component = () => {
               />
             </Form.Item>
             <Form.Item
-              label="物性动力维度评分"
+              label="经济发展动力维度评分"
               name="materialDynamicsDimensionScore"
               rules={[{ required: true, message: '请输入评分' }]}
             >
@@ -234,7 +234,7 @@ export const Component = () => {
               />
             </Form.Item>
             <Form.Item
-              label="空间动力维度评分"
+              label="空间发展动力维度评分"
               name="spatialDynamicsDimensionScore"
               rules={[{ required: true, message: '请输入评分' }]}
             >

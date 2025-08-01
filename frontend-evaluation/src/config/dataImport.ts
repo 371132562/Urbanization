@@ -287,15 +287,15 @@ export const SCORE_DIMENSIONS = [
     enName: 'urbanizationProcessDimensionScore'
   },
   {
-    cnName: '人性动力',
+    cnName: '人口迁徙动力',
     enName: 'humanDynamicsDimensionScore'
   },
   {
-    cnName: '物性动力',
+    cnName: '经济发展动力',
     enName: 'materialDynamicsDimensionScore'
   },
   {
-    cnName: '空间动力',
+    cnName: '空间发展动力',
     enName: 'spatialDynamicsDimensionScore'
   }
 ]

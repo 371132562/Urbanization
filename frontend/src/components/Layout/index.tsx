@@ -87,7 +87,9 @@ export const Component: FC = () => {
   return (
     <Layout className="h-screen w-full">
       <Header className="flex items-center px-6 text-white">
-        <div className="flex-shrink-0 text-xl font-bold text-white">城镇化发展质量评价技术示范平台</div>
+        <div className="flex-shrink-0 text-xl font-bold text-white">
+          城镇化发展质量评价技术示范平台
+        </div>
         <div className="flex-grow" />
         <Menu
           theme="dark"

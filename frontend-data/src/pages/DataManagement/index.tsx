@@ -249,7 +249,7 @@ const DataManagement = () => {
                 rowKey="id"
                 pagination={{
                   pageSize: 10,
-                  showSizeChanger: false,
+                  showSizeChanger: false
                 }}
                 scroll={{ x: 'max-content' }}
               />

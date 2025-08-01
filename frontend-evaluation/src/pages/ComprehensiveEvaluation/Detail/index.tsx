@@ -84,13 +84,13 @@ const ComprehensiveEvaluationDetail: FC = () => {
               <Descriptions.Item label="城镇化进程维度评分">
                 {detailData.urbanizationProcessDimensionScore}
               </Descriptions.Item>
-              <Descriptions.Item label="人性动力维度评分">
+              <Descriptions.Item label="人口迁徙动力维度评分">
                 {detailData.humanDynamicsDimensionScore}
               </Descriptions.Item>
-              <Descriptions.Item label="物性动力维度评分">
+              <Descriptions.Item label="经济发展动力维度评分">
                 {detailData.materialDynamicsDimensionScore}
               </Descriptions.Item>
-              <Descriptions.Item label="空间动力维度评分">
+              <Descriptions.Item label="空间发展动力维度评分">
                 {detailData.spatialDynamicsDimensionScore}
               </Descriptions.Item>
             </Descriptions>
