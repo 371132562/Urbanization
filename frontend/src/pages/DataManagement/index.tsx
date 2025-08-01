@@ -1,7 +1,18 @@
 /* 数据管理列表页 */
 import { useDebounce } from 'ahooks'
-import { Button, Collapse, Empty, Input, message, Popconfirm, Skeleton, Space, Table, Tag } from 'antd'
 import type { TableProps } from 'antd'
+import {
+  Button,
+  Collapse,
+  Empty,
+  Input,
+  message,
+  Popconfirm,
+  Skeleton,
+  Space,
+  Table,
+  Tag
+} from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -108,7 +119,7 @@ const DataManagement = () => {
         title: '数据完整性',
         dataIndex: 'isComplete',
         key: 'isComplete',
-             fixed: 'left',
+        fixed: 'left',
         width: 120,
         render: (isComplete: boolean) => (
           <Tag color={isComplete ? 'success' : 'warning'}>{isComplete ? '完整' : '部分缺失'}</Tag>
@@ -116,29 +127,31 @@ const DataManagement = () => {
       }
     ]
 
-    const indicatorColumns: TableProps<CountryData>['columns'] = DETAILED_INDICATORS.map(indicator => ({
-      title: indicator.cnName,
-      dataIndex: 'indicators',
-      key: indicator.enName,
-      width: 150,
-      render: (indicators: CountryData['indicators'] = []) => {
-        const foundIndicator = indicators.find(ind => ind.enName === indicator.enName)
-        const value = foundIndicator?.value
-        return value !== null && value !== undefined ? value : ''
-      },
-      sorter: (a, b) => {
-        const aIndicator = a.indicators?.find(i => i.enName === indicator.enName)
-        const bIndicator = b.indicators?.find(i => i.enName === indicator.enName)
-        const aValue = aIndicator?.value
-        const bValue = bIndicator?.value
+    const indicatorColumns: TableProps<CountryData>['columns'] = DETAILED_INDICATORS.map(
+      indicator => ({
+        title: indicator.cnName,
+        dataIndex: 'indicators',
+        key: indicator.enName,
+        width: 150,
+        render: (indicators: CountryData['indicators'] = []) => {
+          const foundIndicator = indicators.find(ind => ind.enName === indicator.enName)
+          const value = foundIndicator?.value
+          return value !== null && value !== undefined ? value : ''
+        },
+        sorter: (a, b) => {
+          const aIndicator = a.indicators?.find(i => i.enName === indicator.enName)
+          const bIndicator = b.indicators?.find(i => i.enName === indicator.enName)
+          const aValue = aIndicator?.value
+          const bValue = bIndicator?.value
 
-        if (aValue == null && bValue == null) return 0
-        if (aValue == null) return 1
-        if (bValue == null) return -1
+          if (aValue == null && bValue == null) return 0
+          if (aValue == null) return 1
+          if (bValue == null) return -1
 
-        return aValue - bValue
-      }
-    }))
+          return aValue - bValue
+        }
+      })
+    )
 
     const timeColumns: TableProps<CountryData>['columns'] = [
       {
@@ -169,7 +182,9 @@ const DataManagement = () => {
             <Button
               color="primary"
               variant="outlined"
-              onClick={() => navigate(`/dataManagement/modify/${record.id}/${dayjs(record.year).format('YYYY')}`)}
+              onClick={() =>
+                navigate(`/dataManagement/modify/${record.id}/${dayjs(record.year).format('YYYY')}`)
+              }
             >
               编辑
             </Button>

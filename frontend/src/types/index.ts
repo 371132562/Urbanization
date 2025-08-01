@@ -40,7 +40,7 @@ export type ContinentCountData = {
 export enum ExportFormat {
   XLSX = 'xlsx',
   CSV = 'csv',
-  JSON = 'json',
+  JSON = 'json'
 }
 
 /**
@@ -49,5 +49,5 @@ export enum ExportFormat {
 export const ExportFormatOptions = [
   { value: ExportFormat.CSV, label: 'CSV' },
   { value: ExportFormat.XLSX, label: 'XLSX (Excel)' },
-  { value: ExportFormat.JSON, label: 'JSON' },
-];
+  { value: ExportFormat.JSON, label: 'JSON' }
+]

@@ -1,4 +1,14 @@
-import { Button, DatePicker, Form, InputNumber, message, Skeleton, Space, Tooltip, Typography } from 'antd'
+import {
+  Button,
+  DatePicker,
+  Form,
+  InputNumber,
+  message,
+  Skeleton,
+  Space,
+  Tooltip,
+  Typography
+} from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
@@ -13,11 +23,22 @@ const { Title } = Typography
 const ModifyScoreSkeleton = () => (
   <div className="space-y-4">
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow">
-      <Skeleton active title={false} paragraph={{ rows: 2 }} />
-      <Skeleton.Input style={{ width: '100%', marginTop: '1rem' }} active />
+      <Skeleton
+        active
+        title={false}
+        paragraph={{ rows: 2 }}
+      />
+      <Skeleton.Input
+        style={{ width: '100%', marginTop: '1rem' }}
+        active
+      />
     </div>
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow">
-      <Skeleton active title={false} paragraph={{ rows: 8 }} />
+      <Skeleton
+        active
+        title={false}
+        paragraph={{ rows: 8 }}
+      />
     </div>
   </div>
 )
@@ -109,8 +130,6 @@ export const Component = () => {
 
   return (
     <div className="w-full max-w-7xl">
-    
-
       <div className="mb-4 rounded-lg bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-end justify-between">
           <div className="flex flex-wrap items-end gap-4">
@@ -144,7 +163,9 @@ export const Component = () => {
           </div>
           <Space>
             <Button onClick={() => navigate('/scoreManagement/list')}>返回</Button>
-            <Tooltip title={!isEdit && (!selectedCountry || !selectedYear) ? '请先选择国家和年份' : ''}>
+            <Tooltip
+              title={!isEdit && (!selectedCountry || !selectedYear) ? '请先选择国家和年份' : ''}
+            >
               <span>
                 <Button
                   type="primary"
@@ -160,7 +181,11 @@ export const Component = () => {
         </div>
       </div>
 
-      <Form form={form} layout="vertical" autoComplete="off">
+      <Form
+        form={form}
+        layout="vertical"
+        autoComplete="off"
+      >
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow">
           <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
             {/* Form Items */}
@@ -169,35 +194,55 @@ export const Component = () => {
               name="totalScore"
               rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入评分" precision={3} />
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder="请输入评分"
+                precision={3}
+              />
             </Form.Item>
             <Form.Item
               label="城镇化进程维度评分"
               name="urbanizationProcessDimensionScore"
               rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入评分"  precision={3}/>
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder="请输入评分"
+                precision={3}
+              />
             </Form.Item>
             <Form.Item
               label="人性动力维度评分"
               name="humanDynamicsDimensionScore"
               rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入评分"  precision={3}/>
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder="请输入评分"
+                precision={3}
+              />
             </Form.Item>
             <Form.Item
               label="物性动力维度评分"
               name="materialDynamicsDimensionScore"
               rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入评分"  precision={3}/>
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder="请输入评分"
+                precision={3}
+              />
             </Form.Item>
             <Form.Item
               label="空间动力维度评分"
               name="spatialDynamicsDimensionScore"
               rules={[{ required: true, message: '请输入评分' }]}
             >
-              <InputNumber style={{ width: '100%' }} placeholder="请输入评分"  precision={3}/>
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder="请输入评分"
+                precision={3}
+              />
             </Form.Item>
           </div>
         </div>

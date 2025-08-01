@@ -2,8 +2,9 @@ import { createBrowserRouter, Navigate, RouteObject } from 'react-router'
 
 import ErrorPage from '@/components/Error'
 import { Component as Layout } from '@/components/Layout'
-import { sideRoutes, topRoutes } from './router/routesConfig.tsx'
 import { RouteItem } from '@/types'
+
+import { sideRoutes, topRoutes } from './router/routesConfig.tsx'
 
 // 根据路由配置生成路由
 const generateRoutes = (): RouteObject[] => {

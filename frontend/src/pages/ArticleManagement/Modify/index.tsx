@@ -72,7 +72,6 @@ const ArticleModify: FC = () => {
    * @param values - antd Form 自动收集的表单值
    */
   const handleSave = async (values: { title: string; content: string }) => {
- 
     // 从 RichEditor ref 中获取图片列表
     if (!editorRef.current) {
       message.error('编辑器实例未准备好，请稍后再试')

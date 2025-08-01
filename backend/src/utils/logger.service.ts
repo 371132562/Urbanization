@@ -22,4 +22,4 @@ export class WinstonLoggerService implements LoggerService {
   verbose?(message: any, ...optionalParams: any[]) {
     winstonLogger.verbose(message, ...optionalParams);
   }
-} 
+}

@@ -31,13 +31,7 @@ export type WorldMapProps = {
   onMapClick?: (params: any) => void
 }
 
-const WorldMap: FC<WorldMapProps> = ({
-  data,
-  nameMap,
-  valueMap,
-  tooltipFormatter,
-  onMapClick
-}) => {
+const WorldMap: FC<WorldMapProps> = ({ data, nameMap, valueMap, tooltipFormatter, onMapClick }) => {
   // 用于引用 DOM 元素的 ref
   const chartRef = useRef<HTMLDivElement>(null)
   // 保存 ECharts 实例的 ref

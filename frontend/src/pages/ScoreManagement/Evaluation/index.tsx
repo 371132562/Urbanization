@@ -50,9 +50,17 @@ const ScoreEvaluationPage = () => {
   if (evaluationsLoading) {
     return (
       <div className="w-full max-w-4xl">
-        <Skeleton active title={{ width: '30%' }} paragraph={{ rows: 1 }} className="mb-8" />
+        <Skeleton
+          active
+          title={{ width: '30%' }}
+          paragraph={{ rows: 1 }}
+          className="mb-8"
+        />
         <Card>
-          <Skeleton active paragraph={{ rows: 4 }} />
+          <Skeleton
+            active
+            paragraph={{ rows: 4 }}
+          />
         </Card>
       </div>
     )
@@ -60,13 +68,20 @@ const ScoreEvaluationPage = () => {
 
   return (
     <div className="w-full max-w-4xl">
-      <Text type="secondary" className="mb-4 block">
+      <Text
+        type="secondary"
+        className="mb-4 block"
+      >
         定义不同的评分区间及其对应的评价文案。系统将根据综合评分匹配相应的评价，请确保区间连续且不重叠。
       </Text>
       <div className="mb-4 flex justify-end">
         <Space>
           <Button onClick={() => navigate('/scoreManagement/list')}>返回</Button>
-          <Button type="primary" onClick={() => form.submit()} loading={evaluationsSaveLoading}>
+          <Button
+            type="primary"
+            onClick={() => form.submit()}
+            loading={evaluationsSaveLoading}
+          >
             保存评价体系
           </Button>
         </Space>
@@ -85,7 +100,7 @@ const ScoreEvaluationPage = () => {
               {fields.map(({ key, name, ...restField }, index) => (
                 <Card
                   key={key}
-                  className="border-gray-200 transition-shadow hover:shadow-md !mb-4"
+                  className="!mb-4 border-gray-200 transition-shadow hover:shadow-md"
                   title={<Text strong>评价区间 {index + 1}</Text>}
                   extra={
                     fields.length > 1 ? (
@@ -135,7 +150,10 @@ const ScoreEvaluationPage = () => {
                     label="评价文案"
                     rules={[{ required: true, message: '请输入评价文案' }]}
                   >
-                    <TextArea rows={3} placeholder="请输入对该评分区间的详细评价..." />
+                    <TextArea
+                      rows={3}
+                      placeholder="请输入对该评分区间的详细评价..."
+                    />
                   </Form.Item>
                 </Card>
               ))}
@@ -156,4 +174,4 @@ const ScoreEvaluationPage = () => {
   )
 }
 
-export const Component = ScoreEvaluationPage 
+export const Component = ScoreEvaluationPage

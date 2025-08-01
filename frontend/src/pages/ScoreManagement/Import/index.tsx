@@ -1,5 +1,17 @@
 import { CheckCircleFilled, InboxOutlined } from '@ant-design/icons'
-import { Alert, Button, DatePicker, Form, message, Modal, Space, Steps, Table, Tag, Upload } from 'antd'
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Form,
+  message,
+  Modal,
+  Space,
+  Steps,
+  Table,
+  Tag,
+  Upload
+} from 'antd'
 import type { RcFile, UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
@@ -50,7 +62,10 @@ const ScoreImportPage = () => {
         <div className="flex items-center">
           <span className="mb-2">{text}</span>
           {record.isExisting && (
-            <Tag color="warning" className="ml-2">
+            <Tag
+              color="warning"
+              className="ml-2"
+            >
               已存在
             </Tag>
           )}
@@ -142,7 +157,11 @@ const ScoreImportPage = () => {
                 <p>以下国家在系统中未找到匹配项，这些行将被忽略：</p>
                 <div className="mt-2 max-h-48 overflow-y-auto">
                   {unmatchedCountries.map((name, index) => (
-                    <Tag color="error" key={index} className="m-1">
+                    <Tag
+                      color="error"
+                      key={index}
+                      className="m-1"
+                    >
                       {name}
                     </Tag>
                   ))}
@@ -239,7 +258,11 @@ const ScoreImportPage = () => {
           <div className="flex h-full items-center justify-center">
             <div className="w-full text-center">
               <Form layout="vertical">
-                <Form.Item label="第一步：请选择数据对应的年份" required className="mx-auto max-w-xs">
+                <Form.Item
+                  label="第一步：请选择数据对应的年份"
+                  required
+                  className="mx-auto max-w-xs"
+                >
                   <DatePicker
                     picker="year"
                     size="large"
@@ -284,7 +307,12 @@ const ScoreImportPage = () => {
             </p>
             <Space className="mb-4 flex w-full justify-end">
               <Button onClick={handleReUpload}>重新上传</Button>
-              <Button type="primary" onClick={handleImport} loading={isImporting} disabled={isImporting}>
+              <Button
+                type="primary"
+                onClick={handleImport}
+                loading={isImporting}
+                disabled={isImporting}
+              >
                 {isImporting ? '正在导入...' : '确认并导入'}
               </Button>
             </Space>
@@ -322,7 +350,11 @@ const ScoreImportPage = () => {
                           </p>
                           <div className="max-h-24 overflow-y-auto">
                             {importResult.failedCountries.map(name => (
-                              <Tag color="error" key={name} className="m-1">
+                              <Tag
+                                color="error"
+                                key={name}
+                                className="m-1"
+                              >
                                 {name}
                               </Tag>
                             ))}
@@ -335,10 +367,17 @@ const ScoreImportPage = () => {
                 />
               )}
               <Space className="flex justify-center">
-                <Button size="large" onClick={handleReUpload}>
+                <Button
+                  size="large"
+                  onClick={handleReUpload}
+                >
                   重新上传
                 </Button>
-                <Button type="primary" size="large" onClick={() => navigate('/scoreManagement/list')}>
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={() => navigate('/scoreManagement/list')}
+                >
                   返回评分列表
                 </Button>
               </Space>
@@ -350,4 +389,4 @@ const ScoreImportPage = () => {
   )
 }
 
-export const Component = ScoreImportPage 
+export const Component = ScoreImportPage

@@ -74,8 +74,8 @@ const ArticleManagement: React.FC = () => {
             cancelText="取消"
           >
             <Button
-            color="danger"
-            variant="outlined"
+              color="danger"
+              variant="outlined"
             >
               删除
             </Button>

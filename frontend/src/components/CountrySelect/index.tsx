@@ -1,8 +1,8 @@
 /* 全部国家选择器 */
 import { Select, Skeleton } from 'antd'
+import type { SelectProps } from 'antd/es/select'
 import { useEffect, useMemo } from 'react'
 import type { Country, CountryData, CountryWithContinentDto } from 'urbanization-backend/types/dto'
-import type { SelectProps } from 'antd/es/select'
 
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 
@@ -16,7 +16,10 @@ const { Option, OptGroup } = Select
  */
 type CountrySelectProps = {
   options?: (Country | CountryData)[] // 外部传入的国家选项
-} & Omit<SelectProps, 'options' | 'value' | 'onChange' | 'mode' | 'placeholder' | 'style' | 'disabled'>
+} & Omit<
+  SelectProps,
+  'options' | 'value' | 'onChange' | 'mode' | 'placeholder' | 'style' | 'disabled'
+>
 
 const CountrySelect: React.FC<CountrySelectProps & SelectProps> = ({
   value,

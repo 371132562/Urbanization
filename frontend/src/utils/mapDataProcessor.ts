@@ -6,10 +6,10 @@
  */
 
 import type {
-  UrbanizationWorldMapDataDto,
+  CountryListResDto,
   CountryScoreData,
   CountryScoreDataItem,
-  CountryListResDto
+  UrbanizationWorldMapDataDto
 } from 'urbanization-backend/types/dto'
 
 import type { WorldMapProps } from '@/components/WorldMap'

@@ -1,5 +1,17 @@
 import { CheckCircleFilled, InboxOutlined } from '@ant-design/icons'
-import { Alert, Button, DatePicker, Form, message, Modal, Space, Steps, Table, Tag, Upload } from 'antd'
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Form,
+  message,
+  Modal,
+  Space,
+  Steps,
+  Table,
+  Tag,
+  Upload
+} from 'antd'
 import type { RcFile, UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
@@ -224,7 +236,11 @@ const DataImportPage = () => {
                 <p>以下国家在系统中未找到匹配项，这些行将被忽略：</p>
                 <div className="mt-2 max-h-48 overflow-y-auto">
                   {unmatchedCountries.map((name, index) => (
-                    <Tag color="error" key={index} className="m-1">
+                    <Tag
+                      color="error"
+                      key={index}
+                      className="m-1"
+                    >
                       {name}
                     </Tag>
                   ))}

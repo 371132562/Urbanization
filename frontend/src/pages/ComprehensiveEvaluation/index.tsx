@@ -79,7 +79,7 @@ const ComprehensiveEvaluation: FC = () => {
       </div>
 
       {/* 右侧信息展示容器 */}
-      <div className="w-[400px] flex-shrink-0 rounded-md border p-6 border-gray-200">
+      <div className="w-[400px] flex-shrink-0 rounded-md border border-gray-200 p-6">
         {listLoading ? (
           <Skeleton
             active
@@ -119,9 +119,7 @@ const ComprehensiveEvaluation: FC = () => {
                     )
                   }
                 >
-                  <Tag className="w-full cursor-pointer text-center !py-2 !text-base">
-                    {year}
-                  </Tag>
+                  <Tag className="w-full cursor-pointer !py-2 text-center !text-base">{year}</Tag>
                 </List.Item>
               )}
               grid={{ gutter: 12, column: 3 }}

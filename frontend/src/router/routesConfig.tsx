@@ -14,26 +14,25 @@ import {
 import { Component as ArticleManagement } from '@/pages/ArticleManagement'
 import { Component as ModifyArticle } from '@/pages/ArticleManagement/Modify'
 import { Component as OrderConfig } from '@/pages/ArticleManagement/OrderConfig'
-
+import { Component as ComprehensiveEvaluation } from '@/pages/ComprehensiveEvaluation'
+import { Component as ComprehensiveEvaluationDetail } from '@/pages/ComprehensiveEvaluation/Detail'
 import { Component as DataManagement } from '@/pages/DataManagement'
 import { Component as ExportData } from '@/pages/DataManagement/Export'
 import { Component as ImportData } from '@/pages/DataManagement/Import'
 import { Component as ModifyData } from '@/pages/DataManagement/Modify'
 import { Component as EvaluationModel } from '@/pages/EvaluationModel'
+import { Component as WeightManagement } from '@/pages/EvaluationModel/WeightManagement'
+import { Component as Home } from '@/pages/Home'
+import { Component as HumanDynamics } from '@/pages/HumanDynamics'
 import { Component as MapEdit } from '@/pages/Map/MapEdit'
 import { Component as UrbanizationRate } from '@/pages/Map/UrbanizationRate'
-import { Component as Home } from '@/pages/Home'
-import { Component as ComprehensiveEvaluation } from '@/pages/ComprehensiveEvaluation'
-import { Component as ComprehensiveEvaluationDetail } from '@/pages/ComprehensiveEvaluation/Detail'
-import { Component as HumanDynamics } from '@/pages/HumanDynamics'
 import { Component as MaterialDynamics } from '@/pages/MaterialDynamics'
+import { Component as ScoreManagement } from '@/pages/ScoreManagement'
+import { Component as ScoreEvaluation } from '@/pages/ScoreManagement/Evaluation'
+import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
+import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
 import { Component as SpatialDynamics } from '@/pages/SpatialDynamics'
 import { Component as UrbanizationProcess } from '@/pages/UrbanizationProcess'
-import { Component as ScoreManagement } from '@/pages/ScoreManagement'
-import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
-import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
-import { Component as ScoreEvaluation } from '@/pages/ScoreManagement/Evaluation'
-import { Component as WeightManagement } from '@/pages/EvaluationModel/WeightManagement'
 import { RouteItem } from '@/types'
 
 // 顶部导航菜单配置
@@ -172,9 +171,9 @@ export const sideRoutes: RouteItem[] = [
       {
         path: '/evaluationModel/weight',
         title: '权重管理',
-        component: WeightManagement,
-      },
-    ],
+        component: WeightManagement
+      }
+    ]
   },
   {
     path: '/article',

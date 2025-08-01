@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import type {
   CheckExistingDataResDto,
   CountryDetailReqDto,
@@ -178,12 +179,12 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     set({
       detailData: {
         countryId: '',
-        year: new Date(), // 使用当前时间作为默认年份
+        year: dayjs().month(5).date(1).toDate(), // 使用当前时间作为默认年份
         indicators: initialIndicators,
         isComplete: false
       }
     })
-  },
+  }
 }))
 
 export default useDataManagementStore
