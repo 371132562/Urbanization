@@ -66,12 +66,3 @@ jobs:
           name: electron-release-files
           path: electron/release/
           retention-days: 30
-          
-      - name: 创建Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: electron/release/*
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
