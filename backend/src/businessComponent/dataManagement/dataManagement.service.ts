@@ -101,7 +101,7 @@ export class DataManagementService {
     const result: DataManagementListDto = [];
     for (const [year, countryMap] of groupedByCountryYear.entries()) {
       const yearData: YearData = {
-        year: dayjs().year(year).startOf('year').toDate(),
+        year: dayjs().year(year).month(5).date(1).toDate(),
         data: [],
       };
       for (const [countryId, values] of countryMap.entries()) {
@@ -134,7 +134,7 @@ export class DataManagementService {
           id: countryId,
           cnName,
           enName,
-          year: dayjs(values[0].year).startOf('year').toDate(),
+          year: dayjs(values[0].year).month(5).date(1).toDate(),
           isComplete,
           indicators,
           createTime,
@@ -162,7 +162,7 @@ export class DataManagementService {
     // 步骤1: 准备参数和基础数据
     const { countryId, year, indicators } = data;
     // 统一使用dayjs处理年份，只保留年份信息
-    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearDate = dayjs(year).month(5).date(1).toDate();
     const yearValue = dayjs(yearDate).year();
 
     this.logger.log(
@@ -264,7 +264,7 @@ export class DataManagementService {
     // 步骤1: 准备参数和基础数据
     const { countryId, year } = params;
     // 统一使用dayjs处理年份，只保留年份信息，忽略月日和具体时间
-    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearDate = dayjs(year).month(5).date(1).toDate();
     const yearValue = dayjs(yearDate).year();
 
     this.logger.log(
@@ -438,7 +438,7 @@ export class DataManagementService {
    */
   async delete(params: CountryYearQueryDto): Promise<{ count: number }> {
     const { countryId, year } = params;
-    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearDate = dayjs(year).month(5).date(1).toDate();
     const yearValue = dayjs(yearDate).year();
 
     this.logger.log(
@@ -490,7 +490,7 @@ export class DataManagementService {
   ): Promise<CheckExistingDataResDto> {
     const { countryId, year } = params;
     // 统一使用dayjs处理年份，只保留年份信息
-    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearDate = dayjs(year).month(5).date(1).toDate();
     const yearValue = dayjs(yearDate).year();
 
     this.logger.log(
@@ -542,7 +542,7 @@ export class DataManagementService {
     params: ExportDataReqDto,
   ): Promise<{ buffer: Buffer; mime: string; fileName: string }> {
     const { year, countryIds, format } = params;
-    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearDate = dayjs(year).month(5).date(1).toDate();
     const yearValue = dayjs(yearDate).year();
 
     this.logger.log(

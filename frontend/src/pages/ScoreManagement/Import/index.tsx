@@ -112,7 +112,7 @@ const ScoreImportPage = () => {
           if (countryMatch) {
             const { exists } = await checkScoreExistingData({
               countryId: countryMatch.id,
-              year: dayjs(importYear!.toString()).toDate()
+              year: dayjs(importYear!.toString()).month(5).date(1).toDate()
             })
 
             const rowData: PreviewRow = {
@@ -185,7 +185,7 @@ const ScoreImportPage = () => {
     const importPromises = previewData.map(async row => {
       const payload: any = {
         countryId: row.countryId,
-        year: dayjs(importYear!.toString()).toDate()
+        year: dayjs(importYear!.toString()).month(5).date(1).toDate()
       }
       SCORE_DIMENSIONS.forEach(dim => {
         const rawValue = row[dim.enName]

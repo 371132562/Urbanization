@@ -187,7 +187,7 @@ const DataImportPage = () => {
             // 对于匹配到的国家，调用后端接口异步检查该年份是否已有数据，以便在预览中标记
             const isExisting = await checkDataManagementExistingData({
               countryId: countryMatch.id,
-              year: dayjs(importYear!.toString()).toDate()
+              year: dayjs(importYear!.toString()).month(5).date(1).toDate()
             })
 
             // 构建预览表格行数据的基础结构
@@ -306,7 +306,7 @@ const DataImportPage = () => {
       // 2b. 构造单条国家数据的完整负载
       const payload = {
         countryId: row.countryId,
-        year: dayjs(importYear!.toString()).toDate(),
+        year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
         indicators: indicatorsPayload
       }
 

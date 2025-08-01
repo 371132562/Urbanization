@@ -260,7 +260,7 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
         continue;
       }
       // 将年份转换为 Date 对象，例如：2023 -> new Date('2023-01-01')
-      const yearDate = dayjs(countryData.year.toString()).startOf('year').toDate();
+      const yearDate = dayjs(countryData.year.toString()).month(5).date(1).toDate();
 
       // 步骤 2.3: 在将数据添加到待创建列表前，检查其唯一性。
       // 使用与上面 `existingValuesSet` 相同的格式创建唯一标识符。

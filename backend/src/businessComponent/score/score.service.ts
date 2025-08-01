@@ -75,7 +75,7 @@ export class ScoreService {
     const result: ScoreListDto = [];
     for (const [year, yearScores] of groupedByYear.entries()) {
       const yearData: YearScoreData = {
-        year: dayjs().year(year).startOf('year').toDate(), // 将年份数字转换为 Date 对象
+        year: dayjs().year(year).month(5).date(1).toDate(), // 将年份数字转换为 Date 对象
         // 遍历当年的所有评分记录，并将其映射为 DTO 格式
         data: yearScores.map((score) => {
           const s = score as Score & { country: Country };
@@ -233,8 +233,8 @@ export class ScoreService {
       materialDynamicsDimensionScore,
       spatialDynamicsDimensionScore,
     } = data;
-    // 标准化年份为 Date 对象 (取年份的开始)
-    const yearDate = dayjs(year).startOf('year').toDate();
+    // 标准化年份为 Date 对象 (取年份的6月1日)
+    const yearDate = dayjs(year).month(5).date(1).toDate();
 
     // 2. 验证关联的国家是否存在且未被删除
     const country = await this.prisma.country.findFirst({
@@ -299,7 +299,7 @@ export class ScoreService {
    */
   async detail(params: ScoreDetailReqDto): Promise<Score> {
     const { countryId, year } = params;
-    const yearDate = dayjs(year).startOf('year').toDate(); // 标准化年份
+    const yearDate = dayjs(year).month(5).date(1).toDate(); // 标准化年份
 
     // 查询特定国家和年份的评分记录
     const score = await this.prisma.score.findFirst({
@@ -328,7 +328,7 @@ export class ScoreService {
     params: ScoreDetailReqDto,
   ): Promise<CheckExistingDataResDto> {
     const { countryId, year } = params;
-    const yearDate = dayjs(year).startOf('year').toDate();
+    const yearDate = dayjs(year).month(5).date(1).toDate();
 
     const count = await this.prisma.score.count({
       where: {

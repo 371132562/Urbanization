@@ -118,7 +118,7 @@ export const Component = () => {
     if (isEdit) {
       getDataManagementDetail({
         countryId,
-        year: dayjs(year, 'YYYY').startOf('year').toDate()
+        year: dayjs(year, 'YYYY').month(5).date(1).toDate()
       })
     } else {
       // 新建模式下，使用获取到的指标层级来初始化detailData
@@ -203,7 +203,7 @@ export const Component = () => {
 
       const dataToSave: CreateIndicatorValuesDto = {
         countryId: selectedCountry,
-        year: selectedYear.startOf('year').toDate(),
+        year: selectedYear.month(5).date(1).toDate(),
         indicators: indicatorsToSave
       }
 
@@ -211,7 +211,7 @@ export const Component = () => {
         // 新建模式下，检查数据是否存在
         const { exists } = await checkDataManagementExistingData({
           countryId: selectedCountry,
-          year: selectedYear.startOf('year').toDate()
+          year: selectedYear.month(5).date(1).toDate()
         })
 
         if (exists) {

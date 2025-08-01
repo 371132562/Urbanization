@@ -49,7 +49,7 @@ export const Component = () => {
     if (isEdit) {
       getScoreDetail({
         countryId,
-        year: dayjs(year, 'YYYY').startOf('year').toDate()
+        year: dayjs(year, 'YYYY').month(5).date(1).toDate()
       })
     } else {
       initializeNewData()
@@ -82,7 +82,7 @@ export const Component = () => {
 
       const dataToSave: CreateScoreDto = {
         countryId: selectedCountry,
-        year: selectedYear.startOf('year').toDate(),
+        year: selectedYear.month(5).date(1).toDate(),
         totalScore: values.totalScore,
         urbanizationProcessDimensionScore: values.urbanizationProcessDimensionScore,
         humanDynamicsDimensionScore: values.humanDynamicsDimensionScore,

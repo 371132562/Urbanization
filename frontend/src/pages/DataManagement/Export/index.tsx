@@ -49,7 +49,7 @@ const DataExport = () => {
   }, [selectedYear, dataManagementList])
 
   const handleYearChange = (yearString: string) => {
-    const year = dayjs(yearString).toDate()
+    const year = dayjs(yearString).month(5).date(1).toDate()
     setSelectedYear(year)
     form.setFieldsValue({ countryIds: [] }) // 年份变化时清空已选国家
   }
