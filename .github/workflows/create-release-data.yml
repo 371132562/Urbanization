@@ -8,11 +8,6 @@ on:
   push:
     branches:
       - master
-    paths:
-      - 'frontend-data/**'
-      - 'backend/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
 
 # 并发控制：自动取消旧的、正在进行中的工作流
 concurrency:
