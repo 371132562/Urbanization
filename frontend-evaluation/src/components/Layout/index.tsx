@@ -106,7 +106,7 @@ export const Component: FC = () => {
                 level={4}
                 className="!mb-0 !text-white"
               >
-                城镇化评估系统
+                城镇化发展质量评价模型展示平台
               </Title>
               <div className="text-xs text-blue-100">Urbanization Evaluation Platform</div>
             </div>
@@ -183,13 +183,8 @@ export const Component: FC = () => {
             <div className="flex items-center justify-center space-x-6 text-sm text-blue-600">
               <div className="flex items-center space-x-2">
                 <BarChartOutlined className="text-blue-500" />
-                <span className="font-medium">城镇化评估系统</span>
+                <span className="font-medium">城镇化发展质量评价模型展示平台</span>
               </div>
-              <Divider
-                type="vertical"
-                className="!border-blue-200"
-              />
-              <div>技术支持：1234567890</div>
             </div>
           </Footer>
         </Layout>

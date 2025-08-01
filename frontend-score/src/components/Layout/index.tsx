@@ -100,7 +100,7 @@ export const Component: FC = () => {
             </div>
             <div className="flex flex-col">
               <Title level={4} className="!mb-0 !text-white">
-                城镇化评分系统
+              城镇化发展质量打分管理平台
               </Title>
             </div>
           </div>
@@ -178,10 +178,8 @@ export const Component: FC = () => {
             <div className="flex items-center justify-center space-x-6 text-sm text-slate-600">
               <div className="flex items-center space-x-2">
                 <DatabaseOutlined className="text-amber-500" />
-                <span className="font-medium">城镇化评分系统</span>
+                <span className="font-medium">城镇化发展质量打分管理平台</span>
               </div>
-              <Divider type="vertical" className="!border-slate-300" />
-              <div>技术支持：1234567890</div>
             </div>
           </Footer>
         </Layout>

@@ -105,7 +105,7 @@ export const Component: FC = () => {
               level={4}
               className="!mb-0 !text-white"
             >
-              世界城镇化分析平台
+              城镇化发展质量数据管理平台
             </Title>
           </div>
         </div>
@@ -183,10 +183,8 @@ export const Component: FC = () => {
             <div className="flex items-center justify-center space-x-8 text-sm text-gray-600">
               <div className="flex items-center space-x-2">
                 <GlobalOutlined className="text-blue-500" />
-                <span>世界城镇化分析平台</span>
+                <span>城镇化发展质量数据管理平台</span>
               </div>
-              <div className="h-4 w-px bg-gray-300"></div>
-              <div>技术支持：1234567890</div>
             </div>
           </Footer>
         </Layout>
