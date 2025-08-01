@@ -13,7 +13,7 @@ export const Component = () => {
 
   useEffect(() => {
     getArticlesByPage('home')
-  }, [getArticlesByPage])
+  }, []) // 移除 getArticlesByPage 依赖项，因为它在 store 中是稳定的
 
   const goToConfig = () => {
     navigate('/article/list')
@@ -50,7 +50,7 @@ export const Component = () => {
   }
 
   return (
-    <div className="min-h-full">
+    <div className="w-full max-w-7xl">
       <ArticleDisplay articles={pageArticles} />
     </div>
   )

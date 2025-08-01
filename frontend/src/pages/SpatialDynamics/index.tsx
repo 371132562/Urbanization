@@ -13,7 +13,7 @@ export const Component = () => {
 
   useEffect(() => {
     getArticlesByPage('spatialDynamics')
-  }, [getArticlesByPage])
+  }, [])
 
   const goToConfig = () => {
     navigate('/article/list')
@@ -50,7 +50,7 @@ export const Component = () => {
   }
 
   return (
-    <div className="min-h-full">
+    <div className="w-full max-w-7xl">
       <ArticleDisplay articles={pageArticles} />
     </div>
   )

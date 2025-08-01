@@ -75,9 +75,10 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
     useEffect(() => {
       // 使用 Set 来合并初始图片和当前已插入的图片，并自动去重
       // 这可以确保在编辑模式下，从详情加载的图片被正确追踪
-      setAllInsertedImages(prev => [...new Set([...prev, ...initialImages])]);
-    }, [initialImages]);
-
+      if (!readOnly) {
+        setAllInsertedImages(prev => [...new Set([...prev, ...initialImages])])
+      }
+    }, [initialImages])
 
     // --- 编辑器配置 ---
 
@@ -190,7 +191,10 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
 
     return (
       // 编辑器容器，设置边框和 z-index 以保证工具栏在页面上正常显示
-      <div style={{ border: '1px solid #ccc', zIndex: 100 }} className="rounded-md overflow-hidden">
+      <div
+        style={{ border: '1px solid #ccc', zIndex: 100 }}
+        className="overflow-hidden rounded-md"
+      >
         {/* 工具栏 */}
         {!readOnly && (
           <Toolbar

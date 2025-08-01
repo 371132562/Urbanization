@@ -35,7 +35,7 @@ export const Component: React.FC = () => {
 
   useEffect(() => {
     getIndicatorHierarchy()
-  }, [getIndicatorHierarchy])
+  }, [])
 
   const findAndUpdateWeight = (
     items: IndicatorItem[],
