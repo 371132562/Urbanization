@@ -58,6 +58,9 @@ jobs:
       - name: 重命名docker-compose文件
         run: cp docker-compose.data.yml docker-compose.yml
 
+      - name: 重命名start脚本
+        run: cp start-data.ps1 start.ps1
+
       - name: 打包发布文件
         run: |
           zip urbanization.zip docker-compose.yml 使用说明.txt \

@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: urbanization-data
     #    build:
     #      context: . # 指定 Dockerfile 所在的目录为当前目录
     #      dockerfile: Dockerfile.data # 指定 Dockerfile 的名称

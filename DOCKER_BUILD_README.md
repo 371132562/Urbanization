@@ -12,9 +12,15 @@
 
 ### Docker Compose 文件
 - `docker-compose.yml` - 原始配置（向后兼容）
-- `docker-compose.data.yml` - 数据管理客户端配置（端口3333）
-- `docker-compose.score.yml` - 评分管理客户端配置（端口3334）
-- `docker-compose.evaluation.yml` - 评估管理客户端配置（端口3335）
+- `docker-compose.data.yml` - 数据管理客户端配置（端口3333，容器名urbanization-data）
+- `docker-compose.score.yml` - 评分管理客户端配置（端口3334，容器名urbanization-score）
+- `docker-compose.evaluation.yml` - 评估管理客户端配置（端口3335，容器名urbanization-evaluation）
+
+### 启动脚本文件
+- `start.ps1` - 原始启动脚本（向后兼容）
+- `start-data.ps1` - 数据管理客户端启动脚本
+- `start-score.ps1` - 评分管理客户端启动脚本
+- `start-evaluation.ps1` - 评估管理客户端启动脚本
 
 ### GitHub 工作流文件
 - `.github/workflows/create-release.yml` - 原始工作流（向后兼容）
@@ -45,11 +51,11 @@
 - `frontend-evaluation/**` - 评估管理项目变更
 - `backend/**` - 后端变更（所有项目都会触发）
 
-### 4. 端口和卷隔离
-每个项目使用独立的端口和数据卷：
-- 数据管理：端口3336，卷db_data
-- 评分管理：端口3334，卷db_score
-- 评估管理：端口3335，卷db_evaluation
+### 4. 端口、卷和容器隔离
+每个项目使用独立的端口、数据卷和容器名称：
+- 数据管理：端口3333，卷db_data，容器urbanization-data
+- 评分管理：端口3334，卷db_score，容器urbanization-score
+- 评估管理：端口3335，卷db_evaluation，容器urbanization-evaluation
 
 ## 🚀 使用方法
 
@@ -112,4 +118,7 @@ docker-compose -f docker-compose.evaluation.yml up -d
 4. **版本标签**：不同项目使用不同的版本标签前缀（release-data-、release-score-、release-evaluation-）
 5. **端口隔离**：不同项目使用不同端口，避免冲突
 6. **数据卷隔离**：每个项目使用独立的数据卷，数据互不干扰
-7. **文件重命名**：GitHub工作流会自动将对应的docker-compose文件重命名为docker-compose.yml，确保start脚本无需修改 
+7. **文件重命名**：GitHub工作流会自动将对应的docker-compose和start脚本文件重命名，确保用户使用体验一致
+8. **容器隔离**：每个项目使用不同的容器名称，避免与原始urbanization容器冲突
+9. **依赖处理**：Dockerfile中正确处理了前端对后端workspace依赖的关系
+10. **环境变量**：构建时设置了必要的环境变量（NODE_ENV、VITE_APP_TITLE） 
