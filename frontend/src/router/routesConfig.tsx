@@ -169,6 +169,11 @@ export const sideRoutes: RouteItem[] = [
     icon: <CalculatorOutlined />,
     children: [
       {
+        path: '/evaluationModel/introduction',
+        title: '模型介绍',
+        component: EvaluationModel
+      },
+      {
         path: '/evaluationModel/weight',
         title: '权重管理',
         component: WeightManagement
