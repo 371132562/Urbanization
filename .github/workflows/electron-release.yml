@@ -19,21 +19,21 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
+      - name: 设置pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - name: Setup Node.js
+      - name: 设置Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: pnpm install
         
       - name: 安装Wine和依赖
@@ -42,9 +42,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y wine wine32 wine64 libwine-dev fonts-wine
           sudo apt-get install -y mono-complete
-          
-      - name: 安装electron-builder
-        run: npm install -g electron-builder
         
       - name: 设置虚拟显示环境
         run: |
@@ -63,6 +60,6 @@ jobs:
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: electron-release-files
+          name: Urbanization-Desktop
           path: electron/release/win-unpacked
           retention-days: 30

@@ -74,7 +74,10 @@ const checkAndFreePort = port => {
 
             // 安全检查：确保不会杀死自己的进程或父进程
             if (parseInt(pid) === currentPID || parseInt(pid) === process.ppid) {
-              showDebugDialog('端口检查', `检测到端口 ${port} 被当前应用占用 (PID: ${pid})，跳过杀死进程操作`)
+              showDebugDialog(
+                '端口检查',
+                `检测到端口 ${port} 被当前应用占用 (PID: ${pid})，跳过杀死进程操作`
+              )
               log.info(`检测到端口 ${port} 被当前应用占用 (PID: ${pid})，跳过杀死进程操作`)
               resolve(true)
               return
@@ -107,7 +110,10 @@ const checkAndFreePort = port => {
 
                 // 安全检查：确保不会杀死自己的进程或父进程
                 if (pidNum === currentPID || pidNum === process.ppid) {
-                  showDebugDialog('端口检查', `检测到端口 ${port} 被当前应用占用 (PID: ${pid})，跳过杀死进程操作`)
+                  showDebugDialog(
+                    '端口检查',
+                    `检测到端口 ${port} 被当前应用占用 (PID: ${pid})，跳过杀死进程操作`
+                  )
                   log.info(`检测到端口 ${port} 被当前应用占用 (PID: ${pid})，跳过杀死进程操作`)
                   return
                 }
@@ -192,14 +198,18 @@ function runMigrations() {
   log.info(`准备使用spawn执行Prisma迁移`)
 
   try {
-    // 使用spawn而不是fork来避免启动新的应用实例
-    const migrationProcess = spawn('node', [prismaCliPath, 'migrate', 'deploy', `--schema=${schemaPath}`], {
-      env: {
-        ...migrationEnv,
-        IS_PRISMA_SPAWN: 'true' // 标记为Prisma迁移进程
-      },
-      stdio: 'pipe' // 捕获子进程的输出
-    })
+    // 使用Electron自带的Node.js运行时，而不是依赖系统安装的node
+    const migrationProcess = spawn(
+      process.execPath,
+      [prismaCliPath, 'migrate', 'deploy', `--schema=${schemaPath}`],
+      {
+        env: {
+          ...migrationEnv,
+          IS_PRISMA_SPAWN: 'true' // 标记为Prisma迁移进程
+        },
+        stdio: 'pipe' // 捕获子进程的输出
+      }
+    )
 
     // 处理迁移进程的输出
     migrationProcess.stdout?.on('data', data => {
@@ -226,8 +236,8 @@ function runMigrations() {
         const seedPath = path.join(backendPath, 'prisma', 'seed.js')
 
         try {
-          // 使用spawn执行seed脚本
-          const seedProcess = spawn('node', [seedPath], {
+          // 使用Electron自带的Node.js运行时执行seed脚本
+          const seedProcess = spawn(process.execPath, [seedPath], {
             env: {
               ...migrationEnv,
               IS_PRISMA_SPAWN: 'true' // 标记为Prisma进程
@@ -354,7 +364,7 @@ const startNestService = () => {
   showDebugDialog('NestJS服务', `正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
   log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
 
-  nestProcess = spawn('node', [nestAppPath], {
+  nestProcess = spawn(process.execPath, [nestAppPath], {
     // 将数据库、上传和日志目录的路径作为环境变量传递给 NestJS 子进程
     env: {
       ...process.env,
@@ -400,7 +410,7 @@ const startNestService = () => {
 
 app.whenReady().then(async () => {
   showDebugDialog('应用启动', 'Electron应用已准备就绪，开始初始化...')
-  
+
   // 在启动服务前检查并释放端口
   showDebugDialog('端口检查', `检查端口 ${nestPort} 是否被占用...`)
   log.info(`检查端口 ${nestPort} 是否被占用...`)
@@ -408,10 +418,10 @@ app.whenReady().then(async () => {
 
   showDebugDialog('应用启动', '开始执行数据库迁移...')
   runMigrations() // 在启动后端服务前执行数据库迁移
-  
+
   showDebugDialog('应用启动', '开始启动NestJS服务...')
   startNestService()
-  
+
   showDebugDialog('应用启动', '开始探测NestJS服务...')
   tryConnect() // 开始探测 NestJS 服务
 
