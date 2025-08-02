@@ -4,6 +4,7 @@
 // 指定生成器，这里是 Prisma Client for JavaScript
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary" // 考虑此选项用于 Electron 部署
 }
 
 // 定义数据源，这里使用 SQLite

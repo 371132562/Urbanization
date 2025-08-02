@@ -8,6 +8,7 @@
     "build:generate": "pnpm --filter ../backend generate",
     "build:backend": "pnpm --filter ../backend build",
     "build": "rm -rf ./release && pnpm build:frontend && pnpm build:generate && pnpm build:backend && electron-builder --win",
+    "postinstall": "electron-builder install-app-deps",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -84,6 +85,11 @@
         "from": "../pnpm-workspace.yaml",
         "to": "pnpm-workspace.yaml"
       }
+    ],
+    "asarUnpack": [
+      "**/*.node",
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/@prisma/engines/**/*"
     ],
     "mac": {
       "target": "zip"
