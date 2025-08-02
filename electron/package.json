@@ -41,16 +41,36 @@
         "to": "backend/prisma"
       },
       {
+        "from": "../backend/types",
+        "to": "backend/types"
+      },
+      {
         "from": "../backend/node_modules",
         "to": "backend/node_modules"
+      },
+      {
+        "from": "../backend/package.json",
+        "to": "backend/package.json"
+      },
+      {
+        "from": "../frontend/dist",
+        "to": "frontend/dist"
       },
       {
         "from": "../node_modules",
         "to": "node_modules"
       },
       {
-        "from": "../frontend/dist",
-        "to": "frontend/dist"
+        "from": "../pnpm-lock.yaml",
+        "to": "pnpm-lock.yaml"
+      },
+      {
+        "from": "../package.json",
+        "to": "package.json"
+      },
+      {
+        "from": "../pnpm-workspace.yaml",
+        "to": "pnpm-workspace.yaml"
       }
     ],
     "mac": {
