@@ -40,7 +40,7 @@ const showDebugDialog = (title, message) => {
 }
 
 // 将日志文件配置到应用的用户数据目录中
-log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs/main.log')
+log.transports.file.resolvePathFn = () => path.join(process.resourcesPath, 'main.log')
 
 /**
  * 检测指定端口是否被占用，如果被占用则尝试杀死占用该端口的进程
