@@ -406,6 +406,8 @@ const startNestService = () => {
 
 app.whenReady().then(async () => {
   showDebugDialog('应用启动', 'Electron应用已准备就绪，开始初始化...')
+  log.info('Node modules path:', require.resolve('tslib'))
+  log.info('Prisma client path:', require.resolve('@prisma/client'))
 
   // 在启动服务前检查并释放端口
   showDebugDialog('端口检查', `检查端口 ${nestPort} 是否被占用...`)

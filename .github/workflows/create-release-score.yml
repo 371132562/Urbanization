@@ -63,7 +63,7 @@ jobs:
 
       - name: 打包发布文件
         run: |
-          zip urbanization.zip docker-compose.yml 使用说明.txt \
+          zip urbanization-score.zip docker-compose.yml 使用说明.txt \
           start.ps1 backup.ps1 restore.ps1 entrypoint.sh urbanization.tar alpine.tar
 
       - name: 生成版本号 (北京时间)
@@ -90,5 +90,5 @@ jobs:
               - 备份数据: `backup.ps1` 
               - 恢复数据: `restore.ps1`
 
-            请下载下面的 `urbanization.zip` 文件，解压后即可使用。
-          files: urbanization.zip 
+            请下载下面的 `urbanization-score.zip` 文件，解压后即可使用。
+          files: urbanization-score.zip 

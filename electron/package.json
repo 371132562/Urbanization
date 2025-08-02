@@ -33,25 +33,9 @@
     ],
     "extraResources": [
       {
-        "from": "../backend/dist",
-        "to": "backend/dist"
-      },
-      {
-        "from": "../backend/prisma",
-        "to": "backend/prisma"
-      },
-      {
-        "from": "../backend/types",
-        "to": "backend/types"
-      },
-      {
-        "from": "../backend/node_modules",
-        "to": "backend/node_modules"
-      },
-      {
-        "from": "../backend/package.json",
-        "to": "backend/package.json"
-      },
+        "from": "../backend",
+        "to": "backend"
+      }
       {
         "from": "../frontend/dist",
         "to": "frontend/dist"
