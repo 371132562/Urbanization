@@ -33,7 +33,7 @@ jobs:
           cache: 'pnpm'
 
       - name: 安装依赖
-        run: pnpm install --allow-build electron-builder --allow-build better-sqlite3 --allow-build @prisma/client
+        run: pnpm install
         
       - name: 构建和打包
         run: |
