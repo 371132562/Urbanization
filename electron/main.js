@@ -1,22 +1,22 @@
 const { app, BrowserWindow, dialog } = require('electron')
 const path = require('path')
-const { fork, execSync } = require('child_process')
+const { spawn, execSync } = require('child_process')
 const net = require('net')
 const log = require('electron-log')
 
 // 设置应用名称，这会影响用户数据目录的名称
 app.setName('Urbanization')
 
-// 哨兵代码：通过检查自定义环境变量来防止fork的子进程重新执行主逻辑
-// 区分不同类型的fork进程，让它们能正常运行而不是立即退出
-if (process.env.IS_NEST_FORK === 'true') {
-  // NestJS服务的fork进程，这个进程应该继续执行
+// 哨兵代码：通过检查自定义环境变量来防止spawn的子进程重新执行主逻辑
+// 区分不同类型的spawn进程，让它们能正常运行而不是立即退出
+if (process.env.IS_NEST_SPAWN === 'true') {
+  // NestJS服务的spawn进程，这个进程应该继续执行
   // 不做任何操作，让NestJS正常启动
-} else if (process.env.IS_PRISMA_FORK === 'true') {
-  // Prisma迁移的fork进程，这个进程应该继续执行
+} else if (process.env.IS_PRISMA_SPAWN === 'true') {
+  // Prisma迁移的spawn进程，这个进程应该继续执行
   // 不做任何操作，让Prisma迁移命令正常执行
-} else if (process.env.IS_ELECTRON_FORK === 'true') {
-  // 其他可能的Electron应用fork进程，应该立即退出
+} else if (process.env.IS_ELECTRON_SPAWN === 'true') {
+  // 其他可能的Electron应用spawn进程，应该立即退出
   process.exit(0)
 }
 
@@ -188,17 +188,17 @@ function runMigrations() {
   const prismaCliPath = path.join(backendPath, 'node_modules', 'prisma', 'build', 'index.js')
   const schemaPath = path.join(backendPath, 'prisma', 'schema.prisma')
 
-  showDebugDialog('数据库迁移', `准备使用fork执行Prisma迁移`)
-  log.info(`准备使用fork执行Prisma迁移`)
+  showDebugDialog('数据库迁移', `准备使用spawn执行Prisma迁移`)
+  log.info(`准备使用spawn执行Prisma迁移`)
 
   try {
-    // 使用fork而不是execSync来避免启动新的应用实例
-    const migrationProcess = fork(prismaCliPath, ['migrate', 'deploy', `--schema=${schemaPath}`], {
+    // 使用spawn而不是fork来避免启动新的应用实例
+    const migrationProcess = spawn('node', [prismaCliPath, 'migrate', 'deploy', `--schema=${schemaPath}`], {
       env: {
         ...migrationEnv,
-        IS_PRISMA_FORK: 'true' // 标记为Prisma迁移进程
+        IS_PRISMA_SPAWN: 'true' // 标记为Prisma迁移进程
       },
-      silent: true // 捕获子进程的输出
+      stdio: 'pipe' // 捕获子进程的输出
     })
 
     // 处理迁移进程的输出
@@ -226,13 +226,13 @@ function runMigrations() {
         const seedPath = path.join(backendPath, 'prisma', 'seed.js')
 
         try {
-          // 使用fork执行seed脚本
-          const seedProcess = fork(seedPath, [], {
+          // 使用spawn执行seed脚本
+          const seedProcess = spawn('node', [seedPath], {
             env: {
               ...migrationEnv,
-              IS_PRISMA_FORK: 'true' // 标记为Prisma进程
+              IS_PRISMA_SPAWN: 'true' // 标记为Prisma进程
             },
-            silent: true // 捕获子进程的输出
+            stdio: 'pipe' // 捕获子进程的输出
           })
 
           // 处理seed进程的输出
@@ -316,7 +316,7 @@ const tryConnect = () => {
       log.info('NestJS 服务已就绪，正在创建主窗口...')
       createMainWindow()
     } else {
-      showDebugDialog('服务连接', 'NestJS 服务尚未就绪，1秒后重试...')
+      // showDebugDialog('服务连接', 'NestJS 服务尚未就绪，1秒后重试...')
       log.info('NestJS 服务尚未就绪，1秒后重试...')
       setTimeout(tryConnect, 1000)
     }
@@ -354,7 +354,7 @@ const startNestService = () => {
   showDebugDialog('NestJS服务', `正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
   log.info(`正在从以下路径启动 NestJS 应用: ${nestAppPath}...`)
 
-  nestProcess = fork(nestAppPath, [], {
+  nestProcess = spawn('node', [nestAppPath], {
     // 将数据库、上传和日志目录的路径作为环境变量传递给 NestJS 子进程
     env: {
       ...process.env,
@@ -364,9 +364,9 @@ const startNestService = () => {
       LOG_DIR: process.env.LOG_DIR,
       RESOURCES_PATH: process.resourcesPath, // 添加Resources路径环境变量
       APP_PATH: app.getAppPath(), // 添加应用路径环境变量
-      IS_NEST_FORK: 'true' // 设置一个明确的标识，给哨兵代码使用
+      IS_NEST_SPAWN: 'true' // 设置一个明确的标识，给哨兵代码使用
     },
-    silent: true // 捕获子进程的 stdout 和 stderr
+    stdio: 'pipe' // 捕获子进程的 stdout 和 stderr
   })
 
   // 监听 NestJS 进程的 stdout
