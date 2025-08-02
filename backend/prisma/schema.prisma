@@ -5,6 +5,7 @@
 generator client {
   provider = "prisma-client-js"
   engineType = "binary" // 考虑此选项用于 Electron 部署
+  binaryTargets = ["native", "darwin", "windows"]
 }
 
 // 定义数据源，这里使用 SQLite
