@@ -1,7 +1,7 @@
 # 这个工作流文件的作用是：当代码被推送到 master 分支时，
-# 自动将客户端所需的文件打包成 zip，并创建一个 GitHub Release。
+# 自动将四个客户端所需的文件分别打包成 zip，并创建对应的 GitHub Release。
 
-name: 创建客户端发布包
+name: 创建多客户端发布包
 
 on:
   push:
@@ -19,8 +19,47 @@ permissions:
 
 jobs:
   build-and-release:
-    name: 打包客户所需文件并发布
+    name: 打包客户端文件并发布
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        client:
+          - name: main
+            dockerfile: ./Dockerfile
+            docker_compose: docker-compose.yml
+            start_script: start.ps1
+            image_tag: linstar666/urbanization:latest
+            release_tag: release-v
+            release_name: 客户端运行包
+            zip_name: urbanization.zip
+            description: 自动打包的客户端运行文件 (PowerShell 版本)。
+          - name: data
+            dockerfile: ./Dockerfile.data
+            docker_compose: docker-compose.data.yml
+            start_script: start-data.ps1
+            image_tag: linstar666/urbanization-data:latest
+            release_tag: release-data-v
+            release_name: 数据管理客户端运行包
+            zip_name: urbanization-data.zip
+            description: 自动打包的数据管理客户端运行文件 (PowerShell 版本)。
+          - name: evaluation
+            dockerfile: ./Dockerfile.evaluation
+            docker_compose: docker-compose.evaluation.yml
+            start_script: start-evaluation.ps1
+            image_tag: linstar666/urbanization-evaluation:latest
+            release_tag: release-evaluation-v
+            release_name: 评估管理客户端运行包
+            zip_name: urbanization-evaluation.zip
+            description: 自动打包的评估管理客户端运行文件 (PowerShell 版本)。
+          - name: score
+            dockerfile: ./Dockerfile.score
+            docker_compose: docker-compose.score.yml
+            start_script: start-score.ps1
+            image_tag: linstar666/urbanization-score:latest
+            release_tag: release-score-v
+            release_name: 评分管理客户端运行包
+            zip_name: urbanization-score.zip
+            description: 自动打包的评分管理客户端运行文件 (PowerShell 版本)。
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -41,9 +80,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ${{ matrix.client.dockerfile }}
           push: true
-          tags: linstar666/urbanization:latest
+          tags: ${{ matrix.client.image_tag }}
           build-args: |
             DATABASE_URL_BUILD=file:../../db/urbanization.db
           outputs: type=docker,dest=./urbanization.tar # 将镜像导出为与 docker load 兼容的 tar 包
@@ -54,9 +93,17 @@ jobs:
       - name: 保存 alpine 镜像为 tar 包
         run: docker save alpine:latest -o alpine.tar
 
+      - name: 重命名docker-compose文件
+        if: matrix.client.name != 'main'
+        run: cp ${{ matrix.client.docker_compose }} docker-compose.yml
+
+      - name: 重命名start脚本
+        if: matrix.client.name != 'main'
+        run: cp ${{ matrix.client.start_script }} start.ps1
+
       - name: 打包发布文件
         run: |
-          zip urbanization.zip docker-compose.yml 使用说明.txt \
+          zip ${{ matrix.client.zip_name }} docker-compose.yml 使用说明.txt \
           start.ps1 backup.ps1 restore.ps1 entrypoint.sh urbanization.tar alpine.tar
 
       - name: 生成版本号 (北京时间)
@@ -68,10 +115,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           # 使用日期和时间作为版本号，例如 release-v20240725-1030
-          tag_name: release-v${{ steps.version.outputs.tag }}
-          name: "客户端运行包 v${{ steps.version.outputs.tag }}"
+          tag_name: ${{ matrix.client.release_tag }}${{ steps.version.outputs.tag }}
+          name: "${{ matrix.client.release_name }} v${{ steps.version.outputs.tag }}"
           body: |
-            自动打包的客户端运行文件 (PowerShell 版本)。
+            ${{ matrix.client.description }}
             
             本次发布包含了最新的：
             - 使用说明文档 (`使用说明.txt`)
@@ -83,5 +130,5 @@ jobs:
               - 备份数据: `backup.ps1` 
               - 恢复数据: `restore.ps1`
 
-            请下载下面的 `urbanization.zip` 文件，解压后即可使用。
-          files: urbanization.zip 
+            请下载下面的 `${{ matrix.client.zip_name }}` 文件，解压后即可使用。
+          files: ${{ matrix.client.zip_name }} 
