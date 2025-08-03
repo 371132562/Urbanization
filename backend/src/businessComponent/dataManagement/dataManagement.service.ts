@@ -272,6 +272,17 @@ export class DataManagementService {
     const yearDate = dayjs(year).month(5).date(1).toDate();
     const yearValue = dayjs(yearDate).year();
 
+    // 验证请求数据大小，防止过大的请求导致性能问题
+    if (countries.length > 500) {
+      this.logger.warn(
+        `批量导入数据量过大: ${countries.length} 个国家，建议分批处理`,
+      );
+      throw new BusinessException(
+        ErrorCode.INVALID_INPUT,
+        `批量导入数据量过大，最多支持500个国家，当前为${countries.length}个。建议分批处理或减少数据量。`,
+      );
+    }
+
     this.logger.log(
       `准备批量创建 ${countries.length} 个国家在 ${yearValue} 年的指标值数据`,
     );

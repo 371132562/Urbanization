@@ -313,7 +313,15 @@ const DataImportPage = () => {
    * 最终汇总导入结果，并导航到结果展示页面。
    */
   const handleImport = async () => {
-    // 步骤 1: 设置加载状态，并显示全局加载提示
+    // 步骤 1: 验证数据量，防止请求体过大
+    if (previewData.length > 500) {
+      message.error(
+        `数据量过大，最多支持500个国家，当前为${previewData.length}个。请分批导入或减少数据量。`
+      )
+      return
+    }
+
+    // 步骤 2: 设置加载状态，并显示全局加载提示
     setIsImporting(true)
     message.loading({ content: '正在提交数据，请稍候...', key: 'importing' })
 

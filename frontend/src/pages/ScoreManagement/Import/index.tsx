@@ -198,6 +198,14 @@ const ScoreImportPage = () => {
   }
 
   const handleImport = async () => {
+    // 验证数据量，防止请求体过大
+    if (previewData.length > 500) {
+      message.error(
+        `数据量过大，最多支持500个国家，当前为${previewData.length}个。请分批导入或减少数据量。`
+      )
+      return
+    }
+
     setIsImporting(true)
     message.loading({ content: '正在提交数据，请稍候...', key: 'importing' })
 

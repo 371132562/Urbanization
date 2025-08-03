@@ -309,6 +309,17 @@ export class ScoreService {
     const yearDate = dayjs(year).month(5).date(1).toDate();
     const yearValue = dayjs(yearDate).year();
 
+    // 验证请求数据大小，防止过大的请求导致性能问题
+    if (scores.length > 500) {
+      this.logger.warn(
+        `批量导入评分数据量过大: ${scores.length} 个国家，建议分批处理`,
+      );
+      throw new BusinessException(
+        ErrorCode.INVALID_INPUT,
+        `批量导入评分数据量过大，最多支持500个国家，当前为${scores.length}个。建议分批处理或减少数据量。`,
+      );
+    }
+
     this.logger.log(
       `准备批量创建 ${scores.length} 个国家在 ${yearValue} 年的评分数据`,
     );
