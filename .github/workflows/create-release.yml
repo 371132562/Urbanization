@@ -136,10 +136,8 @@ jobs:
       - name: 打包发布文件
         id: package
         run: |
-          # 创建包含所有必要文件的 zip 包
           zip ${{ matrix.client.zip_name }} docker-compose.yml 使用说明.txt \
           start.ps1 backup.ps1 restore.ps1 entrypoint.sh urbanization.tar alpine.tar
-          # 输出 zip 文件名，供后续步骤使用
           echo "zip-files=${{ matrix.client.zip_name }}" >> $GITHUB_OUTPUT
 
       # 步骤10：上传构建产物
@@ -168,14 +166,49 @@ jobs:
         with:
           # 下载到 artifacts 目录
           path: ./artifacts
+          # 只下载 zip 文件，避免下载 Docker 构建产物
+          pattern: "*.zip"
+          # 合并所有文件到一个目录，避免创建子目录
+          merge-multiple: true
 
-      # 步骤2：生成版本号 (北京时间)
+      # 步骤2：验证下载的文件
+      # 检查是否成功下载了所有四个客户端的 zip 文件
+      - name: 验证下载的文件
+        run: |
+          echo "检查下载的文件："
+          ls -la ./artifacts/
+          echo "期望的文件："
+          echo "- urbanization.zip"
+          echo "- urbanization-data.zip" 
+          echo "- urbanization-evaluation.zip"
+          echo "- urbanization-score.zip"
+          
+          # 检查文件是否存在
+          if [ ! -f "./artifacts/urbanization.zip" ]; then
+            echo "错误：缺少 urbanization.zip"
+            exit 1
+          fi
+          if [ ! -f "./artifacts/urbanization-data.zip" ]; then
+            echo "错误：缺少 urbanization-data.zip"
+            exit 1
+          fi
+          if [ ! -f "./artifacts/urbanization-evaluation.zip" ]; then
+            echo "错误：缺少 urbanization-evaluation.zip"
+            exit 1
+          fi
+          if [ ! -f "./artifacts/urbanization-score.zip" ]; then
+            echo "错误：缺少 urbanization-score.zip"
+            exit 1
+          fi
+          echo "✅ 所有文件下载成功！"
+
+      # 步骤3：生成版本号 (北京时间)
       # 使用北京时间生成版本号，格式为 YYYYMMDD-HHMM
       - name: 生成版本号 (北京时间)
         id: version
         run: echo "tag=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
 
-      # 步骤3：创建 GitHub Release
+      # 步骤4：创建 GitHub Release
       # 使用第三方 Action 创建 GitHub Release，包含所有客户端的文件
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v2
