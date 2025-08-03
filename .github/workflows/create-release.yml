@@ -1,126 +1,198 @@
 # 这个工作流文件的作用是：当代码被推送到 master 分支时，
-# 自动将四个客户端所需的文件分别打包成 zip，并创建对应的 GitHub Release。
+# 自动将四个客户端所需的文件分别打包成 zip，并在一个 GitHub Release 中包含所有文件。
 
 name: 创建多客户端发布包
 
+# 触发条件：当代码被推送到 master 分支时自动执行
 on:
   push:
     branches:
       - master
 
 # 并发控制：自动取消旧的、正在进行中的工作流
+# 这确保同一时间只有一个工作流在运行，避免资源冲突
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 # 授予工作流写权限，以便它可以创建 Release
+# 这是创建 GitHub Release 所必需的权限
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: 打包客户端文件并发布
+  # 第一个任务：并行构建所有客户端
+  build-clients:
+    name: 构建所有客户端
     runs-on: ubuntu-latest
+    # 使用矩阵策略并行构建四个不同的客户端
     strategy:
       matrix:
         client:
+          # 主客户端配置
           - name: main
             dockerfile: ./Dockerfile
             docker_compose: docker-compose.yml
             start_script: start.ps1
             image_tag: linstar666/urbanization:latest
-            release_tag: release-v
-            release_name: 客户端运行包
             zip_name: urbanization.zip
-            description: 自动打包的客户端运行文件 (PowerShell 版本)。
+            description: 主客户端运行文件
+          # 数据管理客户端配置
           - name: data
             dockerfile: ./Dockerfile.data
             docker_compose: docker-compose.data.yml
             start_script: start-data.ps1
             image_tag: linstar666/urbanization-data:latest
-            release_tag: release-data-v
-            release_name: 数据管理客户端运行包
             zip_name: urbanization-data.zip
-            description: 自动打包的数据管理客户端运行文件 (PowerShell 版本)。
+            description: 数据管理客户端运行文件
+          # 评估管理客户端配置
           - name: evaluation
             dockerfile: ./Dockerfile.evaluation
             docker_compose: docker-compose.evaluation.yml
             start_script: start-evaluation.ps1
             image_tag: linstar666/urbanization-evaluation:latest
-            release_tag: release-evaluation-v
-            release_name: 评估管理客户端运行包
             zip_name: urbanization-evaluation.zip
-            description: 自动打包的评估管理客户端运行文件 (PowerShell 版本)。
+            description: 评估管理客户端运行文件
+          # 评分管理客户端配置
           - name: score
             dockerfile: ./Dockerfile.score
             docker_compose: docker-compose.score.yml
             start_script: start-score.ps1
             image_tag: linstar666/urbanization-score:latest
-            release_tag: release-score-v
-            release_name: 评分管理客户端运行包
             zip_name: urbanization-score.zip
-            description: 自动打包的评分管理客户端运行文件 (PowerShell 版本)。
+            description: 评分管理客户端运行文件
+    # 定义输出，用于后续任务使用（虽然这里没有直接使用，但保留以备将来扩展）
+    outputs:
+      zip-files: ${{ steps.package.outputs.zip-files }}
     steps:
+      # 步骤1：检出代码到工作目录
       - name: 检出代码
         uses: actions/checkout@v4
         with:
           # 获取所有历史记录，以便能创建正确的变更日志（如果需要）
+          # 这对于生成完整的 git 历史很有用
           fetch-depth: 0
 
+      # 步骤2：设置 Docker Buildx
+      # Buildx 是 Docker 的扩展构建功能，支持多平台构建和缓存优化
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # 步骤3：登录到 Docker Hub
+      # 这是推送镜像到 Docker Hub 所必需的认证步骤
       - name: 登录到 Docker Hub
         uses: docker/login-action@v3
         with:
+          # 使用 GitHub Secrets 中存储的 Docker Hub 凭据
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # 步骤4：构建、推送并导出镜像
+      # 这是核心步骤，负责构建 Docker 镜像并导出为 tar 包
       - name: 构建、推送并导出镜像
         uses: docker/build-push-action@v6
         with:
+          # 构建上下文：当前目录
           context: .
+          # 使用矩阵中指定的 Dockerfile
           file: ${{ matrix.client.dockerfile }}
+          # 推送到 Docker Hub
           push: true
+          # 使用矩阵中指定的镜像标签
           tags: ${{ matrix.client.image_tag }}
+          # 构建参数：指定数据库文件路径
           build-args: |
             DATABASE_URL_BUILD=file:../../db/urbanization.db
-          outputs: type=docker,dest=./urbanization.tar # 将镜像导出为与 docker load 兼容的 tar 包
+          # 输出设置：将镜像导出为与 docker load 兼容的 tar 包
+          # 这样客户端就可以直接加载镜像，无需从网络下载
+          outputs: type=docker,dest=./urbanization.tar
 
+      # 步骤5：拉取 alpine 镜像
+      # Alpine 是一个轻量级的 Linux 发行版，用作基础镜像
       - name: 拉取 alpine 镜像
         run: docker pull alpine:latest
 
+      # 步骤6：保存 alpine 镜像为 tar 包
+      # 将 alpine 镜像保存为 tar 包，以便客户端离线使用
       - name: 保存 alpine 镜像为 tar 包
         run: docker save alpine:latest -o alpine.tar
 
+      # 步骤7：重命名docker-compose文件（仅对非主客户端）
+      # 主客户端使用默认的 docker-compose.yml，其他客户端需要重命名
       - name: 重命名docker-compose文件
+        # 条件判断：只有非主客户端才需要重命名
         if: matrix.client.name != 'main'
         run: cp ${{ matrix.client.docker_compose }} docker-compose.yml
 
+      # 步骤8：重命名start脚本（仅对非主客户端）
+      # 主客户端使用默认的 start.ps1，其他客户端需要重命名
       - name: 重命名start脚本
+        # 条件判断：只有非主客户端才需要重命名
         if: matrix.client.name != 'main'
         run: cp ${{ matrix.client.start_script }} start.ps1
 
+      # 步骤9：打包发布文件
+      # 将所有必要的文件打包成 zip，供客户端下载使用
       - name: 打包发布文件
+        id: package
         run: |
+          # 创建包含所有必要文件的 zip 包
           zip ${{ matrix.client.zip_name }} docker-compose.yml 使用说明.txt \
           start.ps1 backup.ps1 restore.ps1 entrypoint.sh urbanization.tar alpine.tar
+          # 输出 zip 文件名，供后续步骤使用
+          echo "zip-files=${{ matrix.client.zip_name }}" >> $GITHUB_OUTPUT
 
+      # 步骤10：上传构建产物
+      # 将生成的 zip 文件上传为构建产物，供后续任务下载使用
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          # 构建产物的名称，使用 zip 文件名
+          name: ${{ matrix.client.zip_name }}
+          # 要上传的文件路径
+          path: ${{ matrix.client.zip_name }}
+          # 保留天数：1天，因为构建产物只是临时使用
+          retention-days: 1
+
+  # 第二个任务：创建统一的 GitHub Release
+  create-release:
+    name: 创建统一发布
+    runs-on: ubuntu-latest
+    # 依赖关系：必须等待所有客户端构建完成后才能执行
+    needs: build-clients
+    steps:
+      # 步骤1：下载所有构建产物
+      # 从之前的任务中下载所有客户端的 zip 文件
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v4
+        with:
+          # 下载到 artifacts 目录
+          path: ./artifacts
+
+      # 步骤2：生成版本号 (北京时间)
+      # 使用北京时间生成版本号，格式为 YYYYMMDD-HHMM
       - name: 生成版本号 (北京时间)
         id: version
         run: echo "tag=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
 
+      # 步骤3：创建 GitHub Release
+      # 使用第三方 Action 创建 GitHub Release，包含所有客户端的文件
       - name: 创建 GitHub Release
-        # 使用一个非常流行的第三方 Action 来简化 Release 的创建过程
         uses: softprops/action-gh-release@v2
         with:
-          # 使用日期和时间作为版本号，例如 release-v20240725-1030
-          tag_name: ${{ matrix.client.release_tag }}${{ steps.version.outputs.tag }}
-          name: "${{ matrix.client.release_name }} v${{ steps.version.outputs.tag }}"
+          # Release 标签名，使用生成的版本号
+          tag_name: release-v${{ steps.version.outputs.tag }}
+          # Release 标题
+          name: "多客户端运行包 v${{ steps.version.outputs.tag }}"
+          # Release 详细说明，包含每个客户端的介绍和使用方法
           body: |
-            ${{ matrix.client.description }}
+            自动打包的多客户端运行文件 (PowerShell 版本)。
             
-            本次发布包含了最新的：
+            本次发布包含了四个客户端的完整运行包：
+            
+            ## 📦 包含的客户端
+            
+            ### 1. 主客户端 (`urbanization.zip`)
             - 使用说明文档 (`使用说明.txt`)
             - Docker Compose 配置文件 (`docker-compose.yml`)
             - Docker启动脚本 (`entrypoint.sh`)
@@ -129,6 +201,32 @@ jobs:
               - 启动应用: `start.ps1`
               - 备份数据: `backup.ps1` 
               - 恢复数据: `restore.ps1`
-
-            请下载下面的 `${{ matrix.client.zip_name }}` 文件，解压后即可使用。
-          files: ${{ matrix.client.zip_name }} 
+            
+            ### 2. 数据管理客户端 (`urbanization-data.zip`)
+            - 专门用于数据管理功能
+            - 包含所有必要的运行文件
+            
+            ### 3. 评估管理客户端 (`urbanization-evaluation.zip`)
+            - 专门用于评估管理功能
+            - 包含所有必要的运行文件
+            
+            ### 4. 评分管理客户端 (`urbanization-score.zip`)
+            - 专门用于评分管理功能
+            - 包含所有必要的运行文件
+            
+            ## 🚀 使用方法
+            
+            请根据您的需求下载对应的客户端包：
+            - 如果需要完整功能，下载 `urbanization.zip`
+            - 如果只需要数据管理功能，下载 `urbanization-data.zip`
+            - 如果只需要评估管理功能，下载 `urbanization-evaluation.zip`
+            - 如果只需要评分管理功能，下载 `urbanization-score.zip`
+            
+            下载后解压即可使用。
+          # 指定要包含在 Release 中的文件
+          # 使用多行格式列出所有客户端的 zip 文件
+          files: |
+            ./artifacts/urbanization.zip
+            ./artifacts/urbanization-data.zip
+            ./artifacts/urbanization-evaluation.zip
+            ./artifacts/urbanization-score.zip 

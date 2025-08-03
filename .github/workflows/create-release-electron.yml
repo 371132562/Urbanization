@@ -1,8 +1,8 @@
-name: 创建electron客户端
+name: 创建Windows Electron客户端
 on:
   push:
     branches:
-      - master
+      - 'disabled-branch-for-now'
 
 # 并发控制：自动取消旧的、正在进行中的工作流
 concurrency:
@@ -13,10 +13,9 @@ concurrency:
 permissions:
   contents: write
 
-
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build-windows:
+    runs-on: windows-latest # 使用Windows环境进行构建
     
     steps:
       - name: 检出代码
@@ -36,26 +35,10 @@ jobs:
       - name: 安装依赖
         run: pnpm install
         
-      - name: 安装Wine和依赖
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y wine wine32 wine64 libwine-dev fonts-wine
-          sudo apt-get install -y mono-complete
-        
-      - name: 设置虚拟显示环境
-        run: |
-          export DISPLAY=:99.0
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          
       - name: 构建和打包
         run: |
           cd electron
-          export DISPLAY=:99.0
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
           pnpm build
-        env:
-          DISPLAY: :99.0
           
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
