@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
+  BatchCreateIndicatorValuesDto,
   CheckExistingDataResDto,
   CountryData,
   CountryDetailReqDto,
@@ -253,6 +254,147 @@ export class DataManagementService {
     );
 
     return { count: result.count };
+  }
+
+  /**
+   * 批量创建或更新多个国家的指标值数据
+   * @param data 批量创建指标值的请求数据
+   * @returns 批量创建的结果统计
+   */
+  async batchCreate(data: BatchCreateIndicatorValuesDto): Promise<{
+    totalCount: number;
+    successCount: number;
+    failCount: number;
+    failedCountries: string[];
+  }> {
+    const { year, countries } = data;
+    // 统一使用dayjs处理年份，只保留年份信息
+    const yearDate = dayjs(year).month(5).date(1).toDate();
+    const yearValue = dayjs(yearDate).year();
+
+    this.logger.log(
+      `准备批量创建 ${countries.length} 个国家在 ${yearValue} 年的指标值数据`,
+    );
+
+    // 步骤1: 验证所有国家是否存在
+    const countryIds = countries.map((c) => c.countryId);
+    const existingCountries = await this.prisma.country.findMany({
+      where: {
+        id: { in: countryIds },
+        delete: 0,
+      },
+    });
+
+    const existingCountryIds = new Set(existingCountries.map((c) => c.id));
+    const invalidCountryIds = countryIds.filter(
+      (id) => !existingCountryIds.has(id),
+    );
+
+    if (invalidCountryIds.length > 0) {
+      this.logger.error(`未找到以下国家ID: ${invalidCountryIds.join(', ')}`);
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+      );
+    }
+
+    // 步骤2: 检查哪些国家该年份已有数据
+    const existingData = await this.prisma.indicatorValue.findMany({
+      where: {
+        countryId: { in: countryIds },
+        year: yearDate,
+        delete: 0,
+      },
+      select: {
+        countryId: true,
+      },
+    });
+
+    const existingCountryIdsSet = new Set(existingData.map((d) => d.countryId));
+
+    // 步骤3: 处理所有国家的指标值数据
+    const allProcessedData: {
+      detailedIndicatorId: string;
+      countryId: string;
+      year: Date;
+      value: number | null;
+      createTime: Date;
+      updateTime: Date;
+    }[] = [];
+
+    for (const countryData of countries) {
+      const { countryId, indicators } = countryData;
+
+      // 处理指标值数据，将空值转换为null
+      const processedData = indicators.map((indicator) => {
+        const { detailedIndicatorId, value } = indicator;
+
+        // 处理空值：undefined、null、空字符串或NaN都转为null
+        let processedValue: number | null = null;
+
+        if (value !== undefined && value !== null) {
+          if (typeof value === 'number') {
+            processedValue = isNaN(value) ? null : value;
+          } else if (typeof value === 'string') {
+            if (value !== '') {
+              const numValue = Number(value);
+              processedValue = isNaN(numValue) ? null : numValue;
+            }
+          }
+        }
+
+        return {
+          detailedIndicatorId,
+          countryId,
+          year: yearDate,
+          value: processedValue,
+          createTime: new Date(),
+          updateTime: new Date(),
+        };
+      });
+
+      allProcessedData.push(...processedData);
+    }
+
+    // 步骤4: 执行批量数据库操作
+    const result = await this.prisma.$transaction(async (prisma) => {
+      let totalCount = 0;
+
+      // 如果已有数据，先进行物理删除
+      if (existingCountryIdsSet.size > 0) {
+        const deleteResult = await prisma.indicatorValue.deleteMany({
+          where: {
+            countryId: { in: Array.from(existingCountryIdsSet) },
+            year: yearDate,
+          },
+        });
+
+        this.logger.log(
+          `已删除 ${existingCountryIdsSet.size} 个国家在 ${yearValue} 年的 ${deleteResult.count} 条现有数据`,
+        );
+      }
+
+      // 批量创建新数据
+      if (allProcessedData.length > 0) {
+        const createResult = await prisma.indicatorValue.createMany({
+          data: allProcessedData,
+        });
+        totalCount = createResult.count;
+      }
+
+      return { totalCount };
+    });
+
+    this.logger.log(
+      `成功批量创建了 ${countries.length} 个国家在 ${yearValue} 年的 ${result.totalCount} 个指标值数据`,
+    );
+
+    return {
+      totalCount: result.totalCount,
+      successCount: countries.length,
+      failCount: 0,
+      failedCountries: [],
+    };
   }
 
   /**

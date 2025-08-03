@@ -37,7 +37,7 @@ const ScoreImportPage = () => {
 
   const countries = useCountryAndContinentStore(state => state.countries)
   const checkScoreExistingData = useScoreStore(state => state.checkScoreExistingData)
-  const createScore = useScoreStore(state => state.createScore)
+  const batchCreateScore = useScoreStore(state => state.batchCreateScore)
 
   const [currentStep, setCurrentStep] = useState(0)
   const [importYear, setImportYear] = useState<number | null>(null)
@@ -201,44 +201,53 @@ const ScoreImportPage = () => {
     setIsImporting(true)
     message.loading({ content: '正在提交数据，请稍候...', key: 'importing' })
 
-    const importPromises = previewData.map(async row => {
-      const payload: any = {
-        countryId: row.countryId,
-        year: dayjs(importYear!.toString()).month(5).date(1).toDate()
-      }
-      SCORE_DIMENSIONS.forEach(dim => {
-        const rawValue = row[dim.enName]
-        const cleanedValue = String(rawValue || '').replace(/,/g, '')
-        const parsedValue = parseFloat(cleanedValue)
-        payload[dim.enName] = isNaN(parsedValue) ? null : parsedValue
+    try {
+      // 构造批量导入的负载数据
+      const scoresPayload = previewData.map(row => {
+        const scoreData: any = {
+          countryId: row.countryId
+        }
+        SCORE_DIMENSIONS.forEach(dim => {
+          const rawValue = row[dim.enName]
+          const cleanedValue = String(rawValue || '').replace(/,/g, '')
+          const parsedValue = parseFloat(cleanedValue)
+          scoreData[dim.enName] = isNaN(parsedValue) ? null : parsedValue
+        })
+        return scoreData
       })
 
-      const success = await createScore(payload)
-      return { status: success ? 'fulfilled' : 'rejected', countryName: row.countryName }
-    })
-
-    const results = await Promise.allSettled(importPromises)
-    const finalResult = {
-      successCount: 0,
-      failCount: 0,
-      failedCountries: [] as string[]
-    }
-
-    results.forEach(result => {
-      if (result.status === 'fulfilled' && result.value.status === 'fulfilled') {
-        finalResult.successCount++
-      } else {
-        finalResult.failCount++
-        if (result.status === 'fulfilled') {
-          finalResult.failedCountries.push(result.value.countryName)
-        }
+      // 构造批量导入的完整负载
+      const batchPayload = {
+        year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
+        scores: scoresPayload
       }
-    })
 
-    setImportResult(finalResult)
-    setIsImporting(false)
-    message.success({ content: '数据导入处理完成！', key: 'importing' })
-    setCurrentStep(2)
+      // 调用批量保存接口
+      const result = await batchCreateScore(batchPayload)
+
+      // 处理导入结果
+      const finalResult = {
+        successCount: result.successCount,
+        failCount: result.failCount,
+        failedCountries: result.failedCountries
+      }
+
+      setImportResult(finalResult)
+      message.success({ content: '数据导入处理完成！', key: 'importing' })
+      setCurrentStep(2)
+    } catch (error) {
+      console.error('批量导入失败:', error)
+      message.error({ content: '数据导入失败，请重试！', key: 'importing' })
+
+      // 设置失败结果
+      setImportResult({
+        successCount: 0,
+        failCount: previewData.length,
+        failedCountries: previewData.map(row => row.countryName)
+      })
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   return (

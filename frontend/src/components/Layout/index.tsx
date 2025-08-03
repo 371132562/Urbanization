@@ -9,7 +9,7 @@ import { getBreadcrumbItems, sideRoutes, topRoutes } from '@/router/routesConfig
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useIndicatorStore from '@/stores/indicatorStore'
 
-const { Header, Sider, Content, Footer } = Layout
+const { Header, Sider, Content } = Layout
 
 export const Component: FC = () => {
   const outlet = useOutlet()
@@ -17,6 +17,7 @@ export const Component: FC = () => {
   const getIndicatorHierarchy = useIndicatorStore(state => state.getIndicatorHierarchy)
   const getCountries = useCountryAndContinentStore(state => state.getCountries)
   const [collapsed, setCollapsed] = useState(false)
+  const [openKeys, setOpenKeys] = useState<string[]>([])
   const { pathname } = useLocation()
 
   // 全局获取一次指标数据
@@ -36,7 +37,7 @@ export const Component: FC = () => {
     return [`/${pathSegments[0]}`]
   }, [pathname])
 
-  // 当子菜单被选中时，确保父菜单保持展开状态
+  // 根据当前路径计算应该展开的菜单项
   const defaultOpenKeys = useMemo(() => {
     const pathSegments = pathname.split('/').filter(i => i)
     if (pathSegments.length > 1) {
@@ -44,6 +45,16 @@ export const Component: FC = () => {
     }
     return []
   }, [pathname])
+
+  // 处理菜单展开/收起
+  const handleOpenChange = (keys: string[]) => {
+    setOpenKeys(keys)
+  }
+
+  // 当路由变化时，自动展开对应的父菜单
+  useEffect(() => {
+    setOpenKeys(defaultOpenKeys)
+  }, [defaultOpenKeys])
 
   // 根据路由配置生成顶部菜单项
   const topMenuItems: MenuProps['items'] = topRoutes.map(route => ({
@@ -111,18 +122,25 @@ export const Component: FC = () => {
           collapsed={collapsed}
           onCollapse={setCollapsed}
           theme="dark"
-          className="overflow-y-auto"
           width={220}
+          className="flex flex-col"
         >
           <Menu
             theme="dark"
             mode="inline"
             items={menuItems}
             onClick={handleMenuClick}
+            onOpenChange={handleOpenChange}
             // 将菜单的选中状态与路由同步
             selectedKeys={[pathname]}
-            // 默认展开包含活动项的子菜单
-            defaultOpenKeys={defaultOpenKeys}
+            // 控制菜单展开状态，支持手动操作和路由驱动
+            openKeys={openKeys}
+            // 设置菜单高度和滚动，确保所有菜单项都能显示
+            style={{
+              height: '100%',
+              overflowY: 'auto',
+              overflowX: 'hidden'
+            }}
           />
         </Sider>
         <Layout>

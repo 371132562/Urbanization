@@ -1,4 +1,4 @@
-import { Card, Divider, Typography, Space, Tag, Row, Col, Image } from 'antd'
+import { Card, Col, Divider, Image, Row, Space, Tag, Typography } from 'antd'
 import { FC } from 'react'
 
 // 导入图片
@@ -12,28 +12,46 @@ const EvaluationModel: FC = () => {
     <div className="w-full max-w-6xl !space-y-6">
       {/* 页面标题 */}
       <div className="text-center">
-        <Title level={2} className="!mb-2">
+        <Title
+          level={2}
+          className="!mb-2"
+        >
           城镇化发展质量综合评价
         </Title>
-        <Text type="secondary" className="text-base">
+        <Text
+          type="secondary"
+          className="text-base"
+        >
           基于联合国193个会员国的全面分析
         </Text>
       </div>
 
       {/* 研究对象部分 */}
-      <Card title="研究对象" className="shadow-sm">
+      <Card
+        title="研究对象"
+        className="shadow-sm"
+      >
         <Paragraph className="text-justify leading-relaxed">
           本研究选取联合国193个会员国作为研究对象，这些国家共拥有约79.08亿人口，占全球总人口79.51亿的99.5%。这种广泛的人口覆盖保证了研究能够真实地反映全球城镇化进程，从而为分析提供了具有高度代表性和普遍性的数据基础。
         </Paragraph>
-        
+
         <Paragraph className="text-justify leading-relaxed">
           另外，研究对象的选取基于以下四个核心考虑：
         </Paragraph>
 
-        <Row gutter={[16, 16]} className="mt-4">
+        <Row
+          gutter={[16, 16]}
+          className="mt-4"
+        >
           <Col span={12}>
-            <Card size="small" className="h-full">
-              <Title level={5} className="!mb-2 text-blue-600">
+            <Card
+              size="small"
+              className="h-full"
+            >
+              <Title
+                level={5}
+                className="!mb-2 text-blue-600"
+              >
                 国家的全面性和代表性
               </Title>
               <Paragraph className="!mb-0 text-sm">
@@ -42,8 +60,14 @@ const EvaluationModel: FC = () => {
             </Card>
           </Col>
           <Col span={12}>
-            <Card size="small" className="h-full">
-              <Title level={5} className="!mb-2 text-green-600">
+            <Card
+              size="small"
+              className="h-full"
+            >
+              <Title
+                level={5}
+                className="!mb-2 text-green-600"
+              >
                 数据的可获得性和可比性
               </Title>
               <Paragraph className="!mb-0 text-sm">
@@ -52,8 +76,14 @@ const EvaluationModel: FC = () => {
             </Card>
           </Col>
           <Col span={12}>
-            <Card size="small" className="h-full">
-              <Title level={5} className="!mb-2 text-orange-600">
+            <Card
+              size="small"
+              className="h-full"
+            >
+              <Title
+                level={5}
+                className="!mb-2 text-orange-600"
+              >
                 政策相关性
               </Title>
               <Paragraph className="!mb-0 text-sm">
@@ -62,8 +92,14 @@ const EvaluationModel: FC = () => {
             </Card>
           </Col>
           <Col span={12}>
-            <Card size="small" className="h-full">
-              <Title level={5} className="!mb-2 text-purple-600">
+            <Card
+              size="small"
+              className="h-full"
+            >
+              <Title
+                level={5}
+                className="!mb-2 text-purple-600"
+              >
                 增强跨国合作
               </Title>
               <Paragraph className="!mb-0 text-sm">
@@ -75,14 +111,20 @@ const EvaluationModel: FC = () => {
       </Card>
 
       {/* 样本划分部分 */}
-      <Card title="样本划分策略" className="shadow-sm">
+      <Card
+        title="样本划分策略"
+        className="shadow-sm"
+      >
         <Paragraph className="text-justify leading-relaxed">
           本书根据研究目标和所需深度，将研究对象划分为全样本和重点样本两级，通过分析较大人口规模和经济复杂度高国家的城镇化路径和模式，深入探究城镇化对国家发展策略的影响。
         </Paragraph>
 
-        <Row gutter={[24, 16]} className="mt-6">
+        <Row
+          gutter={[24, 16]}
+          className="mt-6"
+        >
           <Col span={12}>
-            <Card 
+            <Card
               title={
                 <Space>
                   <Tag color="blue">全样本</Tag>
@@ -100,7 +142,7 @@ const EvaluationModel: FC = () => {
             </Card>
           </Col>
           <Col span={12}>
-            <Card 
+            <Card
               title={
                 <Space>
                   <Tag color="green">重点样本</Tag>
@@ -121,7 +163,10 @@ const EvaluationModel: FC = () => {
       </Card>
 
       {/* 全样本和重点样本空间分布图 */}
-      <Card title="全样本和重点样本空间分布" className="shadow-sm">
+      <Card
+        title="全样本和重点样本空间分布"
+        className="shadow-sm"
+      >
         <div className="text-center">
           <Image
             src={evaluation1Image}
@@ -136,10 +181,20 @@ const EvaluationModel: FC = () => {
       </Card>
 
       {/* 数据来源部分 */}
-      <Card title="数据来源与说明" className="shadow-sm">
-        <Space direction="vertical" size="large" className="w-full">
+      <Card
+        title="数据来源与说明"
+        className="shadow-sm"
+      >
+        <Space
+          direction="vertical"
+          size="large"
+          className="w-full"
+        >
           <div>
-            <Title level={5} className="!mb-2 text-blue-600">
+            <Title
+              level={5}
+              className="!mb-2 text-blue-600"
+            >
               世界银行官方网站
             </Title>
             <Paragraph className="!mb-0 text-justify leading-relaxed">
@@ -148,7 +203,10 @@ const EvaluationModel: FC = () => {
           </div>
 
           <div>
-            <Title level={5} className="!mb-2 text-green-600">
+            <Title
+              level={5}
+              className="!mb-2 text-green-600"
+            >
               世界劳工组织网站
             </Title>
             <Paragraph className="!mb-0 text-justify leading-relaxed">
@@ -157,7 +215,10 @@ const EvaluationModel: FC = () => {
           </div>
 
           <div>
-            <Title level={5} className="!mb-2 text-orange-600">
+            <Title
+              level={5}
+              className="!mb-2 text-orange-600"
+            >
               联合国统计司官方网站
             </Title>
             <Paragraph className="!mb-0 text-justify leading-relaxed">
@@ -166,7 +227,10 @@ const EvaluationModel: FC = () => {
           </div>
 
           <div>
-            <Title level={5} className="!mb-2 text-purple-600">
+            <Title
+              level={5}
+              className="!mb-2 text-purple-600"
+            >
               已出版的统计年鉴
             </Title>
             <Paragraph className="!mb-0 text-justify leading-relaxed">
@@ -177,20 +241,35 @@ const EvaluationModel: FC = () => {
       </Card>
 
       {/* 评估模型部分 */}
-      <Card title="评估模型" className="shadow-sm">
+      <Card
+        title="评估模型"
+        className="shadow-sm"
+      >
         <Paragraph className="text-justify leading-relaxed">
           该评估模型重点关注92个重点样本国家的城镇化发展质量，确立了价值标准并运用客观赋权法进行了综合评价，研究不仅涵盖了样本国家的综合得分排名，还细致分析了排名靠前样本国家的城镇化发展质量特征，揭示了全球城镇化发展的区域性集中趋势。
         </Paragraph>
 
         <Divider />
 
-        <Title level={4} className="!mb-4">
+        <Title
+          level={4}
+          className="!mb-4"
+        >
           重点样本分类
         </Title>
-        <Row gutter={[16, 16]} className="mb-6">
+        <Row
+          gutter={[16, 16]}
+          className="mb-6"
+        >
           <Col span={6}>
-            <Card size="small" className="text-center">
-              <Tag color="red" className="!mb-2 text-base">
+            <Card
+              size="small"
+              className="text-center"
+            >
+              <Tag
+                color="red"
+                className="!mb-2 text-base"
+              >
                 引领型国家
               </Tag>
               <Paragraph className="!mb-0 text-sm">
@@ -199,8 +278,14 @@ const EvaluationModel: FC = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card size="small" className="text-center">
-              <Tag color="orange" className="!mb-2 text-base">
+            <Card
+              size="small"
+              className="text-center"
+            >
+              <Tag
+                color="orange"
+                className="!mb-2 text-base"
+              >
                 提升型国家
               </Tag>
               <Paragraph className="!mb-0 text-sm">
@@ -209,8 +294,14 @@ const EvaluationModel: FC = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card size="small" className="text-center">
-              <Tag color="blue" className="!mb-2 text-base">
+            <Card
+              size="small"
+              className="text-center"
+            >
+              <Tag
+                color="blue"
+                className="!mb-2 text-base"
+              >
                 发展型国家
               </Tag>
               <Paragraph className="!mb-0 text-sm">
@@ -219,8 +310,14 @@ const EvaluationModel: FC = () => {
             </Card>
           </Col>
           <Col span={6}>
-            <Card size="small" className="text-center">
-              <Tag color="gray" className="!mb-2 text-base">
+            <Card
+              size="small"
+              className="text-center"
+            >
+              <Tag
+                color="gray"
+                className="!mb-2 text-base"
+              >
                 落后型国家
               </Tag>
               <Paragraph className="!mb-0 text-sm">
@@ -240,7 +337,10 @@ const EvaluationModel: FC = () => {
       </Card>
 
       {/* 多维度评价模型图 */}
-      <Card title="多维度评价模型" className="shadow-sm">
+      <Card
+        title="多维度评价模型"
+        className="shadow-sm"
+      >
         <div className="text-center">
           <Image
             src={evaluation2Image}

@@ -9,6 +9,7 @@ import {
 import { DataManagementService } from './dataManagement.service';
 import { Response } from 'express';
 import {
+  BatchCreateIndicatorValuesDto,
   CountryDetailReqDto,
   CountryDetailResDto,
   CreateIndicatorValuesDto,
@@ -41,6 +42,21 @@ export class DataManagementController {
     @Body() data: CreateIndicatorValuesDto,
   ): Promise<{ count: number }> {
     return this.dataManagementService.create(data);
+  }
+
+  /**
+   * 批量创建或更新多个国家的指标值数据
+   * @param data 批量创建指标值的请求数据，包含年份和多个国家的指标值数组
+   * @returns {Promise<{totalCount: number, successCount: number, failCount: number, failedCountries: string[]}>} 批量创建的结果统计
+   */
+  @Post('batchCreate')
+  async batchCreate(@Body() data: BatchCreateIndicatorValuesDto): Promise<{
+    totalCount: number;
+    successCount: number;
+    failCount: number;
+    failedCountries: string[];
+  }> {
+    return this.dataManagementService.batchCreate(data);
   }
 
   /**

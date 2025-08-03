@@ -121,6 +121,17 @@ export type CreateIndicatorValuesDto = {
 };
 
 /**
+ * 批量创建指标值数据请求参数
+ */
+export type BatchCreateIndicatorValuesDto = {
+  year: Date; // 年份
+  countries: {
+    countryId: string; // 国家ID
+    indicators: IndicatorValueItem[]; // 指标值数组
+  }[];
+};
+
+/**
  * 检查数据是否存在相关类型
  */
 export type CountryYearQueryDto = {
@@ -365,6 +376,21 @@ export type CreateScoreDto = {
   humanDynamicsDimensionScore: number;
   materialDynamicsDimensionScore: number;
   spatialDynamicsDimensionScore: number;
+};
+
+/**
+ * 批量创建评分数据请求参数
+ */
+export type BatchCreateScoreDto = {
+  year: Date; // 年份
+  scores: {
+    countryId: string; // 国家ID
+    totalScore: number;
+    urbanizationProcessDimensionScore: number;
+    humanDynamicsDimensionScore: number;
+    materialDynamicsDimensionScore: number;
+    spatialDynamicsDimensionScore: number;
+  }[];
 };
 
 export type ScoreDataItem = {

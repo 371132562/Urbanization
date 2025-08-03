@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ScoreService } from './score.service';
 import {
+  BatchCreateScoreDto,
   ScoreEvaluationItemDto,
   CreateScoreDto,
   ScoreDetailReqDto,
@@ -33,6 +34,14 @@ export class ScoreController {
   @Post('create')
   create(@Body() data: CreateScoreDto) {
     return this.scoreService.create(data);
+  }
+
+  /**
+   * @description 批量创建或更新多个国家的评分记录
+   */
+  @Post('batchCreate')
+  batchCreate(@Body() data: BatchCreateScoreDto) {
+    return this.scoreService.batchCreate(data);
   }
 
   /**

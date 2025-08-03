@@ -32,7 +32,7 @@ import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import useIndicatorStore from '@/stores/indicatorStore'
 
-const { Text, Title } = Typography
+const { Text } = Typography
 
 const ModifyPageSkeleton = () => (
   <div className="space-y-6">

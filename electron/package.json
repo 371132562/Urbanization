@@ -1,13 +1,14 @@
 {
   "name": "urbanization-electron",
   "version": "1.0.0",
+  "type": "module",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build:frontend": "pnpm --filter ../frontend build",
     "build:generate": "pnpm --filter ../backend generate",
     "build:backend": "pnpm --filter ../backend build",
-    "build": "rm -rf ./release && pnpm build:frontend && pnpm build:generate && pnpm build:backend && electron-builder",
+    "build": "rm -rf ./release && pnpm build:frontend && pnpm build:generate && pnpm build:backend && electron-builder --win",
     "postinstall": "electron-builder install-app-deps",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

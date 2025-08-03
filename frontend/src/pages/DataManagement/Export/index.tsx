@@ -1,4 +1,4 @@
-import { Button, Form, message, Radio, Select, Skeleton, Space, Typography } from 'antd'
+import { Button, Form, message, Radio, Select, Skeleton, Space } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -8,7 +8,6 @@ import CountrySelect from '@/components/CountrySelect'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import { ExportFormat, ExportFormatOptions } from '@/types'
 
-const { Title } = Typography
 const { Option } = Select
 
 const DataExport = () => {

@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import type {
+  BatchCreateIndicatorValuesDto,
   CheckExistingDataResDto,
   CountryDetailReqDto,
   CountryDetailResDto,
@@ -12,6 +13,7 @@ import type {
 import { create } from 'zustand'
 
 import {
+  dataManagementBatchCreate,
   dataManagementCheckExistingData,
   dataManagementCreate,
   dataManagementDelete,
@@ -31,6 +33,12 @@ type DataManagementStore = {
   getDataManagementList: () => Promise<void>
   getDataManagementDetail: (params: CountryDetailReqDto) => Promise<void>
   saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<boolean>
+  batchSaveDataManagementDetail: (data: BatchCreateIndicatorValuesDto) => Promise<{
+    totalCount: number
+    successCount: number
+    failCount: number
+    failedCountries: string[]
+  }>
   deleteData: (params: CountryYearQueryDto) => Promise<boolean>
   checkDataManagementExistingData: (params: CountryYearQueryDto) => Promise<CheckExistingDataResDto>
   exportData: (params: ExportDataReqDto) => Promise<boolean>
@@ -81,6 +89,20 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
       console.error('Failed to save data:', error)
       set({ saveLoading: false })
       return false
+    }
+  },
+
+  // 批量保存指标数据（新建或编辑）
+  batchSaveDataManagementDetail: async (data: BatchCreateIndicatorValuesDto) => {
+    set({ saveLoading: true })
+    try {
+      const response = await http.post(dataManagementBatchCreate, data)
+      set({ saveLoading: false })
+      return response.data
+    } catch (error) {
+      console.error('Failed to batch save data:', error)
+      set({ saveLoading: false })
+      throw error
     }
   },
 

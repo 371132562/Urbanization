@@ -120,19 +120,19 @@ export const sideRoutes: RouteItem[] = [
     children: [
       {
         path: '/map/urbanizationRate',
-        title: '世界城镇化地图',
+        title: '世界地图',
         component: UrbanizationRate
       },
       {
         path: '/map/mapEdit',
-        title: '地图修改',
+        title: '研究样本',
         component: MapEdit
       }
     ]
   },
   {
     path: '/scoreManagement',
-    title: '评分管理',
+    title: '评价管理',
     icon: <CalculatorOutlined />,
     children: [
       {
@@ -152,7 +152,7 @@ export const sideRoutes: RouteItem[] = [
       },
       {
         path: '/scoreManagement/evaluation',
-        title: '配置评分体系',
+        title: '配置评价体系',
         component: ScoreEvaluation
       },
       {

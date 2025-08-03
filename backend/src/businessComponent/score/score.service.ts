@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import {
+  BatchCreateScoreDto,
   ScoreEvaluationItemDto,
   CreateScoreDto,
   ScoreListDto,
@@ -290,6 +291,117 @@ export class ScoreService {
         },
       });
     }
+  }
+
+  /**
+   * @description 批量创建或更新多个国家的评分记录。
+   * @param {BatchCreateScoreDto} data - 包含年份和多个国家的评分数据。
+   * @returns {Promise<{totalCount: number, successCount: number, failCount: number, failedCountries: string[]}>} 批量创建的结果统计。
+   */
+  async batchCreate(data: BatchCreateScoreDto): Promise<{
+    totalCount: number;
+    successCount: number;
+    failCount: number;
+    failedCountries: string[];
+  }> {
+    const { year, scores } = data;
+    // 标准化年份为 Date 对象 (取年份的6月1日)
+    const yearDate = dayjs(year).month(5).date(1).toDate();
+    const yearValue = dayjs(yearDate).year();
+
+    this.logger.log(
+      `准备批量创建 ${scores.length} 个国家在 ${yearValue} 年的评分数据`,
+    );
+
+    // 步骤1: 验证所有国家是否存在
+    const countryIds = scores.map((s) => s.countryId);
+    const existingCountries = await this.prisma.country.findMany({
+      where: {
+        id: { in: countryIds },
+        delete: 0,
+      },
+    });
+
+    const existingCountryIds = new Set(existingCountries.map((c) => c.id));
+    const invalidCountryIds = countryIds.filter(
+      (id) => !existingCountryIds.has(id),
+    );
+
+    if (invalidCountryIds.length > 0) {
+      this.logger.error(`未找到以下国家ID: ${invalidCountryIds.join(', ')}`);
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+      );
+    }
+
+    // 步骤2: 检查哪些国家该年份已有数据
+    const existingScores = await this.prisma.score.findMany({
+      where: {
+        countryId: { in: countryIds },
+        year: yearDate,
+        delete: 0,
+      },
+      select: {
+        id: true,
+        countryId: true,
+      },
+    });
+
+    const existingScoreMap = new Map(
+      existingScores.map((s) => [s.countryId, s.id]),
+    );
+
+    // 步骤3: 执行批量数据库操作
+    const result = await this.prisma.$transaction(async (prisma) => {
+      let totalCount = 0;
+
+      // 处理每个国家的评分数据
+      for (const scoreData of scores) {
+        const { countryId, ...scoreFields } = scoreData;
+
+        // 准备要写入数据库的评分数据
+        const dataToSave = {
+          ...scoreFields,
+          year: yearDate,
+        };
+
+        // 检查是否已存在记录
+        const existingScoreId = existingScoreMap.get(countryId);
+
+        if (existingScoreId) {
+          // 如果记录已存在，则更新现有记录
+          await prisma.score.update({
+            where: { id: existingScoreId },
+            data: dataToSave,
+          });
+        } else {
+          // 如果记录不存在，则创建新记录
+          await prisma.score.create({
+            data: {
+              ...dataToSave,
+              country: {
+                connect: { id: countryId },
+              },
+            },
+          });
+        }
+        totalCount++;
+      }
+
+      return { totalCount };
+    });
+
+    this.logger.log(
+      `成功批量创建了 ${scores.length} 个国家在 ${yearValue} 年的评分数据`,
+    );
+
+    return {
+      totalCount: result.totalCount,
+      successCount: scores.length,
+      failCount: 0,
+      failedCountries: [],
+    };
   }
 
   /**

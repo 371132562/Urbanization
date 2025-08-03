@@ -1,4 +1,5 @@
 import {
+  BatchCreateScoreDto,
   CheckExistingDataResDto,
   Country,
   CountryScoreData,
@@ -34,6 +35,12 @@ interface ScoreStore {
   getScoreListByCountry: () => Promise<void>
   getScoreDetail: (params: ScoreDetailReqDto) => Promise<void>
   createScore: (data: CreateScoreDto) => Promise<boolean>
+  batchCreateScore: (data: BatchCreateScoreDto) => Promise<{
+    totalCount: number
+    successCount: number
+    failCount: number
+    failedCountries: string[]
+  }>
   checkScoreExistingData: (params: ScoreDetailReqDto) => Promise<CheckExistingDataResDto>
   deleteData: (params: DeleteScoreDto) => Promise<boolean>
   getEvaluations: () => Promise<void>
@@ -130,6 +137,19 @@ const useScoreStore = create<ScoreStore>()(set => ({
       console.log(error)
       set({ saveLoading: false })
       return false
+    }
+  },
+
+  batchCreateScore: async (data: BatchCreateScoreDto) => {
+    set({ saveLoading: true })
+    try {
+      const response = await http.post(apis.scoreBatchCreate, data)
+      set({ saveLoading: false })
+      return response.data
+    } catch (error) {
+      console.log(error)
+      set({ saveLoading: false })
+      throw error
     }
   },
 

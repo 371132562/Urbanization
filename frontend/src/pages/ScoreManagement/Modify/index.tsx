@@ -1,14 +1,4 @@
-import {
-  Button,
-  DatePicker,
-  Form,
-  InputNumber,
-  message,
-  Skeleton,
-  Space,
-  Tooltip,
-  Typography
-} from 'antd'
+import { Button, DatePicker, Form, InputNumber, message, Skeleton, Space, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
@@ -17,8 +7,6 @@ import { CreateScoreDto } from 'urbanization-backend/types/dto'
 import CountrySelect from '@/components/CountrySelect'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useScoreStore from '@/stores/scoreStore'
-
-const { Title } = Typography
 
 const ModifyScoreSkeleton = () => (
   <div className="space-y-4">
