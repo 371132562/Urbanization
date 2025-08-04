@@ -1,12 +1,8 @@
-services:
-  app:
-    container_name: urbanization-evaluation
-    #    build:
-    #      context: . # 指定 Dockerfile 所在的目录为当前目录
-    #      dockerfile: Dockerfile.evaluation # 指定 Dockerfile 的名称
-    #      args:
-    #        DATABASE_URL_BUILD: "file:./urbanization.db" # 将你的数据库路径作为构建参数传递
+name: urbanization-evaluation
 
+services:
+  urbanization-evaluation:
+    container_name: urbanization-evaluation
     image: linstar666/urbanization-evaluation:latest
     ports:
       - "3333:3333" # 将容器的 3333 端口映射到主机的 3333 端口

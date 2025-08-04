@@ -1,15 +1,11 @@
-services:
-  app:
-    container_name: urbanization-score
-    #    build:
-    #      context: . # 指定 Dockerfile 所在的目录为当前目录
-    #      dockerfile: Dockerfile.score # 指定 Dockerfile 的名称
-    #      args:
-    #        DATABASE_URL_BUILD: "file:./urbanization.db" # 将你的数据库路径作为构建参数传递
+name: urbanization-score
 
+services:
+  urbanization-score:
+    container_name: urbanization-score
     image: linstar666/urbanization-score:latest
     ports:
-      - "3332:3333" # 将容器的 3333 端口映射到主机的 3334 端口
+      - "3332:3333" # 将容器的 3333 端口映射到主机的 3332 端口
     volumes:
       # 持久化 SQLite 数据库文件/上传文件/日志文件
       - db_score:/app/db

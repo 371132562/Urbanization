@@ -1,12 +1,8 @@
-services:
-  app:
-    container_name: urbanization-comprehensive
-    #    build:
-    #      context: . # 指定 Dockerfile 所在的目录为当前目录
-    #      dockerfile: Dockerfile.comprehensive # 指定 Dockerfile 的名称
-    #      args:
-    #        DATABASE_URL_BUILD: "file:./urbanization.db" # 将你的数据库路径作为构建参数传递
+name: urbanization-comprehensive
 
+services:
+  urbanization-comprehensive:
+    container_name: urbanization-comprehensive
     image: linstar666/urbanization-comprehensive:latest
     ports:
       - "3334:3333" # 将容器的 3333 端口映射到主机的 3334 端口
