@@ -1,4 +1,4 @@
-# 设置UTF-8编码，避免中文显示乱码
+﻿# 设置UTF-8编码，避免中文显示乱码
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 
