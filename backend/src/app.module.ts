@@ -33,7 +33,7 @@ import { ScoreModule } from './businessComponent/score/score.module';
         exclude: [process.env.DEPLOY_PATH || '/'], // 可选：排除不需要提供静态服务的路由
       },
       {
-        rootPath: join(process.cwd(), 'frontend', 'dist'), // 指向 monorepo 根目录下的 frontend/dist
+        rootPath: join(process.cwd(), '..', 'frontend', 'dist'), // 指向 monorepo 根目录下的 frontend/dist
         serveRoot: process.env.DEPLOY_PATH || '/', // 设置前端静态文件的服务路径
         serveStaticOptions: {
           preCompressed: true,
