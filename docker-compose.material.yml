@@ -8,7 +8,7 @@ services:
       - "3337:3333" # 将容器的 3333 端口映射到主机的 3337 端口
     volumes:
       # 持久化 SQLite 数据库文件/上传文件/日志文件
-      - db_material:/app/db
+      - db_material:/app/backend/db
     restart: unless-stopped # 保持 Docker 容器的运维状态，除非手动停止
     environment:
       DATABASE_URL: "file:../../db/urbanization.db" # 这确保了运行时容器内的 DATABASE_URL 环境变量被设置

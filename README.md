@@ -223,8 +223,13 @@ PORT="3333"
 # 前端环境配置 (.env.production) - 仅供参考，请根据实际情况调整
 VITE_DEPLOY_PATH=/urbanization/
 ```
+```bash
+# 根目录下安装依赖
+pnpm install
+```
 
 **2. 前端构建**
+
 ```bash
 # 构建前端项目 - 仅供参考，请根据实际情况调整
 cd frontend
@@ -241,7 +246,8 @@ sudo cp -r dist/* /usr/local/var/www/dist/
 ```bash
 # 启动后端服务 - 仅供参考，请根据实际情况调整
 cd backend
-pnpm start:prod
+pnpm build
+node ./dist/src/main 
 ```
 注意后端服务默认包含前缀/api
 

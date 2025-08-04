@@ -15,4 +15,6 @@ echo "Running Prisma commands inside ./backend directory..."
 # 启动 NestJS 应用
 
 echo "Starting NestJS application..."
-exec node ./backend/dist/src/main 
+# 进入backend目录启动应用，确保能读取到.env.production文件
+cd backend
+exec node ./dist/src/main 
