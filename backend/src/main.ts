@@ -24,7 +24,7 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // 添加全局路径前缀
-  app.setGlobalPrefix('urbanization');
+  app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
     new ValidationPipe({

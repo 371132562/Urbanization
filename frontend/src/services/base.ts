@@ -5,7 +5,9 @@ import { ErrorCode } from 'urbanization-backend/types/response.ts'
 
 // 创建axios实例
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, // API基础URL（从环境变量获取）
+  baseURL:
+    (import.meta.env.VITE_DEPLOY_PATH === '/' ? '' : import.meta.env.VITE_DEPLOY_PATH) +
+    import.meta.env.VITE_API_BASE_URL, // API基础URL（从环境变量获取）
   timeout: 10000 // 请求超时时间（毫秒）
 })
 

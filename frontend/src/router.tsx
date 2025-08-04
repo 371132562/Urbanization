@@ -43,18 +43,31 @@ const generateRoutes = (): RouteObject[] => {
   return Array.from(pathMap.values())
 }
 
-const router = createBrowserRouter([
+// 获取部署路径，处理斜杠问题
+const getBasename = () => {
+  const deployPath = import.meta.env.VITE_DEPLOY_PATH || '/'
+  return deployPath.endsWith('/') ? deployPath.slice(0, -1) : deployPath
+}
+
+const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <Navigate to="/home" />,
+      errorElement: <ErrorPage />
+    },
+    {
+      element: <Layout />,
+      // 将错误元素放在布局路由上，它可以捕获所有子路由的渲染错误
+      errorElement: <ErrorPage />,
+      children: generateRoutes()
+    }
+  ],
   {
-    path: '/',
-    element: <Navigate to="/home" />,
-    errorElement: <ErrorPage />
-  },
-  {
-    element: <Layout />,
-    // 将错误元素放在布局路由上，它可以捕获所有子路由的渲染错误
-    errorElement: <ErrorPage />,
-    children: generateRoutes()
+    // 设置路由基础路径，如果部署在子目录下需要修改这里
+    // 例如部署在 /urbanization/ 子目录下，则设置为 '/urbanization'
+    basename: getBasename()
   }
-])
+)
 
 export default router

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { join } from 'path';
+import { ConfigModule } from '@nestjs/config';
 
 //公共模块
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -15,18 +16,25 @@ import { ScoreModule } from './businessComponent/score/score.module';
 
 @Module({
   imports: [
+    // 配置模块 - 支持多环境文件
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`],
+    }),
     //公共模块
     // 配置 @nestjs/serve-static 模块来提供静态文件服务
     ServeStaticModule.forRoot(
       {
         rootPath: join(process.env.UPLOAD_DIR as string), // 静态文件在服务器上的物理路径
-        serveRoot: `/images`, // URL 前缀，例如 /uploads/images
-        // serveRoot: '/', // 可以省略，默认就是 '/'
-        exclude: ['/'], // 可选：排除不需要提供静态服务的路由
+        serveRoot:
+          process.env.DEPLOY_PATH === '/'
+            ? '/images'
+            : `${process.env.DEPLOY_PATH}images`, // URL 前缀，例如 /urbanization/images
+        exclude: [process.env.DEPLOY_PATH || '/'], // 可选：排除不需要提供静态服务的路由
       },
       {
         rootPath: join(process.cwd(), 'frontend', 'dist'), // 指向 monorepo 根目录下的 frontend/dist
-        // serveRoot: '/', // 可以省略，默认就是 '/'
+        serveRoot: process.env.DEPLOY_PATH || '/', // 设置前端静态文件的服务路径
         serveStaticOptions: {
           preCompressed: true,
         },
