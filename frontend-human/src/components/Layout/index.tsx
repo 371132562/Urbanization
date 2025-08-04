@@ -108,7 +108,7 @@ export const Component: FC = () => {
       >
         {/* 左侧标题区域 */}
         <div className="flex items-center">
-          <div className="text-2xl font-bold tracking-wide text-white">城镇化进程评价展示平台</div>
+          <div className="text-2xl font-bold tracking-wide text-white">迁移动力评价展示平台</div>
         </div>
 
         {/* 中间导航菜单 */}
