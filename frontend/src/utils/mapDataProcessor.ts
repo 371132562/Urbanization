@@ -207,6 +207,7 @@ export interface ProcessedScoreMapData {
  * @description 处理按国家分组的评分数据，为综合评价地图页准备数据
  * @param {CountryScoreData[]} scoreData - 从后端获取的、按国家分组的评分数据。
  * @param {CountryListResDto} allCountries - 包含所有国家的列表，用于构建完整的nameMap。
+ * @param {UrbanizationWorldMapDataDto} urbanizationData - 城镇化数据，用于判断哪些国家应该显示评分数据。
  * @returns {object} 一个包含所有派生数据的对象，具体如下：
  * - `mapData`: 用于 `WorldMap` 组件的 `series.data`。只包含有数据的国家。
  * - `nameMap`: 用于 `WorldMap` 组件，国家英文名到中文名的映射。
@@ -216,7 +217,8 @@ export interface ProcessedScoreMapData {
  */
 export const processScoreDataForMap = (
   scoreData: CountryScoreData[],
-  allCountries: CountryListResDto
+  allCountries: CountryListResDto,
+  urbanizationData?: UrbanizationWorldMapDataDto
 ): ProcessedScoreMapData => {
   const nameMap: Record<string, string> = {}
   const countryEnNameToIdMap = new Map<string, string>()
@@ -241,10 +243,18 @@ export const processScoreDataForMap = (
   const mapData: { name: string; value: number }[] = []
   const countryYearsMap = new Map<string, number[]>()
 
+  // 创建一个城镇化状态的映射，用于快速查找
+  const urbanizationMap = new Map<string, boolean>()
+  if (urbanizationData && urbanizationData.length > 0) {
+    urbanizationData.forEach(item => {
+      urbanizationMap.set(item.country.enName, item.urbanization)
+    })
+  }
+
   // 定义一个固定的value和对应的valueMap，用于高亮显示所有有数据的国家
   const dataValue = 1
   const valueMap = {
-    [dataValue]: { text: '有评分数据', color: '#4575b4' }
+    [dataValue]: { text: '有评分数据', color: '#74add1' }
   }
 
   scoreData.forEach(country => {
@@ -256,14 +266,18 @@ export const processScoreDataForMap = (
       countryEnNameToIdMap.set(country.enName, country.countryId)
     }
 
-    // 2. 填充 mapData，所有有数据的国家使用相同的value
-    mapData.push({ name: country.enName, value: dataValue })
+    // 2. 检查该国家是否城镇化为"是"，只有城镇化为"是"的国家才显示评分数据
+    const isUrbanized = urbanizationMap.get(country.enName)
+    if (isUrbanized === true) {
+      // 只有城镇化为"是"的国家才添加到地图数据中
+      mapData.push({ name: country.enName, value: dataValue })
 
-    // 3. 提取每个国家的所有年份
-    const years = country.data
-      .map((d: CountryScoreDataItem) => new Date(d.year).getFullYear())
-      .sort((a: number, b: number) => b - a)
-    countryYearsMap.set(country.enName, years)
+      // 3. 提取每个国家的所有年份
+      const years = country.data
+        .map((d: CountryScoreDataItem) => new Date(d.year).getFullYear())
+        .sort((a: number, b: number) => b - a)
+      countryYearsMap.set(country.enName, years)
+    }
   })
 
   return { mapData, nameMap, valueMap, countryYearsMap, countryEnNameToIdMap }

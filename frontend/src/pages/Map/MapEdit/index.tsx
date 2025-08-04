@@ -53,7 +53,7 @@ const MapEdit: FC = () => {
     )
     const result = await batchUpdateUrbanization(updates)
     if (result.success) {
-      message.success(`成功更新 ${result.count} 个国家的状态`)
+      message.success(`成功更新`)
       getUrbanizationMapData()
     } else {
       message.error('更新失败，请稍后重试')
