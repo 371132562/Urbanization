@@ -108,7 +108,7 @@ try {
     if ($containerStatus) {
         Write-Host "`n已成功启动！" -ForegroundColor Green
         Write-Host "容器状态: $containerStatus" -ForegroundColor Green
-        Write-Host "数据管理系统访问地址: http://localhost:3336" -ForegroundColor Cyan
+        Write-Host "数据管理系统访问地址: http://localhost:3331" -ForegroundColor Cyan
     } else {
         Write-Host "`n警告: 容器可能未正常启动，请检查日志:" -ForegroundColor Red
         docker compose logs

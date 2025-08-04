@@ -4,6 +4,11 @@ packages:
   - frontend-data
   - frontend-evaluation
   - frontend-score
+  - frontend-comprehensive
+  - frontend-urbanization
+  - frontend-human
+  - frontend-material
+  - frontend-spatial
   - electron
   - loading-frontend
   - common

@@ -61,6 +61,46 @@ jobs:
             image_tag: linstar666/urbanization-score:latest
             zip_name: urbanization-score.zip
             description: 评分管理客户端运行文件
+          # 综合评价客户端配置
+          - name: comprehensive
+            dockerfile: ./Dockerfile.comprehensive
+            docker_compose: docker-compose.comprehensive.yml
+            start_script: start-comprehensive.ps1
+            image_tag: linstar666/urbanization-comprehensive:latest
+            zip_name: urbanization-comprehensive.zip
+            description: 综合评价客户端运行文件
+          # 城镇化进程客户端配置
+          - name: urbanization
+            dockerfile: ./Dockerfile.urbanization
+            docker_compose: docker-compose.urbanization.yml
+            start_script: start-urbanization.ps1
+            image_tag: linstar666/urbanization-urbanization:latest
+            zip_name: urbanization-urbanization.zip
+            description: 城镇化进程客户端运行文件
+          # 迁移动力客户端配置
+          - name: human
+            dockerfile: ./Dockerfile.human
+            docker_compose: docker-compose.human.yml
+            start_script: start-human.ps1
+            image_tag: linstar666/urbanization-human:latest
+            zip_name: urbanization-human.zip
+            description: 迁移动力客户端运行文件
+          # 经济动力客户端配置
+          - name: material
+            dockerfile: ./Dockerfile.material
+            docker_compose: docker-compose.material.yml
+            start_script: start-material.ps1
+            image_tag: linstar666/urbanization-material:latest
+            zip_name: urbanization-material.zip
+            description: 经济动力客户端运行文件
+          # 空间动力客户端配置
+          - name: spatial
+            dockerfile: ./Dockerfile.spatial
+            docker_compose: docker-compose.spatial.yml
+            start_script: start-spatial.ps1
+            image_tag: linstar666/urbanization-spatial:latest
+            zip_name: urbanization-spatial.zip
+            description: 空间动力客户端运行文件
     # 定义输出，用于后续任务使用（虽然这里没有直接使用，但保留以备将来扩展）
     outputs:
       zip-files: ${{ steps.package.outputs.zip-files }}
@@ -172,7 +212,7 @@ jobs:
           merge-multiple: true
 
       # 步骤2：验证下载的文件
-      # 检查是否成功下载了所有四个客户端的 zip 文件
+      # 检查是否成功下载了所有客户端的 zip 文件
       - name: 验证下载的文件
         run: |
           echo "检查下载的文件："
@@ -182,6 +222,11 @@ jobs:
           echo "- urbanization-data.zip" 
           echo "- urbanization-evaluation.zip"
           echo "- urbanization-score.zip"
+          echo "- urbanization-comprehensive.zip"
+          echo "- urbanization-urbanization.zip"
+          echo "- urbanization-human.zip"
+          echo "- urbanization-material.zip"
+          echo "- urbanization-spatial.zip"
           
           # 检查文件是否存在
           if [ ! -f "./artifacts/urbanization.zip" ]; then
@@ -200,15 +245,53 @@ jobs:
             echo "错误：缺少 urbanization-score.zip"
             exit 1
           fi
+          if [ ! -f "./artifacts/urbanization-comprehensive.zip" ]; then
+            echo "错误：缺少 urbanization-comprehensive.zip"
+            exit 1
+          fi
+          if [ ! -f "./artifacts/urbanization-urbanization.zip" ]; then
+            echo "错误：缺少 urbanization-urbanization.zip"
+            exit 1
+          fi
+          if [ ! -f "./artifacts/urbanization-human.zip" ]; then
+            echo "错误：缺少 urbanization-human.zip"
+            exit 1
+          fi
+          if [ ! -f "./artifacts/urbanization-material.zip" ]; then
+            echo "错误：缺少 urbanization-material.zip"
+            exit 1
+          fi
+          if [ ! -f "./artifacts/urbanization-spatial.zip" ]; then
+            echo "错误：缺少 urbanization-spatial.zip"
+            exit 1
+          fi
           echo "✅ 所有文件下载成功！"
 
-      # 步骤3：生成版本号 (北京时间)
+      # 步骤3：创建八个副本的整合包
+      # 将八个副本的zip文件打包成一个整合包，方便用户一次性下载所有副本
+      - name: 创建八个副本整合包
+        run: |
+          echo "正在创建八个副本的整合包..."
+          cd ./artifacts
+          zip urbanization-all-clients.zip \
+            urbanization-data.zip \
+            urbanization-evaluation.zip \
+            urbanization-score.zip \
+            urbanization-comprehensive.zip \
+            urbanization-urbanization.zip \
+            urbanization-human.zip \
+            urbanization-material.zip \
+            urbanization-spatial.zip
+          echo "✅ 整合包创建成功：urbanization-all-clients.zip"
+          ls -la urbanization-all-clients.zip
+
+      # 步骤4：生成版本号 (北京时间)
       # 使用北京时间生成版本号，格式为 YYYYMMDD-HHMM
       - name: 生成版本号 (北京时间)
         id: version
         run: echo "tag=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
 
-      # 步骤4：创建 GitHub Release
+      # 步骤5：创建 GitHub Release
       # 使用第三方 Action 创建 GitHub Release，包含所有客户端的文件
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v2
@@ -221,7 +304,7 @@ jobs:
           body: |
             自动打包的多客户端运行文件 (PowerShell 版本)。
             
-            本次发布包含了四个客户端的完整运行包：
+            本次发布包含了九个客户端的完整运行包：
             
             ## 📦 包含的客户端
             
@@ -247,6 +330,39 @@ jobs:
             - 专门用于评分管理功能
             - 包含所有必要的运行文件
             
+            ### 5. 综合评价客户端 (`urbanization-comprehensive.zip`)
+            - 专门用于综合评价功能
+            - 包含所有必要的运行文件
+            
+            ### 6. 城镇化进程客户端 (`urbanization-urbanization.zip`)
+            - 专门用于城镇化进程功能
+            - 包含所有必要的运行文件
+            
+            ### 7. 迁移动力客户端 (`urbanization-human.zip`)
+            - 专门用于迁移动力功能
+            - 包含所有必要的运行文件
+            
+            ### 8. 经济动力客户端 (`urbanization-material.zip`)
+            - 专门用于经济动力功能
+            - 包含所有必要的运行文件
+            
+            ### 9. 空间动力客户端 (`urbanization-spatial.zip`)
+            - 专门用于空间动力功能
+            - 包含所有必要的运行文件
+            
+            ### 10. 八个副本整合包 (`urbanization-all-clients.zip`)
+            - 包含所有八个副本的完整运行包
+            - 一次性下载所有副本，方便批量部署
+            - 包含文件：
+              - urbanization-data.zip (数据管理)
+              - urbanization-evaluation.zip (评估管理)
+              - urbanization-score.zip (评分管理)
+              - urbanization-comprehensive.zip (综合评价)
+              - urbanization-urbanization.zip (城镇化进程)
+              - urbanization-human.zip (迁移动力)
+              - urbanization-material.zip (经济动力)
+              - urbanization-spatial.zip (空间动力)
+            
             ## 🚀 使用方法
             
             请根据您的需求下载对应的客户端包：
@@ -254,6 +370,12 @@ jobs:
             - 如果只需要数据管理功能，下载 `urbanization-data.zip`
             - 如果只需要评估管理功能，下载 `urbanization-evaluation.zip`
             - 如果只需要评分管理功能，下载 `urbanization-score.zip`
+            - 如果只需要综合评价功能，下载 `urbanization-comprehensive.zip`
+            - 如果只需要城镇化进程功能，下载 `urbanization-urbanization.zip`
+            - 如果只需要迁移动力功能，下载 `urbanization-human.zip`
+            - 如果只需要经济动力功能，下载 `urbanization-material.zip`
+            - 如果只需要空间动力功能，下载 `urbanization-spatial.zip`
+            - 如果需要所有八个副本，下载 `urbanization-all-clients.zip`
             
             下载后解压即可使用。
           # 指定要包含在 Release 中的文件
@@ -262,4 +384,10 @@ jobs:
             ./artifacts/urbanization.zip
             ./artifacts/urbanization-data.zip
             ./artifacts/urbanization-evaluation.zip
-            ./artifacts/urbanization-score.zip 
+            ./artifacts/urbanization-score.zip
+            ./artifacts/urbanization-comprehensive.zip
+            ./artifacts/urbanization-urbanization.zip
+            ./artifacts/urbanization-human.zip
+            ./artifacts/urbanization-material.zip
+            ./artifacts/urbanization-spatial.zip
+            ./artifacts/urbanization-all-clients.zip 

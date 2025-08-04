@@ -8,7 +8,7 @@ services:
 
     image: linstar666/urbanization:latest
     ports:
-      - "3333:3333" # 将容器的 3333 端口映射到主机的 3333 端口
+      - "1818:3333" # 将容器的 3333 端口映射到主机的 3333 端口
     volumes:
       # 持久化 SQLite 数据库文件/上传文件/日志文件
       - db:/app/db
