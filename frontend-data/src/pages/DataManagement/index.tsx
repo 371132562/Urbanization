@@ -13,7 +13,6 @@ import {
   Table,
   Tag
 } from 'antd'
-import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { CountryData, YearData } from 'urbanization-backend/types/dto'
@@ -21,6 +20,7 @@ import type { CountryData, YearData } from 'urbanization-backend/types/dto'
 import { DETAILED_INDICATORS } from '@/config/dataImport'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import { filterDataByCountry } from '@/utils'
+import { dayjs } from '@/utils/dayjs'
 
 const { Panel } = Collapse
 const { Search } = Input
@@ -182,9 +182,7 @@ const DataManagement = () => {
             <Button
               color="primary"
               variant="outlined"
-              onClick={() =>
-                navigate(`/dataManagement/modify/${record.id}/${dayjs(record.year).format('YYYY')}`)
-              }
+              onClick={() => navigate(`/dataManagement/modify/${record.id}/${record.year}`)}
             >
               编辑
             </Button>
@@ -236,11 +234,7 @@ const DataManagement = () => {
         >
           {filteredData.map((yearData: YearData) => (
             <Panel
-              header={
-                <span className="text-base font-semibold">
-                  {dayjs(yearData.year).format('YYYY')}年
-                </span>
-              }
+              header={<span className="text-base font-semibold">{yearData.year}年</span>}
               key={yearData.year.toString()}
             >
               <Table

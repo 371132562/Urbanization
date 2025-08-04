@@ -10,8 +10,15 @@ import { processScoreDataForMap } from '@/utils/mapDataProcessor'
 
 const ComprehensiveEvaluation: FC = () => {
   // 从Zustand store中获取数据和方法
-  const { scoreListByCountry, getScoreListByCountry, listLoading } = useScoreStore()
-  const { countries, getCountries } = useCountryAndContinentStore()
+  const scoreListByCountry = useScoreStore(state => state.scoreListByCountry)
+  const getScoreListByCountry = useScoreStore(state => state.getScoreListByCountry)
+  const listLoading = useScoreStore(state => state.listLoading)
+
+  const countries = useCountryAndContinentStore(state => state.countries)
+  const getCountries = useCountryAndContinentStore(state => state.getCountries)
+  const urbanizationMapData = useCountryAndContinentStore(state => state.urbanizationMapData)
+  const getUrbanizationMapData = useCountryAndContinentStore(state => state.getUrbanizationMapData)
+
   const navigate = useNavigate()
 
   // 本地state，用于存储当前选中的国家信息
@@ -21,16 +28,17 @@ const ComprehensiveEvaluation: FC = () => {
     years: number[]
   } | null>(null)
 
-  // 组件加载时，异步获取按国家分组的评分数据和所有国家列表
+  // 组件加载时，异步获取按国家分组的评分数据、所有国家列表和城镇化数据
   useEffect(() => {
     getScoreListByCountry()
     getCountries()
-  }, [getScoreListByCountry, getCountries])
+    getUrbanizationMapData()
+  }, [])
 
   // 使用useMemo对处理后的数据进行缓存，只有在原始数据变化时才重新计算
   const { mapData, nameMap, valueMap, countryYearsMap, countryEnNameToIdMap } = useMemo(
-    () => processScoreDataForMap(scoreListByCountry, countries),
-    [scoreListByCountry, countries]
+    () => processScoreDataForMap(scoreListByCountry, countries, urbanizationMapData),
+    [scoreListByCountry, countries, urbanizationMapData]
   )
 
   // 地图点击事件处理函数

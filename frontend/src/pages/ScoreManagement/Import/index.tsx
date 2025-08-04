@@ -13,7 +13,6 @@ import {
   Upload
 } from 'antd'
 import type { RcFile, UploadFile } from 'antd/es/upload/interface'
-import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import * as XLSX from 'xlsx'
@@ -21,6 +20,7 @@ import * as XLSX from 'xlsx'
 import { SCORE_DIMENSIONS } from '@/config/dataImport'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useScoreStore from '@/stores/scoreStore'
+import { dayjs } from '@/utils/dayjs'
 
 const { Dragger } = Upload
 
@@ -147,7 +147,7 @@ const ScoreImportPage = () => {
         if (matchedCountries.length > 0) {
           try {
             const batchCheckResult = await batchCheckScoreExistingData({
-              year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
+              year: importYear!,
               countryIds: matchedCountries.map(c => c.countryId)
             })
 
@@ -161,7 +161,7 @@ const ScoreImportPage = () => {
             for (const country of matchedCountries) {
               const { exists } = await checkScoreExistingData({
                 countryId: country.countryId,
-                year: dayjs(importYear!.toString()).month(5).date(1).toDate()
+                year: importYear!
               })
               existingDataMap.set(country.countryId, exists)
             }
@@ -263,7 +263,7 @@ const ScoreImportPage = () => {
 
       // 构造批量导入的完整负载
       const batchPayload = {
-        year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
+        year: importYear!,
         scores: scoresPayload
       }
 

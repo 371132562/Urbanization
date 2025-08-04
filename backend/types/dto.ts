@@ -26,7 +26,7 @@ export {
  * 数据管理列表相关类型
  */
 export type DataManagementListItem = {
-  year: Date;
+  year: number;
 };
 
 export type IndicatorValue = {
@@ -46,7 +46,7 @@ export type CountryData = {
   id: string;
   cnName: string;
   enName: string;
-  year: Date;
+  year: number;
   isComplete: boolean; // 69个三级指标中是否包含null字段，如果包含null字段，则isComplete为false，否则为true
   indicators: IndicatorDataItem[];
   createTime: Date; // 所有该年该国家下数据最早的时间作为创建时间
@@ -54,7 +54,7 @@ export type CountryData = {
 };
 
 export type YearData = {
-  year: Date;
+  year: number;
   data: CountryData[];
 };
 
@@ -65,7 +65,7 @@ export type DataManagementListDto = YearData[];
  */
 export type CountryDetailReqDto = {
   countryId: string; // 国家ID
-  year: Date; // 年份
+  year: number; // 年份
 };
 
 /**
@@ -101,7 +101,7 @@ export type TopIndicatorItem = {
  */
 export type CountryDetailResDto = {
   countryId: string; // 国家ID
-  year: Date; // 年份
+  year: number; // 年份
   indicators: TopIndicatorItem[]; // 一级指标数据列表
   isComplete: boolean; // 数据是否完整
 };
@@ -116,7 +116,7 @@ export type IndicatorValueItem = {
 
 export type CreateIndicatorValuesDto = {
   countryId: string; // 国家ID
-  year: Date; // 年份
+  year: number; // 年份
   indicators: IndicatorValueItem[]; // 指标值数组
 };
 
@@ -124,7 +124,7 @@ export type CreateIndicatorValuesDto = {
  * 批量创建指标值数据请求参数
  */
 export type BatchCreateIndicatorValuesDto = {
-  year: Date; // 年份
+  year: number; // 年份
   countries: {
     countryId: string; // 国家ID
     indicators: IndicatorValueItem[]; // 指标值数组
@@ -135,7 +135,7 @@ export type BatchCreateIndicatorValuesDto = {
  * 批量检查指标数据是否存在请求参数
  */
 export type BatchCheckIndicatorExistingDto = {
-  year: Date; // 年份
+  year: number; // 年份
   countryIds: string[]; // 国家ID数组
 };
 
@@ -154,7 +154,7 @@ export type BatchCheckIndicatorExistingResDto = {
  */
 export type CountryYearQueryDto = {
   countryId: string; // 国家ID
-  year: Date; // 年份
+  year: number; // 年份
 };
 
 export type CheckExistingDataResDto = {
@@ -181,7 +181,7 @@ export const ExportFormatOptions = [
 ];
 
 export type ExportDataReqDto = {
-  year: Date; // 年份
+  year: number; // 年份
   countryIds: string[]; // 国家ID数组
   format: ExportFormat; // 导出格式
 };
@@ -388,7 +388,7 @@ export type ScoreEvaluationItemDto = {
  */
 export type CreateScoreDto = {
   countryId: string;
-  year: Date;
+  year: number;
   totalScore: number;
   urbanizationProcessDimensionScore: number;
   humanDynamicsDimensionScore: number;
@@ -400,7 +400,7 @@ export type CreateScoreDto = {
  * 批量创建评分数据请求参数
  */
 export type BatchCreateScoreDto = {
-  year: Date; // 年份
+  year: number; // 年份
   scores: {
     countryId: string; // 国家ID
     totalScore: number;
@@ -415,7 +415,7 @@ export type BatchCreateScoreDto = {
  * 批量检查评分数据是否存在请求参数
  */
 export type BatchCheckScoreExistingDto = {
-  year: Date; // 年份
+  year: number; // 年份
   countryIds: string[]; // 国家ID数组
 };
 
@@ -434,7 +434,7 @@ export type ScoreDataItem = {
   countryId: string;
   cnName: string;
   enName: string;
-  year: Date;
+  year: number;
   totalScore: number;
   urbanizationProcessDimensionScore: number;
   humanDynamicsDimensionScore: number;
@@ -448,7 +448,7 @@ export type ScoreDataItem = {
  * 得分列表按年份分组
  */
 export type YearScoreData = {
-  year: Date;
+  year: number;
   data: ScoreDataItem[];
 };
 
@@ -456,7 +456,7 @@ export type ScoreListDto = YearScoreData[];
 
 export interface CountryScoreDataItem {
   id: string;
-  year: Date;
+  year: number;
   totalScore: number;
   urbanizationProcessDimensionScore: number;
   humanDynamicsDimensionScore: number;
@@ -481,7 +481,7 @@ export interface CountryScoreData {
  */
 export type ScoreDetailReqDto = {
   countryId: string;
-  year: Date;
+  year: number;
 };
 
 /**

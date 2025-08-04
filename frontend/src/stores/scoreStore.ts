@@ -186,7 +186,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
     set({
       detailData: {
         countryId: undefined,
-        year: undefined,
+        year: undefined as number | undefined,
         totalScore: undefined,
         urbanizationProcessDimensionScore: undefined,
         humanDynamicsDimensionScore: undefined,

@@ -1,4 +1,7 @@
 import {
+  BatchCheckScoreExistingDto,
+  BatchCheckScoreExistingResDto,
+  BatchCreateScoreDto,
   CheckExistingDataResDto,
   Country,
   CountryScoreData,
@@ -34,7 +37,16 @@ interface ScoreStore {
   getScoreListByCountry: () => Promise<void>
   getScoreDetail: (params: ScoreDetailReqDto) => Promise<void>
   createScore: (data: CreateScoreDto) => Promise<boolean>
+  batchCreateScore: (data: BatchCreateScoreDto) => Promise<{
+    totalCount: number
+    successCount: number
+    failCount: number
+    failedCountries: string[]
+  }>
   checkScoreExistingData: (params: ScoreDetailReqDto) => Promise<CheckExistingDataResDto>
+  batchCheckScoreExistingData: (
+    data: BatchCheckScoreExistingDto
+  ) => Promise<BatchCheckScoreExistingResDto>
   deleteData: (params: DeleteScoreDto) => Promise<boolean>
   getEvaluations: () => Promise<void>
   saveEvaluations: (data: ScoreEvaluationItemDto[]) => Promise<boolean>
@@ -96,6 +108,16 @@ const useScoreStore = create<ScoreStore>()(set => ({
     }
   },
 
+  batchCheckScoreExistingData: async (data: BatchCheckScoreExistingDto) => {
+    try {
+      const res = await http.post<BatchCheckScoreExistingResDto>(apis.scoreBatchCheckExisting, data)
+      return res.data
+    } catch (error) {
+      console.log(error)
+      throw error
+    }
+  },
+
   getEvaluations: async () => {
     set({ evaluationsLoading: true })
     try {
@@ -133,6 +155,19 @@ const useScoreStore = create<ScoreStore>()(set => ({
     }
   },
 
+  batchCreateScore: async (data: BatchCreateScoreDto) => {
+    set({ saveLoading: true })
+    try {
+      const response = await http.post(apis.scoreBatchCreate, data)
+      set({ saveLoading: false })
+      return response.data
+    } catch (error) {
+      console.log(error)
+      set({ saveLoading: false })
+      throw error
+    }
+  },
+
   deleteData: async (params: DeleteScoreDto) => {
     try {
       await http.post(apis.scoreDelete, params)
@@ -151,7 +186,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
     set({
       detailData: {
         countryId: undefined,
-        year: undefined,
+        year: undefined as number | undefined,
         totalScore: undefined,
         urbanizationProcessDimensionScore: undefined,
         humanDynamicsDimensionScore: undefined,

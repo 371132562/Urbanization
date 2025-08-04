@@ -20,10 +20,10 @@ import {
   IndicatorDataItem,
 } from '../../../types/dto';
 import { IndicatorValue, Country, DetailedIndicator } from '@prisma/client';
-import * as dayjs from 'dayjs';
 import * as xlsx from 'xlsx';
 import { BusinessException } from '../../exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
+import dayjs from '../../utils/dayjs';
 
 @Injectable()
 export class DataManagementService {
@@ -83,7 +83,7 @@ export class DataManagementService {
     >();
 
     for (const iv of indicatorValues as IndicatorValueWithDetails[]) {
-      const year = dayjs(iv.year).year();
+      const year = iv.year; // 直接使用数字年份
       const countryId = iv.country.id;
 
       if (!groupedByCountryYear.has(year)) {
@@ -104,7 +104,7 @@ export class DataManagementService {
     const result: DataManagementListDto = [];
     for (const [year, countryMap] of groupedByCountryYear.entries()) {
       const yearData: YearData = {
-        year: dayjs().year(year).month(5).date(1).toDate(),
+        year: year, // 直接使用数字年份
         data: [],
       };
       for (const [countryId, values] of countryMap.entries()) {
@@ -141,7 +141,7 @@ export class DataManagementService {
           id: countryId,
           cnName,
           enName,
-          year: dayjs(values[0].year).month(5).date(1).toDate(),
+          year: year, // 直接使用数字年份
           isComplete,
           indicators,
           createTime,
@@ -157,7 +157,7 @@ export class DataManagementService {
 
     // 按年份降序排序
     this.logger.log('指标数据处理完成并按年份排序。');
-    return result.sort((a, b) => b.year.getTime() - a.year.getTime());
+    return result.sort((a, b) => b.year - a.year);
   }
 
   /**
@@ -168,9 +168,8 @@ export class DataManagementService {
   async create(data: CreateIndicatorValuesDto): Promise<{ count: number }> {
     // 步骤1: 准备参数和基础数据
     const { countryId, year, indicators } = data;
-    // 统一使用dayjs处理年份，只保留年份信息
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    // 直接使用数字年份
+    const yearValue = year;
 
     this.logger.log(
       `准备为国家ID ${countryId} 在 ${yearValue} 年创建/更新 ${indicators.length} 个指标值`,
@@ -193,7 +192,7 @@ export class DataManagementService {
     const existingCount = await this.prisma.indicatorValue.count({
       where: {
         countryId,
-        year: yearDate,
+        year: yearValue,
         delete: 0,
       },
     });
@@ -219,7 +218,7 @@ export class DataManagementService {
       return {
         detailedIndicatorId,
         countryId,
-        year: yearDate,
+        year: yearValue,
         value: processedValue,
         createTime: new Date(),
         updateTime: new Date(),
@@ -235,7 +234,7 @@ export class DataManagementService {
         await prisma.indicatorValue.deleteMany({
           where: {
             countryId,
-            year: yearDate,
+            year: yearValue,
           },
         });
 
@@ -274,9 +273,8 @@ export class DataManagementService {
     failedCountries: string[];
   }> {
     const { year, countries } = data;
-    // 统一使用dayjs处理年份，只保留年份信息
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    // 直接使用数字年份
+    const yearValue = year;
 
     // 验证请求数据大小，防止过大的请求导致性能问题
     if (countries.length > 500) {
@@ -319,7 +317,7 @@ export class DataManagementService {
     const existingData = await this.prisma.indicatorValue.findMany({
       where: {
         countryId: { in: countryIds },
-        year: yearDate,
+        year: yearValue,
         delete: 0,
       },
       select: {
@@ -333,7 +331,7 @@ export class DataManagementService {
     const allProcessedData: {
       detailedIndicatorId: string;
       countryId: string;
-      year: Date;
+      year: number;
       value: number | null;
       createTime: Date;
       updateTime: Date;
@@ -363,7 +361,7 @@ export class DataManagementService {
         return {
           detailedIndicatorId,
           countryId,
-          year: yearDate,
+          year: yearValue,
           value: processedValue,
           createTime: new Date(),
           updateTime: new Date(),
@@ -382,7 +380,7 @@ export class DataManagementService {
         const deleteResult = await prisma.indicatorValue.deleteMany({
           where: {
             countryId: { in: Array.from(existingCountryIdsSet) },
-            year: yearDate,
+            year: yearValue,
           },
         });
 
@@ -422,9 +420,8 @@ export class DataManagementService {
   async detail(params: CountryDetailReqDto): Promise<CountryDetailResDto> {
     // 步骤1: 准备参数和基础数据
     const { countryId, year } = params;
-    // 统一使用dayjs处理年份，只保留年份信息，忽略月日和具体时间
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    // 直接使用数字年份
+    const yearValue = year;
 
     this.logger.log(
       `获取国家ID为 ${countryId} 在 ${yearValue} 年的详细指标数据`,
@@ -446,17 +443,11 @@ export class DataManagementService {
     // 步骤3: 获取指定年份的指标数据
 
     // 获取该国家在指定年份的所有指标值
-    // 使用日期范围查询，避免精确匹配可能的问题
-    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
-    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
-
+    // 使用精确匹配查询，因为现在 year 是 number 类型
     const indicatorValues = await this.prisma.indicatorValue.findMany({
       where: {
         countryId,
-        year: {
-          gte: startOfTargetDate,
-          lte: endOfTargetDate,
-        },
+        year: yearValue,
         delete: 0,
         detailedIndicator: {
           delete: 0,
@@ -592,7 +583,7 @@ export class DataManagementService {
     // 步骤7: 构建并返回响应数据
     return {
       countryId: country.id,
-      year: yearDate,
+      year: yearValue,
       indicators:
         topIndicators.size > 0 ? Array.from(topIndicators.values()) : [],
       isComplete,
@@ -606,8 +597,7 @@ export class DataManagementService {
    */
   async delete(params: CountryYearQueryDto): Promise<{ count: number }> {
     const { countryId, year } = params;
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    const yearValue = year;
 
     this.logger.log(
       `准备删除国家ID ${countryId} 在 ${yearValue} 年的所有指标数据`,
@@ -617,7 +607,7 @@ export class DataManagementService {
     const existingCount = await this.prisma.indicatorValue.count({
       where: {
         countryId,
-        year: yearDate,
+        year: yearValue,
         delete: 0,
       },
     });
@@ -633,7 +623,7 @@ export class DataManagementService {
     const { count } = await this.prisma.indicatorValue.updateMany({
       where: {
         countryId,
-        year: yearDate,
+        year: yearValue,
         delete: 0,
       },
       data: {
@@ -657,9 +647,8 @@ export class DataManagementService {
     params: CountryYearQueryDto,
   ): Promise<CheckExistingDataResDto> {
     const { countryId, year } = params;
-    // 统一使用dayjs处理年份，只保留年份信息
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    // 直接使用数字年份
+    const yearValue = year;
 
     this.logger.log(
       `检查国家ID ${countryId} 在 ${yearValue} 年是否已有指标数据`,
@@ -679,17 +668,11 @@ export class DataManagementService {
     }
 
     // 查询该国家该年份的指标值数量
-    // 使用日期范围查询，避免精确匹配可能的问题
-    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
-    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
-
+    // 使用精确匹配查询，因为现在 year 是 number 类型
     const count = await this.prisma.indicatorValue.count({
       where: {
         countryId,
-        year: {
-          gte: startOfTargetDate,
-          lte: endOfTargetDate,
-        },
+        year: yearValue,
         delete: 0,
       },
     });
@@ -717,9 +700,8 @@ export class DataManagementService {
     data: BatchCheckIndicatorExistingDto,
   ): Promise<BatchCheckIndicatorExistingResDto> {
     const { year, countryIds } = data;
-    // 统一使用dayjs处理年份，只保留年份信息
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    // 直接使用数字年份
+    const yearValue = year;
 
     this.logger.log(
       `准备批量检查 ${countryIds.length} 个国家在 ${yearValue} 年的指标数据是否存在`,
@@ -747,17 +729,11 @@ export class DataManagementService {
     }
 
     // 步骤2: 批量查询已存在的指标数据
-    // 使用日期范围查询，避免精确匹配可能的问题
-    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
-    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
-
+    // 使用精确匹配查询，因为现在 year 是 number 类型
     const existingData = await this.prisma.indicatorValue.findMany({
       where: {
         countryId: { in: countryIds },
-        year: {
-          gte: startOfTargetDate,
-          lte: endOfTargetDate,
-        },
+        year: yearValue,
         delete: 0,
       },
       select: {
@@ -793,8 +769,7 @@ export class DataManagementService {
     params: ExportDataReqDto,
   ): Promise<{ buffer: Buffer; mime: string; fileName: string }> {
     const { year, countryIds, format } = params;
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    const yearValue = year;
 
     this.logger.log(
       `开始导出 ${yearValue} 年 ${countryIds.length} 个国家的数据，格式为 ${format}`,
@@ -819,22 +794,15 @@ export class DataManagementService {
     this.logger.log(`成功获取 ${countries.length} 个请求的国家信息`);
 
     // 步骤3: 一次性获取所有相关指标值
-    // 使用更精确的年份范围查询，针对 month(5).date(1) 格式优化
-    const targetYearDate = dayjs(year).month(5).date(1).toDate();
-    const startOfTargetDate = dayjs(targetYearDate).startOf('day').toDate();
-    const endOfTargetDate = dayjs(targetYearDate).endOf('day').toDate();
-
+    // 使用精确匹配查询，因为现在 year 是 number 类型
     this.logger.log(
-      `查询条件: countryIds=${JSON.stringify(countryIds)}, year=${yearValue}, 目标日期: ${targetYearDate.toISOString()}, 日期范围: ${startOfTargetDate.toISOString()} 到 ${endOfTargetDate.toISOString()}`,
+      `查询条件: countryIds=${JSON.stringify(countryIds)}, year=${yearValue}`,
     );
 
     const values = await this.prisma.indicatorValue.findMany({
       where: {
         countryId: { in: countryIds },
-        year: {
-          gte: startOfTargetDate,
-          lte: endOfTargetDate,
-        },
+        year: yearValue,
         delete: 0,
       },
     });

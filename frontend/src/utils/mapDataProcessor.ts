@@ -274,7 +274,7 @@ export const processScoreDataForMap = (
 
       // 3. 提取每个国家的所有年份
       const years = country.data
-        .map((d: CountryScoreDataItem) => new Date(d.year).getFullYear())
+        .map((d: CountryScoreDataItem) => d.year)
         .sort((a: number, b: number) => b - a)
       countryYearsMap.set(country.enName, years)
     }

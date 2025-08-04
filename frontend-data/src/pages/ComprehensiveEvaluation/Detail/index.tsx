@@ -1,5 +1,4 @@
 import { Card, Descriptions, Divider, Skeleton, Typography } from 'antd'
-import dayjs from 'dayjs'
 import { FC, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router'
 
@@ -23,7 +22,7 @@ const ComprehensiveEvaluationDetail: FC = () => {
   // 组件加载时，获取评分详情和评价规则
   useEffect(() => {
     if (countryId && year) {
-      getScoreDetail({ countryId, year: dayjs(year).month(5).date(1).toDate() })
+      getScoreDetail({ countryId, year: parseInt(year) })
     }
     getEvaluations()
   }, [countryId, year, getScoreDetail, getEvaluations])

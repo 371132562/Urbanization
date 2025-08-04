@@ -1,7 +1,6 @@
 /* 评分管理列表页 */
 import { useDebounce } from 'ahooks'
 import { Button, Collapse, Empty, Input, message, Popconfirm, Skeleton, Space, Table } from 'antd'
-import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ScoreDataItem, YearScoreData } from 'urbanization-backend/types/dto'
@@ -85,7 +84,7 @@ const ScoreManagement = () => {
     }
   }
 
-  const getCountryTableColumns = (year: Date) => {
+  const getCountryTableColumns = (year: number) => {
     const baseColumns = [
       {
         title: '国家',
@@ -116,7 +115,7 @@ const ScoreManagement = () => {
             color="primary"
             variant="outlined"
             onClick={() => {
-              navigate(`/scoreManagement/modify/${record.countryId}/${dayjs(year).format('YYYY')}`)
+              navigate(`/scoreManagement/modify/${record.countryId}/${year}`)
             }}
           >
             编辑
@@ -164,12 +163,12 @@ const ScoreManagement = () => {
       {filteredData.length > 0 ? (
         <Collapse
           accordion
-          defaultActiveKey={filteredData[0]?.year ? String(dayjs(filteredData[0].year).year()) : ''}
+          defaultActiveKey={filteredData[0]?.year ? String(filteredData[0].year) : ''}
         >
           {filteredData.map((yearData: YearScoreData) => (
             <Panel
-              header={`${dayjs(yearData.year).year()} 年`}
-              key={String(dayjs(yearData.year).year())}
+              header={`${yearData.year} 年`}
+              key={String(yearData.year)}
             >
               <Table
                 columns={getCountryTableColumns(yearData.year)}

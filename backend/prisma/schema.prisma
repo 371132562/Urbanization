@@ -108,7 +108,7 @@ model DetailedIndicator {
 model IndicatorValue {
   id                  String            @id @default(uuid()) // 主键ID
   value               Decimal? // 指标的具体值, 允许为空
-  year                DateTime // 数据年份
+  year                Int // 数据年份
   countryId           String // 外键，关联到国家ID
   country             Country           @relation(fields: [countryId], references: [id]) // 所属国家
   detailedIndicatorId String // 外键，关联到三级指标ID
@@ -168,7 +168,7 @@ model Score {
   humanDynamicsDimensionScore       Decimal // 人性动力维度评分
   materialDynamicsDimensionScore    Decimal // 物性动力维度评分
   spatialDynamicsDimensionScore     Decimal // 空间动力维度评分
-  year                              DateTime // 年份
+  year                              Int // 年份
   countryId                         String // 国家ID
   country                           Country  @relation(fields: [countryId], references: [id]) // 所属国家
   createTime                        DateTime @default(now())

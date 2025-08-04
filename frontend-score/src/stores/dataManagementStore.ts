@@ -1,5 +1,7 @@
-import dayjs from 'dayjs'
 import type {
+  BatchCheckIndicatorExistingDto,
+  BatchCheckIndicatorExistingResDto,
+  BatchCreateIndicatorValuesDto,
   CheckExistingDataResDto,
   CountryDetailReqDto,
   CountryDetailResDto,
@@ -12,6 +14,8 @@ import type {
 import { create } from 'zustand'
 
 import {
+  dataManagementBatchCheckExistingData,
+  dataManagementBatchCreate,
   dataManagementCheckExistingData,
   dataManagementCreate,
   dataManagementDelete,
@@ -20,6 +24,7 @@ import {
   dataManagementList
 } from '@/services/apis'
 import http from '@/services/base.ts'
+import { dayjs } from '@/utils/dayjs'
 
 type DataManagementStore = {
   data: DataManagementListDto
@@ -31,8 +36,17 @@ type DataManagementStore = {
   getDataManagementList: () => Promise<void>
   getDataManagementDetail: (params: CountryDetailReqDto) => Promise<void>
   saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<boolean>
+  batchSaveDataManagementDetail: (data: BatchCreateIndicatorValuesDto) => Promise<{
+    totalCount: number
+    successCount: number
+    failCount: number
+    failedCountries: string[]
+  }>
   deleteData: (params: CountryYearQueryDto) => Promise<boolean>
   checkDataManagementExistingData: (params: CountryYearQueryDto) => Promise<CheckExistingDataResDto>
+  batchCheckDataManagementExistingData: (
+    data: BatchCheckIndicatorExistingDto
+  ) => Promise<BatchCheckIndicatorExistingResDto>
   exportData: (params: ExportDataReqDto) => Promise<boolean>
   resetDetailData: () => void
   initializeNewData: (indicatorHierarchy: TopIndicatorItem[]) => void
@@ -84,6 +98,20 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     }
   },
 
+  // 批量保存指标数据（新建或编辑）
+  batchSaveDataManagementDetail: async (data: BatchCreateIndicatorValuesDto) => {
+    set({ saveLoading: true })
+    try {
+      const response = await http.post(dataManagementBatchCreate, data)
+      set({ saveLoading: false })
+      return response.data
+    } catch (error) {
+      console.error('Failed to batch save data:', error)
+      set({ saveLoading: false })
+      throw error
+    }
+  },
+
   // 删除特定国家和年份的数据
   deleteData: async (params: CountryYearQueryDto): Promise<boolean> => {
     try {
@@ -105,6 +133,20 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
       return response.data
     } catch (error) {
       console.error('Failed to check existing data:', error)
+      throw error
+    }
+  },
+
+  // 批量检查多个国家和年份是否已有指标数据
+  batchCheckDataManagementExistingData: async (data: BatchCheckIndicatorExistingDto) => {
+    try {
+      const response = await http.post<BatchCheckIndicatorExistingResDto>(
+        dataManagementBatchCheckExistingData,
+        data
+      )
+      return response.data
+    } catch (error) {
+      console.error('Failed to batch check existing data:', error)
       throw error
     }
   },
@@ -179,7 +221,7 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     set({
       detailData: {
         countryId: '',
-        year: dayjs().month(5).date(1).toDate(), // 使用当前时间作为默认年份
+        year: dayjs().year(), // 使用当前年份作为默认年份
         indicators: initialIndicators,
         isComplete: false
       }

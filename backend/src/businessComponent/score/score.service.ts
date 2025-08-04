@@ -14,7 +14,7 @@ import {
   CountryScoreData,
   CountryScoreDataItem,
 } from 'types/dto';
-import * as dayjs from 'dayjs';
+
 import { BusinessException } from '../../exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
 import { Score, Country } from '@prisma/client';
@@ -65,7 +65,7 @@ export class ScoreService {
     //    - Value: 当年的所有评分记录数组 (Score with Country)
     const groupedByYear = new Map<number, (Score & { country: Country })[]>();
     for (const score of scores) {
-      const year = dayjs(score.year).year();
+      const year = score.year; // 直接使用数字年份
       // 如果 Map 中尚不存在该年份的键，则初始化一个空数组
       if (!groupedByYear.has(year)) {
         groupedByYear.set(year, []);
@@ -78,7 +78,7 @@ export class ScoreService {
     const result: ScoreListDto = [];
     for (const [year, yearScores] of groupedByYear.entries()) {
       const yearData: YearScoreData = {
-        year: dayjs().year(year).month(5).date(1).toDate(), // 将年份数字转换为 Date 对象
+        year: year, // 直接使用数字年份
         // 遍历当年的所有评分记录，并将其映射为 DTO 格式
         data: yearScores.map((score) => {
           const s = score as Score & { country: Country };
@@ -116,8 +116,9 @@ export class ScoreService {
       result.push(yearData);
     }
 
-    this.logger.log('评分数据处理完成。');
-    return result;
+    // 4. 按年份降序排序
+    this.logger.log('评分数据处理完成并按年份排序。');
+    return result.sort((a, b) => b.year - a.year);
   }
 
   /**
@@ -236,8 +237,8 @@ export class ScoreService {
       materialDynamicsDimensionScore,
       spatialDynamicsDimensionScore,
     } = data;
-    // 标准化年份为 Date 对象 (取年份的6月1日)
-    const yearDate = dayjs(year).month(5).date(1).toDate();
+    // 直接使用数字年份
+    const yearValue = year;
 
     // 2. 验证关联的国家是否存在且未被删除
     const country = await this.prisma.country.findFirst({
@@ -254,7 +255,7 @@ export class ScoreService {
     const existingScore = await this.prisma.score.findFirst({
       where: {
         countryId,
-        year: yearDate,
+        year: yearValue,
         delete: 0,
       },
     });
@@ -266,15 +267,13 @@ export class ScoreService {
       humanDynamicsDimensionScore,
       materialDynamicsDimensionScore,
       spatialDynamicsDimensionScore,
-      year: yearDate,
+      year: yearValue,
     };
 
     // 5. 根据记录是否存在，执行更新或创建操作
     if (existingScore) {
       // 如果记录已存在，则更新现有记录
-      this.logger.log(
-        `正在更新国家 ${countryId} 在 ${dayjs(year).year()} 年的评分记录。`,
-      );
+      this.logger.log(`正在更新国家 ${countryId} 在 ${year} 年的评分记录。`);
       return this.prisma.score.update({
         where: { id: existingScore.id },
         data: scoreData,
@@ -282,7 +281,7 @@ export class ScoreService {
     } else {
       // 如果记录不存在，则创建新记录
       this.logger.log(
-        `正在为国家 ${countryId} 在 ${dayjs(year).year()} 年创建新的评分记录。`,
+        `正在为国家 ${countryId} 在 ${year} 年创建新的评分记录。`,
       );
       return this.prisma.score.create({
         data: {
@@ -307,9 +306,8 @@ export class ScoreService {
     failedCountries: string[];
   }> {
     const { year, scores } = data;
-    // 标准化年份为 Date 对象 (取年份的6月1日)
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    // 直接使用数字年份
+    const yearValue = year;
 
     // 验证请求数据大小，防止过大的请求导致性能问题
     if (scores.length > 500) {
@@ -352,7 +350,7 @@ export class ScoreService {
     const existingScores = await this.prisma.score.findMany({
       where: {
         countryId: { in: countryIds },
-        year: yearDate,
+        year: yearValue,
         delete: 0,
       },
       select: {
@@ -376,7 +374,7 @@ export class ScoreService {
         // 准备要写入数据库的评分数据
         const dataToSave = {
           ...scoreFields,
-          year: yearDate,
+          year: yearValue,
         };
 
         // 检查是否已存在记录
@@ -424,20 +422,13 @@ export class ScoreService {
    */
   async detail(params: ScoreDetailReqDto): Promise<Score> {
     const { countryId, year } = params;
-    const yearDate = dayjs(year).month(5).date(1).toDate(); // 标准化年份
+    const yearValue = year; // 直接使用数字年份
 
     // 查询特定国家和年份的评分记录
-    // 使用日期范围查询，避免精确匹配可能的问题
-    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
-    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
-
     const score = await this.prisma.score.findFirst({
       where: {
         countryId,
-        year: {
-          gte: startOfTargetDate,
-          lte: endOfTargetDate,
-        },
+        year: yearValue,
         delete: 0,
       },
       include: {
@@ -449,7 +440,7 @@ export class ScoreService {
     if (!score) {
       throw new BusinessException(
         ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到国家 ID ${countryId} 在 ${dayjs(year).year()} 年的评分记录`,
+        `未找到国家 ID ${countryId} 在 ${year} 年的评分记录`,
       );
     }
     return score;
@@ -464,19 +455,12 @@ export class ScoreService {
     params: ScoreDetailReqDto,
   ): Promise<CheckExistingDataResDto> {
     const { countryId, year } = params;
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-
-    // 使用日期范围查询，避免精确匹配可能的问题
-    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
-    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
+    const yearValue = year; // 直接使用数字年份
 
     const count = await this.prisma.score.count({
       where: {
         countryId,
-        year: {
-          gte: startOfTargetDate,
-          lte: endOfTargetDate,
-        },
+        year: yearValue,
         delete: 0,
       },
     });
@@ -496,8 +480,7 @@ export class ScoreService {
     data: BatchCheckScoreExistingDto,
   ): Promise<BatchCheckScoreExistingResDto> {
     const { year, countryIds } = data;
-    const yearDate = dayjs(year).month(5).date(1).toDate();
-    const yearValue = dayjs(yearDate).year();
+    const yearValue = year; // 直接使用数字年份
 
     this.logger.log(
       `准备批量检查 ${countryIds.length} 个国家在 ${yearValue} 年的评分数据是否存在`,
@@ -525,17 +508,10 @@ export class ScoreService {
     }
 
     // 步骤2: 批量查询已存在的评分数据
-    // 使用日期范围查询，避免精确匹配可能的问题
-    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
-    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
-
     const existingScores = await this.prisma.score.findMany({
       where: {
         countryId: { in: countryIds },
-        year: {
-          gte: startOfTargetDate,
-          lte: endOfTargetDate,
-        },
+        year: yearValue,
         delete: 0,
       },
       select: {

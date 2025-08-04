@@ -13,7 +13,6 @@ import {
   Upload
 } from 'antd'
 import type { RcFile, UploadFile } from 'antd/es/upload/interface'
-import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import * as XLSX from 'xlsx'
@@ -21,6 +20,7 @@ import * as XLSX from 'xlsx'
 import { SCORE_DIMENSIONS } from '@/config/dataImport'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useScoreStore from '@/stores/scoreStore'
+import { dayjs } from '@/utils/dayjs'
 
 const { Dragger } = Upload
 
@@ -37,7 +37,8 @@ const ScoreImportPage = () => {
 
   const countries = useCountryAndContinentStore(state => state.countries)
   const checkScoreExistingData = useScoreStore(state => state.checkScoreExistingData)
-  const createScore = useScoreStore(state => state.createScore)
+  const batchCheckScoreExistingData = useScoreStore(state => state.batchCheckScoreExistingData)
+  const batchCreateScore = useScoreStore(state => state.batchCreateScore)
 
   const [currentStep, setCurrentStep] = useState(0)
   const [importYear, setImportYear] = useState<number | null>(null)
@@ -60,15 +61,17 @@ const ScoreImportPage = () => {
       fixed: 'left' as const,
       render: (text: string, record: PreviewRow) => (
         <div className="flex items-center">
-          <span className="mb-2">{text}</span>
-          {record.isExisting && (
-            <Tag
-              color="warning"
-              className="ml-2"
-            >
-              已存在
-            </Tag>
-          )}
+          <div className="flex flex-col">
+            <span className="mb-1">{text}</span>
+            {record.isExisting && (
+              <Tag
+                color="warning"
+                className="ml-2"
+              >
+                已存在
+              </Tag>
+            )}
+          </div>
         </div>
       )
     }
@@ -88,6 +91,7 @@ const ScoreImportPage = () => {
     setPreviewData([])
     setCurrentStep(0)
     setImportResult(null)
+    setImportYear(null) // 重置年份选择
   }
 
   const handleBeforeUpload = (file: RcFile) => {
@@ -111,6 +115,9 @@ const ScoreImportPage = () => {
 
         const processedData: PreviewRow[] = []
         const unmatchedCountries: string[] = []
+        const matchedCountries: { countryId: string; countryName: string; rowData: any[] }[] = []
+
+        // 第一步：匹配国家并收集匹配的国家信息和行数据
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i]
           const countryNameFromExcel = row[0]?.toString().trim()
@@ -125,28 +132,58 @@ const ScoreImportPage = () => {
           )
 
           if (countryMatch) {
-            const { exists } = await checkScoreExistingData({
-              countryId: countryMatch.id,
-              year: dayjs(importYear!.toString()).month(5).date(1).toDate()
-            })
-
-            const rowData: PreviewRow = {
-              key: countryMatch.id,
+            matchedCountries.push({
               countryId: countryMatch.id,
               countryName: countryMatch.cnName,
-              isExisting: exists
-            }
-
-            SCORE_DIMENSIONS.forEach((dim, index) => {
-              const rawValue = row[index + 1]
-              const cleanedValue = String(rawValue || '').replace(/,/g, '')
-              const parsedValue = parseFloat(cleanedValue)
-              rowData[dim.enName] = isNaN(parsedValue) ? '' : parsedValue
+              rowData: row
             })
-            processedData.push(rowData)
           } else {
             unmatchedCountries.push(countryNameFromExcel)
           }
+        }
+
+        // 第二步：批量检查已存在的评分数据
+        let existingDataMap: Map<string, boolean> = new Map()
+        if (matchedCountries.length > 0) {
+          try {
+            const batchCheckResult = await batchCheckScoreExistingData({
+              year: importYear!,
+              countryIds: matchedCountries.map(c => c.countryId)
+            })
+
+            // 将已存在的国家ID转换为Map，方便快速查找
+            existingDataMap = new Map(
+              batchCheckResult.existingCountries.map(countryId => [countryId, true])
+            )
+          } catch (error) {
+            console.error('批量检查评分数据失败:', error)
+            // 如果批量检查失败，回退到单个检查
+            for (const country of matchedCountries) {
+              const { exists } = await checkScoreExistingData({
+                countryId: country.countryId,
+                year: importYear!
+              })
+              existingDataMap.set(country.countryId, exists)
+            }
+          }
+        }
+
+        // 第三步：构建预览数据
+        for (const matchedCountry of matchedCountries) {
+          const rowData: PreviewRow = {
+            key: matchedCountry.countryId,
+            countryId: matchedCountry.countryId,
+            countryName: matchedCountry.countryName,
+            isExisting: existingDataMap.get(matchedCountry.countryId) || false
+          }
+
+          SCORE_DIMENSIONS.forEach((dim, index) => {
+            const rawValue = matchedCountry.rowData[index + 1]
+            const cleanedValue = String(rawValue || '').replace(/,/g, '')
+            const parsedValue = parseFloat(cleanedValue)
+            rowData[dim.enName] = isNaN(parsedValue) ? '' : parsedValue
+          })
+          processedData.push(rowData)
         }
 
         if (unmatchedCountries.length > 0) {
@@ -198,47 +235,64 @@ const ScoreImportPage = () => {
   }
 
   const handleImport = async () => {
+    // 验证数据量，防止请求体过大
+    if (previewData.length > 500) {
+      message.error(
+        `数据量过大，最多支持500个国家，当前为${previewData.length}个。请分批导入或减少数据量。`
+      )
+      return
+    }
+
     setIsImporting(true)
     message.loading({ content: '正在提交数据，请稍候...', key: 'importing' })
 
-    const importPromises = previewData.map(async row => {
-      const payload: any = {
-        countryId: row.countryId,
-        year: dayjs(importYear!.toString()).month(5).date(1).toDate()
-      }
-      SCORE_DIMENSIONS.forEach(dim => {
-        const rawValue = row[dim.enName]
-        const cleanedValue = String(rawValue || '').replace(/,/g, '')
-        const parsedValue = parseFloat(cleanedValue)
-        payload[dim.enName] = isNaN(parsedValue) ? null : parsedValue
+    try {
+      // 构造批量导入的负载数据
+      const scoresPayload = previewData.map(row => {
+        const scoreData: any = {
+          countryId: row.countryId
+        }
+        SCORE_DIMENSIONS.forEach(dim => {
+          const rawValue = row[dim.enName]
+          const cleanedValue = String(rawValue || '').replace(/,/g, '')
+          const parsedValue = parseFloat(cleanedValue)
+          scoreData[dim.enName] = isNaN(parsedValue) ? null : parsedValue
+        })
+        return scoreData
       })
 
-      const success = await createScore(payload)
-      return { status: success ? 'fulfilled' : 'rejected', countryName: row.countryName }
-    })
-
-    const results = await Promise.allSettled(importPromises)
-    const finalResult = {
-      successCount: 0,
-      failCount: 0,
-      failedCountries: [] as string[]
-    }
-
-    results.forEach(result => {
-      if (result.status === 'fulfilled' && result.value.status === 'fulfilled') {
-        finalResult.successCount++
-      } else {
-        finalResult.failCount++
-        if (result.status === 'fulfilled') {
-          finalResult.failedCountries.push(result.value.countryName)
-        }
+      // 构造批量导入的完整负载
+      const batchPayload = {
+        year: importYear!,
+        scores: scoresPayload
       }
-    })
 
-    setImportResult(finalResult)
-    setIsImporting(false)
-    message.success({ content: '数据导入处理完成！', key: 'importing' })
-    setCurrentStep(2)
+      // 调用批量保存接口
+      const result = await batchCreateScore(batchPayload)
+
+      // 处理导入结果
+      const finalResult = {
+        successCount: result.successCount,
+        failCount: result.failCount,
+        failedCountries: result.failedCountries
+      }
+
+      setImportResult(finalResult)
+      message.success({ content: '数据导入处理完成！', key: 'importing' })
+      setCurrentStep(2)
+    } catch (error) {
+      console.error('批量导入失败:', error)
+      message.error({ content: '数据导入失败，请重试！', key: 'importing' })
+
+      // 设置失败结果
+      setImportResult({
+        successCount: 0,
+        failCount: previewData.length,
+        failedCountries: previewData.map(row => row.countryName)
+      })
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   return (
@@ -267,6 +321,7 @@ const ScoreImportPage = () => {
                     picker="year"
                     size="large"
                     className="w-full"
+                    value={importYear ? dayjs(importYear.toString()) : null}
                     onChange={date => setImportYear(date ? dayjs(date).year() : null)}
                     disabledDate={current => current && current > dayjs().endOf('day')}
                   />

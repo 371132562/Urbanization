@@ -1,5 +1,4 @@
 import { Button, DatePicker, Form, InputNumber, message, Skeleton, Space, Tooltip } from 'antd'
-import dayjs from 'dayjs'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { CreateScoreDto } from 'urbanization-backend/types/dto'
@@ -7,6 +6,7 @@ import { CreateScoreDto } from 'urbanization-backend/types/dto'
 import CountrySelect from '@/components/CountrySelect'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useScoreStore from '@/stores/scoreStore'
+import { dayjs } from '@/utils/dayjs'
 
 const ModifyScoreSkeleton = () => (
   <div className="space-y-4">
@@ -58,7 +58,7 @@ export const Component = () => {
     if (isEdit) {
       getScoreDetail({
         countryId,
-        year: dayjs(year, 'YYYY').month(5).date(1).toDate()
+        year: parseInt(year!)
       })
     } else {
       initializeNewData()
@@ -91,7 +91,7 @@ export const Component = () => {
 
       const dataToSave: CreateScoreDto = {
         countryId: selectedCountry,
-        year: selectedYear.month(5).date(1).toDate(),
+        year: selectedYear.year(),
         totalScore: values.totalScore,
         urbanizationProcessDimensionScore: values.urbanizationProcessDimensionScore,
         humanDynamicsDimensionScore: values.humanDynamicsDimensionScore,

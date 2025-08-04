@@ -38,7 +38,7 @@ const UrbanizationRate: FC = () => {
       key: 'continent'
     },
     {
-      title: <span className="font-semibold">已城镇化国家数量</span>,
+      title: <span className="font-semibold">已计入研究范围的国家数量</span>,
       dataIndex: 'count',
       key: 'count'
     }
@@ -76,10 +76,16 @@ const UrbanizationRate: FC = () => {
             bordered
             size="small"
             summary={() => (
-              <Summary.Row className="bg-slate-50 font-semibold">
-                <Summary.Cell index={0}>未城镇化国家总数</Summary.Cell>
-                <Summary.Cell index={1}>{nonUrbanizedCount}</Summary.Cell>
-              </Summary.Row>
+              <>
+                <Summary.Row className="bg-slate-50 font-semibold">
+                  <Summary.Cell index={0}>未计入研究范围的国家总数</Summary.Cell>
+                  <Summary.Cell index={1}>{nonUrbanizedCount}</Summary.Cell>
+                </Summary.Row>
+                <Summary.Row className="bg-slate-50 font-semibold">
+                  <Summary.Cell index={0}>未计入研究范围的国家总数</Summary.Cell>
+                  <Summary.Cell index={1}>{nonUrbanizedCount}</Summary.Cell>
+                </Summary.Row>
+              </>
             )}
           />
         )}

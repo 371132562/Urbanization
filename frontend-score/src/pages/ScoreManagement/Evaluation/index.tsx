@@ -6,7 +6,7 @@ import { ScoreEvaluationItemDto } from 'urbanization-backend/types/dto'
 
 import useScoreStore from '@/stores/scoreStore'
 
-const { Title, Text } = Typography
+const { Text } = Typography
 const { TextArea } = Input
 
 const ScoreEvaluationPage = () => {

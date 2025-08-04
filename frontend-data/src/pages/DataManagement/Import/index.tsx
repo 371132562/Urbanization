@@ -1,7 +1,18 @@
 import { CheckCircleFilled, InboxOutlined } from '@ant-design/icons'
-import { Alert, Button, DatePicker, Form, message, Space, Steps, Table, Tag, Upload } from 'antd'
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Form,
+  message,
+  Modal,
+  Space,
+  Steps,
+  Table,
+  Tag,
+  Upload
+} from 'antd'
 import type { RcFile, UploadFile } from 'antd/es/upload/interface'
-import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import * as XLSX from 'xlsx'
@@ -9,6 +20,7 @@ import * as XLSX from 'xlsx'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import useIndicatorStore from '@/stores/indicatorStore'
+import { dayjs } from '@/utils/dayjs'
 
 const { Dragger } = Upload
 
@@ -48,8 +60,14 @@ const DataImportPage = () => {
   const checkDataManagementExistingData = useDataManagementStore(
     state => state.checkDataManagementExistingData
   )
-  // 保存单条国家数据（包含所有指标）的方法
-  const saveDataManagementDetail = useDataManagementStore(state => state.saveDataManagementDetail)
+  // 批量检查多个国家和年份的数据是否已存在的方法
+  const batchCheckDataManagementExistingData = useDataManagementStore(
+    state => state.batchCheckDataManagementExistingData
+  )
+  // 批量保存国家数据（包含所有指标）的方法
+  const batchSaveDataManagementDetail = useDataManagementStore(
+    state => state.batchSaveDataManagementDetail
+  )
 
   /**
    * @description 从指标层级结构中提取并展平所有三级指标。
@@ -135,6 +153,7 @@ const DataImportPage = () => {
     setPreviewData([])
     setCurrentStep(0)
     setImportResult(null)
+    setImportYear(null) // 重置年份选择
   }
 
   /**
@@ -177,7 +196,9 @@ const DataImportPage = () => {
         // 2. 数据处理与转换，准备用于预览
         const processedData: PreviewRow[] = []
         const unmatchedCountries: string[] = []
-        // 从第二行开始读取（i=1），以跳过 Excel 文件中的表头行
+        const matchedCountries: { countryId: string; countryName: string; rowData: any[] }[] = []
+
+        // 第一步：匹配国家并收集匹配的国家信息和行数据
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i]
           // 获取当前行的第一个单元格（国家名称），并去除首尾空格
@@ -186,7 +207,7 @@ const DataImportPage = () => {
           // 如果国家名称为空，则视为空行并跳过
           if (!countryNameFromExcel) continue
 
-          // 3. 匹配国家
+          // 匹配国家
           // 根据 Excel 中的国家名称进行不区分大小写的匹配
           const countryNameFromExcelLower = countryNameFromExcel.toLowerCase()
           const countryMatch = countries.find(
@@ -197,37 +218,65 @@ const DataImportPage = () => {
 
           // 如果在系统中找到了对应的国家
           if (countryMatch) {
-            // 4. 检查数据是否存在
-            // 对于匹配到的国家，调用后端接口异步检查该年份是否已有数据，以便在预览中标记
-            const isExisting = await checkDataManagementExistingData({
-              countryId: countryMatch.id,
-              year: dayjs(importYear!.toString()).month(5).date(1).toDate()
-            })
-
-            // 构建预览表格行数据的基础结构
-            const rowData: PreviewRow = {
-              key: countryMatch.id,
+            matchedCountries.push({
               countryId: countryMatch.id,
               countryName: countryMatch.cnName,
-              isExisting: isExisting.exists
-            }
-
-            // 5. 依次读取所有指标值
-            // 遍历预定义的69个三级指标，并从行数据中按顺序提取对应的值
-            // 将无效或非数字的值转换为空字符串，以便在预览中显示为空白
-            tertiaryIndicators.forEach((indicator, index) => {
-              // `index + 1` 是因为第0列是国家名称
-              const rawValue = row[index + 1]
-              // 清洗数据：移除千位分隔符(,)，并将 null/undefined 转为空字符串
-              const cleanedValue = String(rawValue || '').replace(/,/g, '')
-              const parsedValue = parseFloat(cleanedValue)
-              rowData[indicator.id] = isNaN(parsedValue) ? '' : parsedValue
+              rowData: row
             })
-            // 将处理好的行数据添加到最终结果中
-            processedData.push(rowData)
           } else {
             unmatchedCountries.push(countryNameFromExcel)
           }
+        }
+
+        // 第二步：批量检查已存在的指标数据
+        let existingDataMap: Map<string, boolean> = new Map()
+        if (matchedCountries.length > 0) {
+          try {
+            const batchCheckResult = await batchCheckDataManagementExistingData({
+              year: importYear!,
+              countryIds: matchedCountries.map(c => c.countryId)
+            })
+
+            // 将已存在的国家ID转换为Map，方便快速查找
+            existingDataMap = new Map(
+              batchCheckResult.existingCountries.map(countryId => [countryId, true])
+            )
+          } catch (error) {
+            console.error('批量检查指标数据失败:', error)
+            // 如果批量检查失败，回退到单个检查
+            for (const country of matchedCountries) {
+              const isExisting = await checkDataManagementExistingData({
+                countryId: country.countryId,
+                year: importYear!
+              })
+              existingDataMap.set(country.countryId, isExisting.exists)
+            }
+          }
+        }
+
+        // 第三步：构建预览数据
+        for (const matchedCountry of matchedCountries) {
+          // 构建预览表格行数据的基础结构
+          const rowData: PreviewRow = {
+            key: matchedCountry.countryId,
+            countryId: matchedCountry.countryId,
+            countryName: matchedCountry.countryName,
+            isExisting: existingDataMap.get(matchedCountry.countryId) || false
+          }
+
+          // 依次读取所有指标值
+          // 遍历预定义的69个三级指标，并从行数据中按顺序提取对应的值
+          // 将无效或非数字的值转换为空字符串，以便在预览中显示为空白
+          tertiaryIndicators.forEach((indicator, index) => {
+            // `index + 1` 是因为第0列是国家名称
+            const rawValue = matchedCountry.rowData[index + 1]
+            // 清洗数据：移除千位分隔符(,)，并将 null/undefined 转为空字符串
+            const cleanedValue = String(rawValue || '').replace(/,/g, '')
+            const parsedValue = parseFloat(cleanedValue)
+            rowData[indicator.id] = isNaN(parsedValue) ? '' : parsedValue
+          })
+          // 将处理好的行数据添加到最终结果中
+          processedData.push(rowData)
         }
 
         if (unmatchedCountries.length > 0) {
@@ -295,95 +344,85 @@ const DataImportPage = () => {
 
   /**
    * @description 处理确认导入操作。
-   * 将预览数据组装成后端需要的格式，并通过并发请求批量提交。
-   * 最终汇总所有请求的结果，并导航到结果展示页面。
+   * 将预览数据组装成后端需要的格式，并通过批量接口一次性提交所有数据。
+   * 最终汇总导入结果，并导航到结果展示页面。
    */
   const handleImport = async () => {
-    // 步骤 1: 设置加载状态，并显示全局加载提示
+    // 步骤 1: 验证数据量，防止请求体过大
+    if (previewData.length > 500) {
+      message.error(
+        `数据量过大，最多支持500个国家，当前为${previewData.length}个。请分批导入或减少数据量。`
+      )
+      return
+    }
+
+    // 步骤 2: 设置加载状态，并显示全局加载提示
     setIsImporting(true)
     message.loading({ content: '正在提交数据，请稍候...', key: 'importing' })
 
-    // 步骤 2: 为预览表格中的每一行数据创建一个异步导入任务
-    const importPromises = previewData.map(async row => {
-      // 2a. 构造指标负载(payload)
-      // 遍历所有三级指标，从当前行数据中提取对应的值
-      const indicatorsPayload = tertiaryIndicators.map(indicator => {
-        const rawValue = row[indicator.id]
-        // 清洗数据：移除千位分隔符(,)，并将 null/undefined 转为空字符串
-        const cleanedValue = String(rawValue || '').replace(/,/g, '')
-        // 再次将值解析为浮点数。对于在预览步骤中设置的空字符串''，`parseFloat('')` 会返回 NaN。
-        const parsedValue = parseFloat(cleanedValue)
+    try {
+      // 步骤 2: 构造批量导入的负载数据
+      const countriesPayload = previewData.map(row => {
+        // 2a. 构造指标负载(payload)
+        // 遍历所有三级指标，从当前行数据中提取对应的值
+        const indicatorsPayload = tertiaryIndicators.map(indicator => {
+          const rawValue = row[indicator.id]
+          // 清洗数据：移除千位分隔符(,)，并将 null/undefined 转为空字符串
+          const cleanedValue = String(rawValue || '').replace(/,/g, '')
+          // 再次将值解析为浮点数。对于在预览步骤中设置的空字符串''，`parseFloat('')` 会返回 NaN。
+          const parsedValue = parseFloat(cleanedValue)
+          return {
+            detailedIndicatorId: indicator.id,
+            // 如果解析结果是 NaN (例如，空字符串或无效字符)，则将值设为 null，否则使用解析后的数值。
+            // 这是为了确保发送给后端的数据格式正确。
+            value: isNaN(parsedValue) ? null : parsedValue
+          }
+        })
+
+        // 2b. 返回单个国家的数据
         return {
-          detailedIndicatorId: indicator.id,
-          // 如果解析结果是 NaN (例如，空字符串或无效字符)，则将值设为 null，否则使用解析后的数值。
-          // 这是为了确保发送给后端的数据格式正确。
-          value: isNaN(parsedValue) ? null : parsedValue
+          countryId: row.countryId,
+          indicators: indicatorsPayload
         }
       })
 
-      // 2b. 构造单条国家数据的完整负载
-      const payload = {
-        countryId: row.countryId,
-        year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
-        indicators: indicatorsPayload
+      // 步骤 3: 构造批量导入的完整负载
+      const batchPayload = {
+        year: importYear!,
+        countries: countriesPayload
       }
 
-      // 2c. 调用 store 中的方法进行数据保存，并根据返回的布尔值判断成功或失败。
-      // `saveDataManagementDetail` 是一个 async 函数，它会返回一个解析为布尔值的 Promise。
-      // 我们等待这个 Promise 的结果，然后返回一个统一的对象结构。
-      const success = await saveDataManagementDetail(payload)
-      if (success) {
-        return { status: 'fulfilled', countryName: row.countryName }
-      } else {
-        return { status: 'rejected', countryName: row.countryName }
+      // 步骤 4: 调用批量保存接口
+      const result = await batchSaveDataManagementDetail(batchPayload)
+
+      // 步骤 5: 处理导入结果
+      const finalResult = {
+        successCount: result.successCount,
+        failCount: result.failCount,
+        failedCountries: result.failedCountries
       }
-    })
 
-    // 步骤 3: 使用 `Promise.all` 并发执行所有导入请求。
-    // 注意：这里我们将 `importPromises` 数组中的每个函数调用都包装在 Promise.resolve 中，
-    // 以便 `Promise.allSettled` 可以正确处理它们。
-    const results = await Promise.allSettled(importPromises)
+      // 步骤 6: 更新组件状态，显示最终结果
+      setImportResult(finalResult)
+      // 显示全局成功提示
+      message.success({ content: '数据导入处理完成！', key: 'importing' })
+      // 导航到步骤 2（完成导入页面）
+      setCurrentStep(2)
+    } catch (error) {
+      // 步骤 7: 错误处理
+      console.error('批量导入失败:', error)
+      message.error({ content: '数据导入失败，请重试！', key: 'importing' })
 
-    // 步骤 4: 汇总所有导入任务的结果
-    const finalResult = {
-      successCount: 0,
-      failCount: 0,
-      failedCountries: [] as string[]
+      // 设置失败结果
+      setImportResult({
+        successCount: 0,
+        failCount: previewData.length,
+        failedCountries: previewData.map(row => row.countryName)
+      })
+    } finally {
+      // 步骤 8: 关闭加载状态
+      setIsImporting(false)
     }
-
-    results.forEach(result => {
-      // 检查 `Promise.allSettled` 的结果。
-      // `result.status` 是 `allSettled` 返回的状态 ('fulfilled' or 'rejected')。
-      // `result.value.status` 是我们在上面逻辑中自定义的状态 ('fulfilled' or 'rejected')。
-      if (result.status === 'fulfilled' && result.value.status === 'fulfilled') {
-        finalResult.successCount++
-      } else {
-        finalResult.failCount++
-        // 如果 `allSettled` 的 Promise 是 `fulfilled`，说明我们的异步函数成功返回了一个对象，
-        // 此时 `result.value` 包含了我们自定义的信息，可以从中获取国家名称。
-        if (result.status === 'fulfilled') {
-          finalResult.failedCountries.push(result.value.countryName)
-        }
-        // 如果 `allSettled` 的 Promise 本身就是 `rejected`，这表示在 `saveDataManagementDetail` 之外发生了意外错误。
-        // 虽然在我们当前的逻辑下不太可能发生，但作为健壮性代码，这里可以添加日志。
-        else if (result.status === 'rejected') {
-          console.error(
-            'An unexpected error occurred during import promise execution:',
-            result.reason
-          )
-        }
-      }
-    })
-
-    // 步骤 5: 更新组件状态，显示最终结果
-    // 存储最终的统计结果
-    setImportResult(finalResult)
-    // 关闭加载状态
-    setIsImporting(false)
-    // 显示全局成功提示
-    message.success({ content: '数据导入处理完成！', key: 'importing' })
-    // 导航到步骤 2（完成导入页面）
-    setCurrentStep(2)
   }
 
   // --- JSX 渲染逻辑 ---
@@ -414,6 +453,7 @@ const DataImportPage = () => {
                     picker="year"
                     size="large"
                     className="w-full"
+                    value={importYear ? dayjs(importYear.toString()) : null}
                     onChange={date => setImportYear(date ? dayjs(date).year() : null)}
                     disabledDate={current => current && current > dayjs().endOf('day')}
                   />

@@ -65,7 +65,7 @@ CREATE TABLE "DetailedIndicator" (
 CREATE TABLE "IndicatorValue" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "value" DECIMAL,
-    "year" DATETIME NOT NULL,
+    "year" INTEGER NOT NULL,
     "countryId" TEXT NOT NULL,
     "detailedIndicatorId" TEXT NOT NULL,
     "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -115,7 +115,7 @@ CREATE TABLE "Score" (
     "humanDynamicsDimensionScore" DECIMAL NOT NULL,
     "materialDynamicsDimensionScore" DECIMAL NOT NULL,
     "spatialDynamicsDimensionScore" DECIMAL NOT NULL,
-    "year" DATETIME NOT NULL,
+    "year" INTEGER NOT NULL,
     "countryId" TEXT NOT NULL,
     "createTime" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateTime" DATETIME NOT NULL,

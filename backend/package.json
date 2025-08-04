@@ -80,6 +80,7 @@
     "testEnvironment": "node"
   },
   "exports": {
-    "./types/*": "./types/*"
+    "./types/*": "./types/*",
+    "./src/utils/*": "./src/utils/*"
   }
 }

@@ -13,11 +13,6 @@ import {
   Tooltip,
   Typography
 } from 'antd'
-import dayjs from 'dayjs'
-import customParseFormat from 'dayjs/plugin/customParseFormat'
-
-dayjs.extend(customParseFormat)
-
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import type {
@@ -31,8 +26,9 @@ import CountrySelect from '@/components/CountrySelect'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import useIndicatorStore from '@/stores/indicatorStore'
+import { dayjs } from '@/utils/dayjs'
 
-const { Text, Title } = Typography
+const { Text } = Typography
 
 const ModifyPageSkeleton = () => (
   <div className="space-y-6">
@@ -118,7 +114,7 @@ export const Component = () => {
     if (isEdit) {
       getDataManagementDetail({
         countryId,
-        year: dayjs(year, 'YYYY').month(5).date(1).toDate()
+        year: parseInt(year!)
       })
     } else {
       // 新建模式下，使用获取到的指标层级来初始化detailData
@@ -203,7 +199,7 @@ export const Component = () => {
 
       const dataToSave: CreateIndicatorValuesDto = {
         countryId: selectedCountry,
-        year: selectedYear.month(5).date(1).toDate(),
+        year: selectedYear.year(),
         indicators: indicatorsToSave
       }
 
@@ -211,7 +207,7 @@ export const Component = () => {
         // 新建模式下，检查数据是否存在
         const { exists } = await checkDataManagementExistingData({
           countryId: selectedCountry,
-          year: selectedYear.month(5).date(1).toDate()
+          year: selectedYear.year()
         })
 
         if (exists) {

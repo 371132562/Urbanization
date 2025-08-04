@@ -1,5 +1,4 @@
 import { Button, Form, message, Radio, Select, Skeleton, Space } from 'antd'
-import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { CountryData, ExportDataReqDto } from 'urbanization-backend/types/dto'
@@ -7,6 +6,7 @@ import { CountryData, ExportDataReqDto } from 'urbanization-backend/types/dto'
 import CountrySelect from '@/components/CountrySelect'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import { ExportFormat, ExportFormatOptions } from '@/types'
+import { dayjs } from '@/utils/dayjs'
 
 const { Option } = Select
 
@@ -22,7 +22,7 @@ const DataExport = () => {
     exportLoading
   } = useDataManagementStore()
 
-  const [selectedYear, setSelectedYear] = useState<Date | null>(null)
+  const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
   // 加载数据
   useEffect(() => {
@@ -40,12 +40,12 @@ const DataExport = () => {
   // 根据选择的年份，动态获取国家选项
   const countryOptions = useMemo(() => {
     if (!selectedYear) return []
-    const yearData = dataManagementList.find(d => dayjs(d.year).isSame(dayjs(selectedYear), 'year'))
+    const yearData = dataManagementList.find(d => d.year === selectedYear)
     return yearData ? yearData.data : []
   }, [selectedYear, dataManagementList])
 
   const handleYearChange = (yearString: string) => {
-    const year = dayjs(yearString).month(5).date(1).toDate()
+    const year = parseInt(yearString)
     setSelectedYear(year)
     form.setFieldsValue({ countryIds: [] }) // 年份变化时清空已选国家
   }
@@ -101,10 +101,10 @@ const DataExport = () => {
             >
               {dataManagementList.map(yearData => (
                 <Option
-                  key={yearData.year.toString()}
-                  value={yearData.year.toString()}
+                  key={yearData.year}
+                  value={yearData.year}
                 >
-                  {dayjs(yearData.year).format('YYYY')}
+                  {yearData.year}
                 </Option>
               ))}
             </Select>

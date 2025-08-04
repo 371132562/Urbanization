@@ -13,7 +13,6 @@ import {
   Upload
 } from 'antd'
 import type { RcFile, UploadFile } from 'antd/es/upload/interface'
-import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import * as XLSX from 'xlsx'
@@ -21,6 +20,7 @@ import * as XLSX from 'xlsx'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import useIndicatorStore from '@/stores/indicatorStore'
+import { dayjs } from '@/utils/dayjs'
 
 const { Dragger } = Upload
 
@@ -233,7 +233,7 @@ const DataImportPage = () => {
         if (matchedCountries.length > 0) {
           try {
             const batchCheckResult = await batchCheckDataManagementExistingData({
-              year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
+              year: importYear!,
               countryIds: matchedCountries.map(c => c.countryId)
             })
 
@@ -247,7 +247,7 @@ const DataImportPage = () => {
             for (const country of matchedCountries) {
               const isExisting = await checkDataManagementExistingData({
                 countryId: country.countryId,
-                year: dayjs(importYear!.toString()).month(5).date(1).toDate()
+                year: importYear!
               })
               existingDataMap.set(country.countryId, isExisting.exists)
             }
@@ -388,7 +388,7 @@ const DataImportPage = () => {
 
       // 步骤 3: 构造批量导入的完整负载
       const batchPayload = {
-        year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
+        year: importYear!,
         countries: countriesPayload
       }
 

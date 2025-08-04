@@ -1,4 +1,3 @@
-import dayjs from 'dayjs'
 import type {
   BatchCheckIndicatorExistingDto,
   BatchCheckIndicatorExistingResDto,
@@ -25,6 +24,7 @@ import {
   dataManagementList
 } from '@/services/apis'
 import http from '@/services/base.ts'
+import { dayjs } from '@/utils/dayjs'
 
 type DataManagementStore = {
   data: DataManagementListDto
@@ -221,7 +221,7 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     set({
       detailData: {
         countryId: '',
-        year: dayjs().month(5).date(1).toDate(), // 使用当前时间作为默认年份
+        year: dayjs().year(), // 使用当前年份作为默认年份
         indicators: initialIndicators,
         isComplete: false
       }
