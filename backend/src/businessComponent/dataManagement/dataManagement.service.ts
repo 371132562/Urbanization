@@ -116,7 +116,11 @@ export class DataManagementService {
         const valuesMap = new Map(
           values.map((v) => [
             v.detailedIndicatorId,
-            v.value !== null ? v.value.toNumber() : null,
+            v.value !== null
+              ? typeof v.value === 'string'
+                ? Number(v.value)
+                : v.value.toNumber()
+              : null,
           ]),
         );
 
@@ -442,10 +446,17 @@ export class DataManagementService {
     // 步骤3: 获取指定年份的指标数据
 
     // 获取该国家在指定年份的所有指标值
+    // 使用日期范围查询，避免精确匹配可能的问题
+    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
+    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
+
     const indicatorValues = await this.prisma.indicatorValue.findMany({
       where: {
         countryId,
-        year: yearDate, // 直接使用精确匹配
+        year: {
+          gte: startOfTargetDate,
+          lte: endOfTargetDate,
+        },
         delete: 0,
         detailedIndicator: {
           delete: 0,
@@ -510,7 +521,9 @@ export class DataManagementService {
         unit: indicator.unit,
         value:
           indicatorValue && indicatorValue.value !== null
-            ? indicatorValue.value.toNumber()
+            ? typeof indicatorValue.value === 'string'
+              ? Number(indicatorValue.value)
+              : indicatorValue.value.toNumber()
             : null,
         weight: Number(indicator.weight), // 修复：Decimal转number
       };
@@ -666,10 +679,17 @@ export class DataManagementService {
     }
 
     // 查询该国家该年份的指标值数量
+    // 使用日期范围查询，避免精确匹配可能的问题
+    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
+    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
+
     const count = await this.prisma.indicatorValue.count({
       where: {
         countryId,
-        year: yearDate,
+        year: {
+          gte: startOfTargetDate,
+          lte: endOfTargetDate,
+        },
         delete: 0,
       },
     });
@@ -727,10 +747,17 @@ export class DataManagementService {
     }
 
     // 步骤2: 批量查询已存在的指标数据
+    // 使用日期范围查询，避免精确匹配可能的问题
+    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
+    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
+
     const existingData = await this.prisma.indicatorValue.findMany({
       where: {
         countryId: { in: countryIds },
-        year: yearDate,
+        year: {
+          gte: startOfTargetDate,
+          lte: endOfTargetDate,
+        },
         delete: 0,
       },
       select: {
@@ -792,10 +819,22 @@ export class DataManagementService {
     this.logger.log(`成功获取 ${countries.length} 个请求的国家信息`);
 
     // 步骤3: 一次性获取所有相关指标值
+    // 使用更精确的年份范围查询，针对 month(5).date(1) 格式优化
+    const targetYearDate = dayjs(year).month(5).date(1).toDate();
+    const startOfTargetDate = dayjs(targetYearDate).startOf('day').toDate();
+    const endOfTargetDate = dayjs(targetYearDate).endOf('day').toDate();
+
+    this.logger.log(
+      `查询条件: countryIds=${JSON.stringify(countryIds)}, year=${yearValue}, 目标日期: ${targetYearDate.toISOString()}, 日期范围: ${startOfTargetDate.toISOString()} 到 ${endOfTargetDate.toISOString()}`,
+    );
+
     const values = await this.prisma.indicatorValue.findMany({
       where: {
         countryId: { in: countryIds },
-        year: yearDate,
+        year: {
+          gte: startOfTargetDate,
+          lte: endOfTargetDate,
+        },
         delete: 0,
       },
     });
@@ -808,10 +847,14 @@ export class DataManagementService {
         valuesMap.set(value.countryId, new Map());
       }
       if (value.value !== null) {
-        // 将Decimal类型转为number
+        // 兼容 SQLite 下 Decimal 实际为字符串的情况，统一转为 number
+        const numValue =
+          typeof value.value === 'string'
+            ? Number(value.value)
+            : value.value.toNumber();
         valuesMap
           .get(value.countryId)!
-          .set(value.detailedIndicatorId, value.value.toNumber());
+          .set(value.detailedIndicatorId, numValue);
       }
     }
 

@@ -427,8 +427,19 @@ export class ScoreService {
     const yearDate = dayjs(year).month(5).date(1).toDate(); // 标准化年份
 
     // 查询特定国家和年份的评分记录
+    // 使用日期范围查询，避免精确匹配可能的问题
+    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
+    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
+
     const score = await this.prisma.score.findFirst({
-      where: { countryId, year: yearDate, delete: 0 },
+      where: {
+        countryId,
+        year: {
+          gte: startOfTargetDate,
+          lte: endOfTargetDate,
+        },
+        delete: 0,
+      },
       include: {
         country: true, // 同时返回关联的国家信息
       },
@@ -455,10 +466,17 @@ export class ScoreService {
     const { countryId, year } = params;
     const yearDate = dayjs(year).month(5).date(1).toDate();
 
+    // 使用日期范围查询，避免精确匹配可能的问题
+    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
+    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
+
     const count = await this.prisma.score.count({
       where: {
         countryId,
-        year: yearDate,
+        year: {
+          gte: startOfTargetDate,
+          lte: endOfTargetDate,
+        },
         delete: 0,
       },
     });
@@ -507,10 +525,17 @@ export class ScoreService {
     }
 
     // 步骤2: 批量查询已存在的评分数据
+    // 使用日期范围查询，避免精确匹配可能的问题
+    const startOfTargetDate = dayjs(yearDate).startOf('day').toDate();
+    const endOfTargetDate = dayjs(yearDate).endOf('day').toDate();
+
     const existingScores = await this.prisma.score.findMany({
       where: {
         countryId: { in: countryIds },
-        year: yearDate,
+        year: {
+          gte: startOfTargetDate,
+          lte: endOfTargetDate,
+        },
         delete: 0,
       },
       select: {
