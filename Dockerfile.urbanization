@@ -1,4 +1,4 @@
-# urbanization/Dockerfile.urbanization - 用于frontend-ubranization项目
+# urbanization/Dockerfile.urbanization - 用于urbanization-frontend-process项目
 
 # --- 基础构建阶段 ---
 # 使用 Node.js 22 作为基础镜像，用于所有构建操作
