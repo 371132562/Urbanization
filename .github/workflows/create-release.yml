@@ -25,7 +25,7 @@ jobs:
   build-clients:
     name: 构建所有客户端
     runs-on: ubuntu-latest
-    # 使用矩阵策略并行构建四个不同的客户端
+    # 使用矩阵策略并行构建九个不同的客户端
     strategy:
       matrix:
         client:
@@ -261,37 +261,21 @@ jobs:
             echo "错误：缺少 urbanization-material.zip"
             exit 1
           fi
-          if [ ! -f "./artifacts/urbanization-spatial.zip" ]; then
+          if [ ! -f "./artifacts/urbanization-spatial.zip" ]; then 
             echo "错误：缺少 urbanization-spatial.zip"
             exit 1
           fi
           echo "✅ 所有文件下载成功！"
 
-      # 步骤3：创建八个副本的整合包
-      # 将八个副本的zip文件打包成一个整合包，方便用户一次性下载所有副本
-      - name: 创建八个副本整合包
-        run: |
-          echo "正在创建八个副本的整合包..."
-          cd ./artifacts
-          zip urbanization-all-clients.zip \
-            urbanization-data.zip \
-            urbanization-evaluation.zip \
-            urbanization-score.zip \
-            urbanization-comprehensive.zip \
-            urbanization-urbanization.zip \
-            urbanization-human.zip \
-            urbanization-material.zip \
-            urbanization-spatial.zip
-          echo "✅ 整合包创建成功：urbanization-all-clients.zip"
-          ls -la urbanization-all-clients.zip
 
-      # 步骤4：生成版本号 (北京时间)
+
+      # 步骤3：生成版本号 (北京时间)
       # 使用北京时间生成版本号，格式为 YYYYMMDD-HHMM
       - name: 生成版本号 (北京时间)
         id: version
         run: echo "tag=$(TZ='Asia/Shanghai' date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
 
-      # 步骤5：创建 GitHub Release
+      # 步骤4：创建 GitHub Release
       # 使用第三方 Action 创建 GitHub Release，包含所有客户端的文件
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v2
@@ -350,18 +334,7 @@ jobs:
             - 专门用于空间动力功能
             - 包含所有必要的运行文件
             
-            ### 10. 八个副本整合包 (`urbanization-all-clients.zip`)
-            - 包含所有八个副本的完整运行包
-            - 一次性下载所有副本，方便批量部署
-            - 包含文件：
-              - urbanization-data.zip (数据管理)
-              - urbanization-evaluation.zip (评估管理)
-              - urbanization-score.zip (评分管理)
-              - urbanization-comprehensive.zip (综合评价)
-              - urbanization-urbanization.zip (城镇化进程)
-              - urbanization-human.zip (迁移动力)
-              - urbanization-material.zip (经济动力)
-              - urbanization-spatial.zip (空间动力)
+
             
             ## 🚀 使用方法
             
@@ -375,7 +348,6 @@ jobs:
             - 如果只需要迁移动力功能，下载 `urbanization-human.zip`
             - 如果只需要经济动力功能，下载 `urbanization-material.zip`
             - 如果只需要空间动力功能，下载 `urbanization-spatial.zip`
-            - 如果需要所有八个副本，下载 `urbanization-all-clients.zip`
             
             下载后解压即可使用。
           # 指定要包含在 Release 中的文件
@@ -389,5 +361,4 @@ jobs:
             ./artifacts/urbanization-urbanization.zip
             ./artifacts/urbanization-human.zip
             ./artifacts/urbanization-material.zip
-            ./artifacts/urbanization-spatial.zip
-            ./artifacts/urbanization-all-clients.zip 
+            ./artifacts/urbanization-spatial.zip 
