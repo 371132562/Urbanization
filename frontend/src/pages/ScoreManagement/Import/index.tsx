@@ -37,6 +37,7 @@ const ScoreImportPage = () => {
 
   const countries = useCountryAndContinentStore(state => state.countries)
   const checkScoreExistingData = useScoreStore(state => state.checkScoreExistingData)
+  const batchCheckScoreExistingData = useScoreStore(state => state.batchCheckScoreExistingData)
   const batchCreateScore = useScoreStore(state => state.batchCreateScore)
 
   const [currentStep, setCurrentStep] = useState(0)
@@ -60,15 +61,17 @@ const ScoreImportPage = () => {
       fixed: 'left' as const,
       render: (text: string, record: PreviewRow) => (
         <div className="flex items-center">
-          <span className="mb-2">{text}</span>
-          {record.isExisting && (
-            <Tag
-              color="warning"
-              className="ml-2"
-            >
-              已存在
-            </Tag>
-          )}
+          <div className="flex flex-col">
+            <span className="mb-1">{text}</span>
+            {record.isExisting && (
+              <Tag
+                color="warning"
+                className="ml-2"
+              >
+                已存在
+              </Tag>
+            )}
+          </div>
         </div>
       )
     }
@@ -88,6 +91,7 @@ const ScoreImportPage = () => {
     setPreviewData([])
     setCurrentStep(0)
     setImportResult(null)
+    setImportYear(null) // 重置年份选择
   }
 
   const handleBeforeUpload = (file: RcFile) => {
@@ -111,6 +115,9 @@ const ScoreImportPage = () => {
 
         const processedData: PreviewRow[] = []
         const unmatchedCountries: string[] = []
+        const matchedCountries: { countryId: string; countryName: string; rowData: any[] }[] = []
+
+        // 第一步：匹配国家并收集匹配的国家信息和行数据
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i]
           const countryNameFromExcel = row[0]?.toString().trim()
@@ -125,28 +132,58 @@ const ScoreImportPage = () => {
           )
 
           if (countryMatch) {
-            const { exists } = await checkScoreExistingData({
-              countryId: countryMatch.id,
-              year: dayjs(importYear!.toString()).month(5).date(1).toDate()
-            })
-
-            const rowData: PreviewRow = {
-              key: countryMatch.id,
+            matchedCountries.push({
               countryId: countryMatch.id,
               countryName: countryMatch.cnName,
-              isExisting: exists
-            }
-
-            SCORE_DIMENSIONS.forEach((dim, index) => {
-              const rawValue = row[index + 1]
-              const cleanedValue = String(rawValue || '').replace(/,/g, '')
-              const parsedValue = parseFloat(cleanedValue)
-              rowData[dim.enName] = isNaN(parsedValue) ? '' : parsedValue
+              rowData: row
             })
-            processedData.push(rowData)
           } else {
             unmatchedCountries.push(countryNameFromExcel)
           }
+        }
+
+        // 第二步：批量检查已存在的评分数据
+        let existingDataMap: Map<string, boolean> = new Map()
+        if (matchedCountries.length > 0) {
+          try {
+            const batchCheckResult = await batchCheckScoreExistingData({
+              year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
+              countryIds: matchedCountries.map(c => c.countryId)
+            })
+
+            // 将已存在的国家ID转换为Map，方便快速查找
+            existingDataMap = new Map(
+              batchCheckResult.existingCountries.map(countryId => [countryId, true])
+            )
+          } catch (error) {
+            console.error('批量检查评分数据失败:', error)
+            // 如果批量检查失败，回退到单个检查
+            for (const country of matchedCountries) {
+              const { exists } = await checkScoreExistingData({
+                countryId: country.countryId,
+                year: dayjs(importYear!.toString()).month(5).date(1).toDate()
+              })
+              existingDataMap.set(country.countryId, exists)
+            }
+          }
+        }
+
+        // 第三步：构建预览数据
+        for (const matchedCountry of matchedCountries) {
+          const rowData: PreviewRow = {
+            key: matchedCountry.countryId,
+            countryId: matchedCountry.countryId,
+            countryName: matchedCountry.countryName,
+            isExisting: existingDataMap.get(matchedCountry.countryId) || false
+          }
+
+          SCORE_DIMENSIONS.forEach((dim, index) => {
+            const rawValue = matchedCountry.rowData[index + 1]
+            const cleanedValue = String(rawValue || '').replace(/,/g, '')
+            const parsedValue = parseFloat(cleanedValue)
+            rowData[dim.enName] = isNaN(parsedValue) ? '' : parsedValue
+          })
+          processedData.push(rowData)
         }
 
         if (unmatchedCountries.length > 0) {
@@ -284,6 +321,7 @@ const ScoreImportPage = () => {
                     picker="year"
                     size="large"
                     className="w-full"
+                    value={importYear ? dayjs(importYear.toString()) : null}
                     onChange={date => setImportYear(date ? dayjs(date).year() : null)}
                     disabledDate={current => current && current > dayjs().endOf('day')}
                   />

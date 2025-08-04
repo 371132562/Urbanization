@@ -10,6 +10,8 @@ import { DataManagementService } from './dataManagement.service';
 import { Response } from 'express';
 import {
   BatchCreateIndicatorValuesDto,
+  BatchCheckIndicatorExistingDto,
+  BatchCheckIndicatorExistingResDto,
   CountryDetailReqDto,
   CountryDetailResDto,
   CreateIndicatorValuesDto,
@@ -79,6 +81,16 @@ export class DataManagementController {
   @Post('checkExistingData')
   checkExistingData(@Body() params: CountryYearQueryDto) {
     return this.dataManagementService.checkExistingData(params);
+  }
+
+  /**
+   * 批量检查多个国家和年份的指标数据是否存在
+   */
+  @Post('batchCheckExistingData')
+  batchCheckExistingData(
+    @Body() data: BatchCheckIndicatorExistingDto,
+  ): Promise<BatchCheckIndicatorExistingResDto> {
+    return this.dataManagementService.batchCheckExistingData(data);
   }
 
   /**

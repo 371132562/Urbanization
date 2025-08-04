@@ -2,6 +2,8 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { ScoreService } from './score.service';
 import {
   BatchCreateScoreDto,
+  BatchCheckScoreExistingDto,
+  BatchCheckScoreExistingResDto,
   ScoreEvaluationItemDto,
   CreateScoreDto,
   ScoreDetailReqDto,
@@ -58,6 +60,16 @@ export class ScoreController {
   @Post('checkExisting')
   checkExistingData(@Body() params: ScoreDetailReqDto) {
     return this.scoreService.checkExistingData(params);
+  }
+
+  /**
+   * @description 批量检查多个国家和年份的评分数据是否存在
+   */
+  @Post('batchCheckExisting')
+  batchCheckExistingData(
+    @Body() data: BatchCheckScoreExistingDto,
+  ): Promise<BatchCheckScoreExistingResDto> {
+    return this.scoreService.batchCheckExistingData(data);
   }
 
   /**

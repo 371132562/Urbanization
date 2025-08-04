@@ -60,6 +60,10 @@ const DataImportPage = () => {
   const checkDataManagementExistingData = useDataManagementStore(
     state => state.checkDataManagementExistingData
   )
+  // 批量检查多个国家和年份的数据是否已存在的方法
+  const batchCheckDataManagementExistingData = useDataManagementStore(
+    state => state.batchCheckDataManagementExistingData
+  )
   // 批量保存国家数据（包含所有指标）的方法
   const batchSaveDataManagementDetail = useDataManagementStore(
     state => state.batchSaveDataManagementDetail
@@ -149,6 +153,7 @@ const DataImportPage = () => {
     setPreviewData([])
     setCurrentStep(0)
     setImportResult(null)
+    setImportYear(null) // 重置年份选择
   }
 
   /**
@@ -191,7 +196,9 @@ const DataImportPage = () => {
         // 2. 数据处理与转换，准备用于预览
         const processedData: PreviewRow[] = []
         const unmatchedCountries: string[] = []
-        // 从第二行开始读取（i=1），以跳过 Excel 文件中的表头行
+        const matchedCountries: { countryId: string; countryName: string; rowData: any[] }[] = []
+
+        // 第一步：匹配国家并收集匹配的国家信息和行数据
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i]
           // 获取当前行的第一个单元格（国家名称），并去除首尾空格
@@ -200,7 +207,7 @@ const DataImportPage = () => {
           // 如果国家名称为空，则视为空行并跳过
           if (!countryNameFromExcel) continue
 
-          // 3. 匹配国家
+          // 匹配国家
           // 根据 Excel 中的国家名称进行不区分大小写的匹配
           const countryNameFromExcelLower = countryNameFromExcel.toLowerCase()
           const countryMatch = countries.find(
@@ -211,37 +218,65 @@ const DataImportPage = () => {
 
           // 如果在系统中找到了对应的国家
           if (countryMatch) {
-            // 4. 检查数据是否存在
-            // 对于匹配到的国家，调用后端接口异步检查该年份是否已有数据，以便在预览中标记
-            const isExisting = await checkDataManagementExistingData({
-              countryId: countryMatch.id,
-              year: dayjs(importYear!.toString()).month(5).date(1).toDate()
-            })
-
-            // 构建预览表格行数据的基础结构
-            const rowData: PreviewRow = {
-              key: countryMatch.id,
+            matchedCountries.push({
               countryId: countryMatch.id,
               countryName: countryMatch.cnName,
-              isExisting: isExisting.exists
-            }
-
-            // 5. 依次读取所有指标值
-            // 遍历预定义的69个三级指标，并从行数据中按顺序提取对应的值
-            // 将无效或非数字的值转换为空字符串，以便在预览中显示为空白
-            tertiaryIndicators.forEach((indicator, index) => {
-              // `index + 1` 是因为第0列是国家名称
-              const rawValue = row[index + 1]
-              // 清洗数据：移除千位分隔符(,)，并将 null/undefined 转为空字符串
-              const cleanedValue = String(rawValue || '').replace(/,/g, '')
-              const parsedValue = parseFloat(cleanedValue)
-              rowData[indicator.id] = isNaN(parsedValue) ? '' : parsedValue
+              rowData: row
             })
-            // 将处理好的行数据添加到最终结果中
-            processedData.push(rowData)
           } else {
             unmatchedCountries.push(countryNameFromExcel)
           }
+        }
+
+        // 第二步：批量检查已存在的指标数据
+        let existingDataMap: Map<string, boolean> = new Map()
+        if (matchedCountries.length > 0) {
+          try {
+            const batchCheckResult = await batchCheckDataManagementExistingData({
+              year: dayjs(importYear!.toString()).month(5).date(1).toDate(),
+              countryIds: matchedCountries.map(c => c.countryId)
+            })
+
+            // 将已存在的国家ID转换为Map，方便快速查找
+            existingDataMap = new Map(
+              batchCheckResult.existingCountries.map(countryId => [countryId, true])
+            )
+          } catch (error) {
+            console.error('批量检查指标数据失败:', error)
+            // 如果批量检查失败，回退到单个检查
+            for (const country of matchedCountries) {
+              const isExisting = await checkDataManagementExistingData({
+                countryId: country.countryId,
+                year: dayjs(importYear!.toString()).month(5).date(1).toDate()
+              })
+              existingDataMap.set(country.countryId, isExisting.exists)
+            }
+          }
+        }
+
+        // 第三步：构建预览数据
+        for (const matchedCountry of matchedCountries) {
+          // 构建预览表格行数据的基础结构
+          const rowData: PreviewRow = {
+            key: matchedCountry.countryId,
+            countryId: matchedCountry.countryId,
+            countryName: matchedCountry.countryName,
+            isExisting: existingDataMap.get(matchedCountry.countryId) || false
+          }
+
+          // 依次读取所有指标值
+          // 遍历预定义的69个三级指标，并从行数据中按顺序提取对应的值
+          // 将无效或非数字的值转换为空字符串，以便在预览中显示为空白
+          tertiaryIndicators.forEach((indicator, index) => {
+            // `index + 1` 是因为第0列是国家名称
+            const rawValue = matchedCountry.rowData[index + 1]
+            // 清洗数据：移除千位分隔符(,)，并将 null/undefined 转为空字符串
+            const cleanedValue = String(rawValue || '').replace(/,/g, '')
+            const parsedValue = parseFloat(cleanedValue)
+            rowData[indicator.id] = isNaN(parsedValue) ? '' : parsedValue
+          })
+          // 将处理好的行数据添加到最终结果中
+          processedData.push(rowData)
         }
 
         if (unmatchedCountries.length > 0) {
@@ -418,6 +453,7 @@ const DataImportPage = () => {
                     picker="year"
                     size="large"
                     className="w-full"
+                    value={importYear ? dayjs(importYear.toString()) : null}
                     onChange={date => setImportYear(date ? dayjs(date).year() : null)}
                     disabledDate={current => current && current > dayjs().endOf('day')}
                   />

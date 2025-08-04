@@ -132,6 +132,24 @@ export type BatchCreateIndicatorValuesDto = {
 };
 
 /**
+ * 批量检查指标数据是否存在请求参数
+ */
+export type BatchCheckIndicatorExistingDto = {
+  year: Date; // 年份
+  countryIds: string[]; // 国家ID数组
+};
+
+/**
+ * 批量检查指标数据是否存在响应结果
+ */
+export type BatchCheckIndicatorExistingResDto = {
+  totalCount: number; // 总检查数量
+  existingCount: number; // 已存在数量
+  existingCountries: string[]; // 已存在的国家ID列表
+  nonExistingCountries: string[]; // 不存在的国家ID列表
+};
+
+/**
  * 检查数据是否存在相关类型
  */
 export type CountryYearQueryDto = {
@@ -391,6 +409,24 @@ export type BatchCreateScoreDto = {
     materialDynamicsDimensionScore: number;
     spatialDynamicsDimensionScore: number;
   }[];
+};
+
+/**
+ * 批量检查评分数据是否存在请求参数
+ */
+export type BatchCheckScoreExistingDto = {
+  year: Date; // 年份
+  countryIds: string[]; // 国家ID数组
+};
+
+/**
+ * 批量检查评分数据是否存在响应结果
+ */
+export type BatchCheckScoreExistingResDto = {
+  totalCount: number; // 总检查数量
+  existingCount: number; // 已存在数量
+  existingCountries: string[]; // 已存在的国家ID列表
+  nonExistingCountries: string[]; // 不存在的国家ID列表
 };
 
 export type ScoreDataItem = {

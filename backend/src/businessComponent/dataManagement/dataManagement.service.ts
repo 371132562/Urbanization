@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   BatchCreateIndicatorValuesDto,
+  BatchCheckIndicatorExistingDto,
+  BatchCheckIndicatorExistingResDto,
   CheckExistingDataResDto,
   CountryData,
   CountryDetailReqDto,
@@ -683,6 +685,75 @@ export class DataManagementService {
     return {
       exists,
       count,
+    };
+  }
+
+  /**
+   * 批量检查多个国家和年份的指标数据是否存在
+   * @param data 批量检查参数，包含年份和国家ID数组
+   * @returns 批量检查结果，包含已存在和不存在的国家列表
+   */
+  async batchCheckExistingData(
+    data: BatchCheckIndicatorExistingDto,
+  ): Promise<BatchCheckIndicatorExistingResDto> {
+    const { year, countryIds } = data;
+    // 统一使用dayjs处理年份，只保留年份信息
+    const yearDate = dayjs(year).month(5).date(1).toDate();
+    const yearValue = dayjs(yearDate).year();
+
+    this.logger.log(
+      `准备批量检查 ${countryIds.length} 个国家在 ${yearValue} 年的指标数据是否存在`,
+    );
+
+    // 步骤1: 验证所有国家是否存在
+    const existingCountries = await this.prisma.country.findMany({
+      where: {
+        id: { in: countryIds },
+        delete: 0,
+      },
+    });
+
+    const existingCountryIds = new Set(existingCountries.map((c) => c.id));
+    const invalidCountryIds = countryIds.filter(
+      (id) => !existingCountryIds.has(id),
+    );
+
+    if (invalidCountryIds.length > 0) {
+      this.logger.error(`未找到以下国家ID: ${invalidCountryIds.join(', ')}`);
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+      );
+    }
+
+    // 步骤2: 批量查询已存在的指标数据
+    const existingData = await this.prisma.indicatorValue.findMany({
+      where: {
+        countryId: { in: countryIds },
+        year: yearDate,
+        delete: 0,
+      },
+      select: {
+        countryId: true,
+      },
+    });
+
+    const existingDataCountryIds = new Set(
+      existingData.map((d) => d.countryId),
+    );
+    const nonExistingCountryIds = countryIds.filter(
+      (id) => !existingDataCountryIds.has(id),
+    );
+
+    this.logger.log(
+      `批量检查完成: ${countryIds.length} 个国家中，${existingDataCountryIds.size} 个已有指标数据，${nonExistingCountryIds.length} 个没有指标数据`,
+    );
+
+    return {
+      totalCount: countryIds.length,
+      existingCount: existingDataCountryIds.size,
+      existingCountries: Array.from(existingDataCountryIds),
+      nonExistingCountries: nonExistingCountryIds,
     };
   }
 

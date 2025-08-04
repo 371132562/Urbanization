@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import {
   BatchCreateScoreDto,
+  BatchCheckScoreExistingDto,
+  BatchCheckScoreExistingResDto,
   ScoreEvaluationItemDto,
   CreateScoreDto,
   ScoreListDto,
@@ -464,6 +466,74 @@ export class ScoreService {
     return {
       exists: count > 0,
       count,
+    };
+  }
+
+  /**
+   * @description 批量检查多个国家和年份的评分数据是否存在.
+   * @param {BatchCheckScoreExistingDto} data - 包含年份和国家ID数组.
+   * @returns {Promise<BatchCheckScoreExistingResDto>} 批量检查结果，包含已存在和不存在的国家列表.
+   */
+  async batchCheckExistingData(
+    data: BatchCheckScoreExistingDto,
+  ): Promise<BatchCheckScoreExistingResDto> {
+    const { year, countryIds } = data;
+    const yearDate = dayjs(year).month(5).date(1).toDate();
+    const yearValue = dayjs(yearDate).year();
+
+    this.logger.log(
+      `准备批量检查 ${countryIds.length} 个国家在 ${yearValue} 年的评分数据是否存在`,
+    );
+
+    // 步骤1: 验证所有国家是否存在
+    const existingCountries = await this.prisma.country.findMany({
+      where: {
+        id: { in: countryIds },
+        delete: 0,
+      },
+    });
+
+    const existingCountryIds = new Set(existingCountries.map((c) => c.id));
+    const invalidCountryIds = countryIds.filter(
+      (id) => !existingCountryIds.has(id),
+    );
+
+    if (invalidCountryIds.length > 0) {
+      this.logger.error(`未找到以下国家ID: ${invalidCountryIds.join(', ')}`);
+      throw new BusinessException(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+      );
+    }
+
+    // 步骤2: 批量查询已存在的评分数据
+    const existingScores = await this.prisma.score.findMany({
+      where: {
+        countryId: { in: countryIds },
+        year: yearDate,
+        delete: 0,
+      },
+      select: {
+        countryId: true,
+      },
+    });
+
+    const existingScoreCountryIds = new Set(
+      existingScores.map((s) => s.countryId),
+    );
+    const nonExistingCountryIds = countryIds.filter(
+      (id) => !existingScoreCountryIds.has(id),
+    );
+
+    this.logger.log(
+      `批量检查完成: ${countryIds.length} 个国家中，${existingScoreCountryIds.size} 个已有评分数据，${nonExistingCountryIds.length} 个没有评分数据`,
+    );
+
+    return {
+      totalCount: countryIds.length,
+      existingCount: existingScoreCountryIds.size,
+      existingCountries: Array.from(existingScoreCountryIds),
+      nonExistingCountries: nonExistingCountryIds,
     };
   }
 

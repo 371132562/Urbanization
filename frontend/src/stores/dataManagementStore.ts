@@ -1,5 +1,7 @@
 import dayjs from 'dayjs'
 import type {
+  BatchCheckIndicatorExistingDto,
+  BatchCheckIndicatorExistingResDto,
   BatchCreateIndicatorValuesDto,
   CheckExistingDataResDto,
   CountryDetailReqDto,
@@ -13,6 +15,7 @@ import type {
 import { create } from 'zustand'
 
 import {
+  dataManagementBatchCheckExistingData,
   dataManagementBatchCreate,
   dataManagementCheckExistingData,
   dataManagementCreate,
@@ -41,6 +44,9 @@ type DataManagementStore = {
   }>
   deleteData: (params: CountryYearQueryDto) => Promise<boolean>
   checkDataManagementExistingData: (params: CountryYearQueryDto) => Promise<CheckExistingDataResDto>
+  batchCheckDataManagementExistingData: (
+    data: BatchCheckIndicatorExistingDto
+  ) => Promise<BatchCheckIndicatorExistingResDto>
   exportData: (params: ExportDataReqDto) => Promise<boolean>
   resetDetailData: () => void
   initializeNewData: (indicatorHierarchy: TopIndicatorItem[]) => void
@@ -127,6 +133,20 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
       return response.data
     } catch (error) {
       console.error('Failed to check existing data:', error)
+      throw error
+    }
+  },
+
+  // 批量检查多个国家和年份是否已有指标数据
+  batchCheckDataManagementExistingData: async (data: BatchCheckIndicatorExistingDto) => {
+    try {
+      const response = await http.post<BatchCheckIndicatorExistingResDto>(
+        dataManagementBatchCheckExistingData,
+        data
+      )
+      return response.data
+    } catch (error) {
+      console.error('Failed to batch check existing data:', error)
       throw error
     }
   },
