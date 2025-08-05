@@ -29,9 +29,18 @@ export type WorldMapProps = {
   tooltipFormatter?: (params: any) => string
   // (可选) 地图点击事件回调
   onMapClick?: (params: any) => void
+  // (可选) 要高亮的国家英文名
+  highlightedCountry?: string
 }
 
-const WorldMap: FC<WorldMapProps> = ({ data, nameMap, valueMap, tooltipFormatter, onMapClick }) => {
+const WorldMap: FC<WorldMapProps> = ({
+  data,
+  nameMap,
+  valueMap,
+  tooltipFormatter,
+  onMapClick,
+  highlightedCountry
+}) => {
   // 用于引用 DOM 元素的 ref
   const chartRef = useRef<HTMLDivElement>(null)
   // 保存 ECharts 实例的 ref
@@ -133,6 +142,15 @@ const WorldMap: FC<WorldMapProps> = ({ data, nameMap, valueMap, tooltipFormatter
       // 设置图表配置
       chartInstance.current.setOption(option)
 
+      // 如果有要高亮的国家，则高亮显示
+      if (highlightedCountry && chartInstance.current) {
+        chartInstance.current.dispatchAction({
+          type: 'highlight',
+          seriesIndex: 0,
+          name: highlightedCountry
+        })
+      }
+
       // 绑定点击事件
       if (onMapClick) {
         chartInstance.current.on('click', params => {
@@ -159,7 +177,7 @@ const WorldMap: FC<WorldMapProps> = ({ data, nameMap, valueMap, tooltipFormatter
         chartInstance.current?.dispose()
       }
     }
-  }, [data, nameMap, valueMap, tooltipFormatter, onMapClick])
+  }, [data, nameMap, valueMap, tooltipFormatter, onMapClick, highlightedCountry])
 
   return (
     <div
