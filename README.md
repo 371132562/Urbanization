@@ -115,6 +115,24 @@ pnpm install
 - 遵循NestJS最佳实践
 - 使用Prisma处理数据库操作
 
+## 用户认证与权限管理
+
+### 认证体系
+- **认证方式**: JWT Token认证
+- **登录接口**: `/auth/login`，支持用户编号(code) + 密码登录
+
+### 路由权限配置
+- **路由配置**: 在`frontend/src/router/routesConfig.tsx`中统一配置
+- **特殊路由处理**:
+  - `roleAssignType: 'parent'`: 综合评价等特殊路由只分配父级权限
+  - `adminOnly: true`: 系统管理菜单仅超管可见，不参与权限分配
+
+### 初始数据
+- **种子数据**: 通过`backend/prisma/seed.js`初始化
+- **超管角色**: 自动创建admin角色，`allowedRoutes`为空数组
+- **超管用户**: 自动创建编号为`88888888`的超管用户，绑定admin角色
+- **初始密码**: 超管初始密码为`88888888`
+
 ### 启动开发服务器
 
 ```bash
@@ -448,25 +466,3 @@ location /urbanization/images/ {
 UPLOAD_DIR="./db/images"
 DEPLOY_PATH="/"
 ```
-
-3. **验证图片访问**:
-```bash
-# 检查图片文件是否存在
-ls -la backend/db/images/
-
-# 测试直接访问后端图片服务
-curl -I http://127.0.0.1:3333/images/filename.jpg
-
-# 测试通过nginx代理访问图片
-curl -I http://localhost/urbanization/images/filename.jpg
-```
-
-**预期结果**: 
-- 图片文件应能通过nginx代理正常访问
-- 返回正确的Content-Type（如image/jpeg）
-- 图片文件大小正确
-
-**注意事项**:
-- 图片静态文件代理配置应位于API代理配置之后，前端静态文件配置之前
-- 确保UPLOAD_DIR目录存在且有正确的读写权限
-- 图片文件名通常为UUID格式，确保前端正确拼接图片URL

@@ -29,7 +29,6 @@ export enum ErrorCode {
   USER_CODE_EXIST = 40012, // 用户编号已存在
   USER_CANNOT_DELETE_ADMIN = 40013, // 超管用户不可删除
   USER_CANNOT_EDIT_ADMIN = 40014, // 超管用户不可编辑
-  USER_CANNOT_RESET_ADMIN_PASSWORD = 40015, // 超管用户密码不可重置
 
   // 系统内部错误 (5xxxx)
   SYSTEM_ERROR = 50000, // 通用系统内部错误

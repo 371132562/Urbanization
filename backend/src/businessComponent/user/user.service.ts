@@ -123,12 +123,6 @@ export class UserService {
     if (!user || user.delete !== 0) {
       throw new BusinessException(ErrorCode.USER_NOT_FOUND, '用户不存在');
     }
-    if (user.code === '88888888') {
-      throw new BusinessException(
-        ErrorCode.USER_CANNOT_RESET_ADMIN_PASSWORD,
-        '超管用户密码不可重置',
-      );
-    }
     const password = await bcrypt.hash(dto.newPassword, 10);
     await this.prisma.user.update({
       where: { id: dto.id },

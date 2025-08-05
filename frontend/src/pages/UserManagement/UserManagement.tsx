@@ -113,7 +113,6 @@ const UserManagement: React.FC = () => {
             size="small"
             icon={<KeyOutlined />}
             onClick={() => openResetModal(record)}
-            disabled={record.code === '88888888'}
           >
             重置密码
           </Button>
