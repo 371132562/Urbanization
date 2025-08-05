@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { join } from 'path';
-import { ConfigModule } from '@nestjs/config';
 
 //公共模块
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -16,11 +15,6 @@ import { ScoreModule } from './businessComponent/score/score.module';
 
 @Module({
   imports: [
-    // 配置模块 - 支持多环境文件
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`],
-    }),
     //公共模块
     // 配置 @nestjs/serve-static 模块来提供静态文件服务
     ServeStaticModule.forRoot(

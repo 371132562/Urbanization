@@ -99,7 +99,8 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
           server:
             '//' +
             location.hostname +
-            import.meta.env.VITE_IMAGES_PORT +
+            (location.port ? ':' + location.port : '') +
+            (import.meta.env.VITE_DEPLOY_PATH === '/' ? '' : import.meta.env.VITE_DEPLOY_PATH) +
             import.meta.env.VITE_API_BASE_URL +
             '/upload',
 
@@ -149,7 +150,8 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
             return (
               '//' +
               location.hostname +
-              import.meta.env.VITE_IMAGES_PORT +
+              (location.port ? ':' + location.port : '') +
+              (import.meta.env.VITE_DEPLOY_PATH === '/' ? '' : import.meta.env.VITE_DEPLOY_PATH) +
               import.meta.env.VITE_IMAGES_BASE_URL +
               src
             )

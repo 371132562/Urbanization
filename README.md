@@ -217,11 +217,11 @@ docker-compose logs -f
 **1. 环境配置**
 ```bash
 # 后端环境配置 (.env.production) - 仅供参考，请根据实际情况调整
-DEPLOY_PATH="/urbanization"
+DEPLOY_PATH="/"
 PORT="3333"
 
 # 前端环境配置 (.env.production) - 仅供参考，请根据实际情况调整
-VITE_DEPLOY_PATH=/urbanization/
+VITE_DEPLOY_PATH=/urbanization
 ```
 ```bash
 # 根目录下安装依赖
@@ -255,45 +255,74 @@ node ./dist/src/main
 编辑 `/usr/local/etc/nginx/nginx.conf`，在http块中添加以下配置（仅供参考，请根据实际情况调整）：
 
 ```nginx
-server {
-    listen       80;
-    server_name  localhost;
+ server {
+        listen       80;
+        server_name  localhost;
 
-    # /urbanization 路径指向前端dist目录
-    location /urbanization {
-        alias /usr/local/var/www/dist;
-        index index.html;
-        try_files $uri $uri/ /urbanization/index.html;
-        
-        # 为JavaScript模块设置正确的MIME类型
-        location ~* \.(js|mjs)$ {
-            add_header Content-Type application/javascript;
+        #charset koi8-r;
+
+        #access_log  logs/host.access.log  main;
+
+        # /urbanization/api/ 路径反向代理到本地3333端口（优先级最高）
+        location /urbanization/api/ {
+            proxy_pass http://127.0.0.1:3333/api/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # /urbanization/images/ 路径反向代理到本地3333端口（图片静态文件）
+        location /urbanization/images/ {
+            proxy_pass http://127.0.0.1:3333/images/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # /urbanization 路径指向前端dist目录（支持带斜杠和不带斜杠的访问）
+        location /urbanization {
+            # 处理不带斜杠的访问，重定向到带斜杠的路径
+            rewrite ^/urbanization$ /urbanization/ permanent;
         }
         
-        # 为CSS文件设置正确的MIME类型
-        location ~* \.css$ {
-            add_header Content-Type text/css;
+        location /urbanization/ {
+            alias /usr/local/var/www/dist/;
+            index index.html;
+            try_files $uri $uri/ /urbanization/index.html;
+            
+            # 为JavaScript模块设置正确的MIME类型
+            location ~* \.(js|mjs)$ {
+                add_header Content-Type application/javascript;
+            }
+            
+            # 为CSS文件设置正确的MIME类型
+            location ~* \.css$ {
+                add_header Content-Type text/css;
+            }
+            
+            # 为其他静态资源设置正确的MIME类型
+            location ~* \.(png|jpg|jpeg|gif|ico|svg)$ {
+                add_header Content-Type image/png;
+            }
+            
+            location ~* \.(woff|woff2|ttf|eot)$ {
+                add_header Content-Type font/woff;
+            }
         }
-        
-        # 为其他静态资源设置正确的MIME类型
-        location ~* \.(png|jpg|jpeg|gif|ico|svg)$ {
-            add_header Content-Type image/png;
+
+        # 默认路径配置（注释掉原来的配置）
+        location / {
+            root   html;
+            index  index.html index.htm;
         }
-        
-        location ~* \.(woff|woff2|ttf|eot)$ {
-            add_header Content-Type font/woff;
+
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
         }
     }
-
-    # /urbanization/api 路径反向代理到本地3333端口
-    location /urbanization/api/ {
-        proxy_pass http://127.0.0.1:3333/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
 ```
 
 **5. 重启Nginx**
@@ -308,6 +337,7 @@ sudo nginx -s reload
 **6. 访问方式**
 - **前端页面**: `http://yourdomain.com/urbanization`
 - **后端API**: `http://yourdomain.com/urbanization/api/exampleApi`
+- **图片资源**: `http://yourdomain.com/urbanization/images/filename.jpg`
 
 ### 部署注意事项
 
@@ -328,3 +358,115 @@ sudo nginx -s reload
 1. **路径配置**: 确保DEPLOY_PATH与nginx配置一致
 2. **静态文件**: 确保前端构建产物路径正确
 3. **MIME类型**: 检查静态资源的MIME类型配置
+4. **文件上传权限**: 确保nginx临时文件目录权限正确
+5. **图片静态文件**: 确保nginx配置了图片静态文件代理路径
+
+#### 常见问题排查
+
+##### 文件上传接口问题
+**问题描述**: 访问 `http://localhost/urbanization/api/upload` 时出现nginx错误页面，显示"An error occurred"。
+
+**可能原因**:
+1. **nginx临时文件目录权限不足**: nginx无法写入临时文件目录
+2. **后端服务未启动**: 3333端口无服务响应
+3. **nginx配置错误**: location块匹配优先级问题
+
+**解决方案(仅供参考，根据实际情况调整)**:
+
+1. **修复nginx权限问题**:
+```bash
+# 修复nginx临时文件目录权限
+sudo chown -R $(whoami):admin /usr/local/var/run/nginx
+sudo chmod -R 755 /usr/local/var/run/nginx
+
+# 重新加载nginx配置
+sudo nginx -s reload
+```
+
+2. **检查后端服务状态**:
+```bash
+# 检查3333端口是否有服务运行
+lsof -i :3333
+
+# 如果服务未运行，启动后端服务
+cd backend
+pnpm start:dev
+```
+
+3. **验证API代理配置**:
+```bash
+# 测试直接访问后端API
+curl -X POST http://127.0.0.1:3333/api/upload -F "file=@/dev/null"
+
+# 测试通过nginx代理访问API
+curl -X POST http://localhost/urbanization/api/upload -F "file=@/dev/null"
+```
+
+4. **检查nginx错误日志**:
+```bash
+# 查看nginx错误日志
+sudo tail -f /usr/local/var/log/nginx/error.log
+```
+
+**预期结果**: 
+- 直接访问后端API应返回业务错误信息（如"不支持的文件类型"）
+- 通过nginx代理访问应返回相同的业务错误信息
+- nginx错误日志中不应出现权限相关错误
+
+**注意事项**:
+- 确保nginx配置中API代理location块位于静态文件location块之前
+- 文件上传接口需要处理multipart/form-data格式，nginx需要足够的权限处理临时文件
+- 建议定期检查nginx日志文件大小，避免日志文件过大影响性能
+
+##### 图片静态文件访问问题
+**问题描述**: 上传的图片无法通过 `http://localhost/urbanization/images/filename.jpg` 访问，显示404错误。
+
+**可能原因**:
+1. **nginx未配置图片代理**: 缺少 `/urbanization/images/` 路径的代理配置
+2. **后端ServeStaticModule配置错误**: 图片服务路径配置不正确
+3. **图片文件不存在**: 文件未正确保存到指定目录
+
+**解决方案**:
+
+1. **检查nginx配置**:
+确保nginx配置中包含图片静态文件代理：
+```nginx
+# /urbanization/images/ 路径反向代理到本地3333端口（图片静态文件）
+location /urbanization/images/ {
+    proxy_pass http://127.0.0.1:3333/images/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+2. **检查后端配置**:
+确保后端环境变量配置正确：
+```bash
+# backend/.env
+UPLOAD_DIR="./db/images"
+DEPLOY_PATH="/"
+```
+
+3. **验证图片访问**:
+```bash
+# 检查图片文件是否存在
+ls -la backend/db/images/
+
+# 测试直接访问后端图片服务
+curl -I http://127.0.0.1:3333/images/filename.jpg
+
+# 测试通过nginx代理访问图片
+curl -I http://localhost/urbanization/images/filename.jpg
+```
+
+**预期结果**: 
+- 图片文件应能通过nginx代理正常访问
+- 返回正确的Content-Type（如image/jpeg）
+- 图片文件大小正确
+
+**注意事项**:
+- 图片静态文件代理配置应位于API代理配置之后，前端静态文件配置之前
+- 确保UPLOAD_DIR目录存在且有正确的读写权限
+- 图片文件名通常为UUID格式，确保前端正确拼接图片URL
