@@ -109,7 +109,10 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
           fieldName: 'file',
           // meta: { token: 'xxx', a: 100 },
           // metaWithUrl: true, // join params to url
-          // headers: { Accept: 'text/x-json' },
+          headers: {
+            Accept: 'text/x-json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
 
           maxFileSize: 10 * 1024 * 1024, // 10M
 

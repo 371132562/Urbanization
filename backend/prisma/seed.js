@@ -309,20 +309,20 @@ async function seedAuthData(prisma) {
   if (adminRole) {
     adminRole = await prisma.role.update({
       where: { id: adminRole.id },
-      data: {
+        data: {
         description: '拥有所有权限，可以访问所有功能模块',
         allowedRoutes: [],
-      },
-    });
+        },
+      });
     console.log('超管角色已存在，已更新');
-  } else {
+    } else {
     adminRole = await prisma.role.create({
-      data: {
+        data: {
         name: 'admin',
         description: '拥有所有权限，可以访问所有功能模块',
         allowedRoutes: [],
-      },
-    });
+        },
+      });
     console.log('超管角色已创建');
   }
   // 只保留超管用户
@@ -359,7 +359,7 @@ async function seedAuthData(prisma) {
   }
   console.log('认证数据初始化完成！');
   console.log('\n初始用户账号：');
-  console.log('管理员: admin / admin123');
+  console.log('管理员: 88888888 / 88888888');
 }
 
 /**
