@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, RouteObject } from 'react-router'
 
 import ErrorPage from '@/components/Error'
 import { Component as Layout } from '@/components/Layout'
+import LoginPage from '@/pages/Login'
 import { RouteItem } from '@/types'
 
 import { sideRoutes, topRoutes } from './router/routesConfig.tsx'
@@ -54,6 +55,11 @@ const router = createBrowserRouter(
     {
       path: '/',
       element: <Navigate to="/home" />,
+      errorElement: <ErrorPage />
+    },
+    {
+      path: '/login',
+      element: <LoginPage />,
       errorElement: <ErrorPage />
     },
     {

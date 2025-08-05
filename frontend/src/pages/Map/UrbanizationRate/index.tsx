@@ -78,8 +78,11 @@ const UrbanizationRate: FC = () => {
             summary={() => (
               <>
                 <Summary.Row className="bg-slate-50 font-semibold">
-                  <Summary.Cell index={0}>未计入研究范围的国家总数</Summary.Cell>
-                  <Summary.Cell index={1}>{nonUrbanizedCount}</Summary.Cell>
+                  <Summary.Cell index={0}>已计入研究范围的国家总数</Summary.Cell>
+                  {/* 统计所有已计入（城镇化=true）的国家数量，tableData 为分大洲统计，需累加所有大洲的 count */}
+                  <Summary.Cell index={1}>
+                    {tableData.reduce((sum, item) => sum + item.count, 0)}
+                  </Summary.Cell>
                 </Summary.Row>
                 <Summary.Row className="bg-slate-50 font-semibold">
                   <Summary.Cell index={0}>未计入研究范围的国家总数</Summary.Cell>

@@ -40,3 +40,21 @@ export const scoreBatchCheckExisting = '/score/batchCheckExisting'
 export const scoreListByCountry = '/score/listByCountry'
 export const scoreEvaluationList = '/score/evaluation/list'
 export const scoreEvaluationCreate = '/score/evaluation/create'
+
+// 角色管理API
+export const roleListApi = '/role/list'
+export const roleCreateApi = '/role/create'
+export const roleUpdateApi = '/role/update'
+export const roleDeleteApi = '/role/delete'
+export const roleAssignRoutesApi = '/role/assignRoutes'
+
+// 认证相关API地址
+export const loginApiUrl = '/auth/login'
+export const profileApiUrl = '/auth/profile'
+
+// 用户管理API
+export const userListApi = '/user/list'
+export const userCreateApi = '/user/create'
+export const userUpdateApi = '/user/update'
+export const userDeleteApi = '/user/delete'
+export const userResetPasswordApi = '/user/resetPassword'

@@ -8,6 +8,7 @@ import {
   GoldOutlined,
   HomeOutlined,
   RiseOutlined,
+  SettingOutlined,
   TeamOutlined
 } from '@ant-design/icons'
 
@@ -27,12 +28,14 @@ import { Component as HumanDynamics } from '@/pages/HumanDynamics'
 import { Component as MapEdit } from '@/pages/Map/MapEdit'
 import { Component as UrbanizationRate } from '@/pages/Map/UrbanizationRate'
 import { Component as MaterialDynamics } from '@/pages/MaterialDynamics'
+import RoleManagement from '@/pages/RoleManagement/RoleManagement'
 import { Component as ScoreManagement } from '@/pages/ScoreManagement'
 import { Component as ScoreEvaluation } from '@/pages/ScoreManagement/Evaluation'
 import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
 import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
 import { Component as SpatialDynamics } from '@/pages/SpatialDynamics'
 import { Component as UrbanizationProcess } from '@/pages/UrbanizationProcess'
+import UserManagement from '@/pages/UserManagement/UserManagement'
 import { RouteItem } from '@/types'
 
 // 顶部导航菜单配置
@@ -43,6 +46,7 @@ export const topRoutes: RouteItem[] = [
     title: '综合评价',
     icon: <BarChartOutlined />,
     component: ComprehensiveEvaluation,
+    roleAssignType: 'parent', // 仅父级可分配
     children: [
       {
         path: '/comprehensiveEvaluation/detail/:countryId/:year',
@@ -207,6 +211,25 @@ export const sideRoutes: RouteItem[] = [
         hideInMenu: true
       }
     ]
+  },
+  // 系统管理菜单（仅admin可见）
+  {
+    path: '/system',
+    title: '系统管理',
+    icon: <SettingOutlined />,
+    adminOnly: true,
+    children: [
+      {
+        path: '/system/userManagement',
+        title: '用户管理',
+        component: UserManagement
+      },
+      {
+        path: '/system/roleManagement',
+        title: '角色管理',
+        component: RoleManagement
+      }
+    ]
   }
 ]
 
@@ -223,6 +246,108 @@ export const getAllRoutes = (): RouteItem[] => {
   }
 
   return [...flattenRoutes(topRoutes), ...flattenRoutes(sideRoutes)]
+}
+
+// 根据用户角色过滤路由
+export const getFilteredRoutes = (userRole?: {
+  name: string
+  allowedRoutes: string[]
+}): {
+  topRoutes: RouteItem[]
+  sideRoutes: RouteItem[]
+} => {
+  // 超管显示所有菜单
+  if (userRole?.name === 'admin') {
+    return { topRoutes, sideRoutes }
+  }
+
+  // 其他角色按allowedRoutes过滤
+  const allowedRoutes = userRole?.allowedRoutes || []
+
+  const filterRoute = (route: RouteItem): RouteItem | null => {
+    // 检查当前路由是否在允许列表中
+    const isAllowed = allowedRoutes.includes(route.path)
+
+    if (route.children) {
+      // 过滤子路由
+      const filteredChildren = route.children
+        .map(child => filterRoute(child))
+        .filter(Boolean) as RouteItem[]
+
+      // 如果有子路由被允许，则保留父路由
+      if (filteredChildren.length > 0) {
+        return {
+          ...route,
+          children: filteredChildren
+        }
+      }
+    } else if (isAllowed) {
+      // 叶子节点且被允许
+      return route
+    }
+
+    return null
+  }
+
+  const filteredTopRoutes = topRoutes
+    .map(route => filterRoute(route))
+    .filter(Boolean) as RouteItem[]
+
+  const filteredSideRoutes = sideRoutes
+    .map(route => filterRoute(route))
+    .filter(Boolean) as RouteItem[]
+
+  return {
+    topRoutes: filteredTopRoutes,
+    sideRoutes: filteredSideRoutes
+  }
+}
+
+// 导出分组菜单数据，供角色管理编辑使用
+export const getMenuOptionsForRoleEdit = () => {
+  const options: Array<{ label: string; options: Array<{ label: string; value: string }> }> = []
+
+  // 从topRoutes生成选项
+  topRoutes.forEach(route => {
+    if (route.adminOnly) return // 跳过系统管理等adminOnly菜单
+    const routeOptions: Array<{ label: string; value: string }> = []
+    if (route.roleAssignType === 'parent') {
+      routeOptions.push({ label: route.title, value: route.path })
+    } else if (route.children) {
+      route.children.forEach(child => {
+        if (!child.hideInMenu) {
+          routeOptions.push({ label: child.title, value: child.path })
+        }
+      })
+    } else {
+      routeOptions.push({ label: route.title, value: route.path })
+    }
+    if (routeOptions.length > 0) {
+      options.push({ label: route.title, options: routeOptions })
+    }
+  })
+
+  // 从sideRoutes生成选项
+  sideRoutes.forEach(route => {
+    if (route.adminOnly) return // 跳过系统管理等adminOnly菜单
+    const routeOptions: Array<{ label: string; value: string }> = []
+    if (route.roleAssignType === 'parent') {
+      routeOptions.push({ label: route.title, value: route.path })
+    } else if (route.children) {
+      route.children.forEach(child => {
+        if (!child.hideInMenu) {
+          routeOptions.push({ label: child.title, value: child.path })
+        }
+      })
+    } else {
+      routeOptions.push({ label: route.title, value: route.path })
+    }
+    if (routeOptions.length > 0) {
+      options.push({ label: route.title, options: routeOptions })
+    }
+  })
+
+  return options
 }
 
 // 根据路径获取面包屑项

@@ -3,8 +3,8 @@
 
 // 指定生成器，这里是 Prisma Client for JavaScript
 generator client {
-  provider = "prisma-client-js"
-  engineType = "binary" // 考虑此选项用于 Electron 部署
+  provider      = "prisma-client-js"
+  engineType    = "binary" // 考虑此选项用于 Electron 部署
   binaryTargets = ["native", "darwin", "windows"]
 }
 
@@ -12,6 +12,43 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL") // 数据库链接从环境变量中读取
+}
+
+// 用户表
+model User {
+  id         String   @id @default(uuid()) // 主键ID（UUID）
+  code       String   @unique // 用户编号（唯一）
+  name       String // 用户姓名
+  department String // 所属部门
+  email      String? // 邮箱地址（可选）
+  phone      String? // 电话号码（可选）
+  password   String // 密码（加密存储）
+  roleId     String? // 角色ID（可选，允许用户暂时没有角色）
+  role       Role?    @relation(fields: [roleId], references: [id]) // 关联到角色表
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
+  delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
+
+  @@unique([code, delete]) // 邮箱在未删除状态下唯一
+  @@index([id])
+  @@index([code, delete])
+  @@index([email, delete])
+  @@index([roleId])
+}
+
+// 角色表
+model Role {
+  id            String   @id @default(uuid()) // 主键ID（UUID）
+  name          String // 角色名称（唯一）
+  description   String? // 角色描述
+  allowedRoutes Json     @default("[]") // 允许访问的前端路由地址（JSON数组）
+  users         User[] // 关联到用户表
+  createTime    DateTime @default(now())
+  updateTime    DateTime @updatedAt
+  delete        Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
+
+  @@index([id])
+  @@index([name, delete])
 }
 
 // 大洲字典表

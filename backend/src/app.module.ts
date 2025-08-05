@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
 import { join } from 'path';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 //公共模块
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UploadModule } from './upload/upload.module';
+import { AuthModule } from './auth/auth.module';
+import { RoleModule } from './businessComponent/role/role.module';
+import { UserModule } from './businessComponent/user/user.module';
 
 //业务模块
 import { DataManagementModule } from './businessComponent/dataManagement/dataManagement.module';
@@ -36,6 +41,9 @@ import { ScoreModule } from './businessComponent/score/score.module';
     ),
     PrismaModule,
     UploadModule, // 上传模块
+    AuthModule, // 认证模块
+    RoleModule, // 角色管理模块
+    UserModule, // 用户管理模块
 
     //业务模块
     DataManagementModule,
@@ -45,6 +53,11 @@ import { ScoreModule } from './businessComponent/score/score.module';
     ScoreModule, // 评分评价模块
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

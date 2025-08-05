@@ -490,3 +490,186 @@ export type ScoreDetailReqDto = {
 export type DeleteScoreDto = {
   id: string;
 };
+
+// 认证相关DTO类型
+export type LoginDto = {
+  code: string; // 用户编号
+  password: string; // 密码
+};
+
+export type LoginResponseDto = {
+  token: string; // JWT token
+  user: {
+    id: string;
+    code: string;
+    name: string;
+    department: string;
+    email?: string;
+    phone?: string;
+    roleId?: string;
+    role?: {
+      id: string;
+      name: string;
+      description?: string;
+      allowedRoutes: string[];
+    };
+  };
+};
+
+export type TokenPayloadDto = {
+  userId: string;
+  userCode: string;
+  userName: string;
+  roleId?: string;
+  roleName?: string;
+  iat?: number;
+  exp?: number;
+};
+
+export type RefreshTokenDto = {
+  token: string;
+};
+
+export type ChangePasswordDto = {
+  oldPassword: string;
+  newPassword: string;
+};
+
+export type UserProfileDto = {
+  id: string;
+  code: string;
+  name: string;
+  department: string;
+  email?: string;
+  phone?: string;
+  roleId?: string;
+  role?: {
+    id: string;
+    name: string;
+    description?: string;
+    allowedRoutes: string[];
+  };
+  createTime: Date;
+  updateTime: Date;
+};
+
+/*
+ * ==================== 角色管理模块 ====================
+ */
+
+/**
+ * 角色列表项 DTO
+ */
+export type RoleListItemDto = {
+  id: string;
+  name: string;
+  description?: string;
+  allowedRoutes: string[];
+  userCount: number;
+  createTime: Date;
+  updateTime: Date;
+};
+
+/**
+ * 角色列表响应 DTO
+ */
+export type RoleListResDto = RoleListItemDto[];
+
+/**
+ * 创建角色 DTO
+ */
+export type CreateRoleDto = {
+  name: string;
+  description?: string;
+  allowedRoutes: string[];
+};
+
+/**
+ * 编辑角色 DTO
+ */
+export type UpdateRoleDto = {
+  id: string;
+  name?: string;
+  description?: string;
+  allowedRoutes?: string[];
+};
+
+/**
+ * 删除角色 DTO
+ */
+export type DeleteRoleDto = {
+  id: string;
+};
+
+/**
+ * 分配角色菜单权限 DTO
+ */
+export type AssignRoleRoutesDto = {
+  id: string;
+  allowedRoutes: string[];
+};
+
+/*
+ * ==================== 用户管理模块 ====================
+ */
+
+/**
+ * 用户列表项 DTO
+ */
+export type UserListItemDto = {
+  id: string;
+  code: string;
+  name: string;
+  department: string;
+  email?: string;
+  phone?: string;
+  roleId?: string;
+  roleName?: string;
+  createTime: Date;
+  updateTime: Date;
+};
+
+/**
+ * 用户列表响应 DTO
+ */
+export type UserListResDto = UserListItemDto[];
+
+/**
+ * 创建用户 DTO
+ */
+export type CreateUserDto = {
+  code: string;
+  name: string;
+  department: string;
+  email?: string;
+  phone?: string;
+  password: string;
+  roleId?: string;
+};
+
+/**
+ * 编辑用户 DTO
+ */
+export type UpdateUserDto = {
+  id: string;
+  name?: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  roleId?: string;
+};
+
+/**
+ * 删除用户 DTO
+ */
+export type DeleteUserDto = {
+  id: string;
+};
+
+/**
+ * 重置用户密码 DTO
+ */
+export type ResetUserPasswordDto = {
+  id: string;
+  newPassword: string;
+};

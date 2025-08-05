@@ -1,11 +1,13 @@
-import { UserOutlined } from '@ant-design/icons' // 导入图标
-import { Breadcrumb, Layout, Menu, MenuProps } from 'antd'
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons' // 导入图标
+import { Avatar, Breadcrumb, Dropdown, Layout, Menu, MenuProps } from 'antd'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { Link, useLocation, useNavigate, useOutlet } from 'react-router'
 
 import ErrorPage from '@/components/Error'
-import { getBreadcrumbItems, sideRoutes, topRoutes } from '@/router/routesConfig'
+import Forbidden from '@/components/Forbidden'
+import { getBreadcrumbItems, getFilteredRoutes } from '@/router/routesConfig'
+import { useAuthStore } from '@/stores/authStore'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useIndicatorStore from '@/stores/indicatorStore'
 
@@ -16,6 +18,9 @@ export const Component: FC = () => {
   const navigate = useNavigate()
   const getIndicatorHierarchy = useIndicatorStore(state => state.getIndicatorHierarchy)
   const getCountries = useCountryAndContinentStore(state => state.getCountries)
+  const user = useAuthStore(state => state.user)
+  const { sideRoutes, topRoutes } = getFilteredRoutes(user?.role)
+  const logout = useAuthStore(state => state.logout)
   const [collapsed, setCollapsed] = useState(false)
   const [openKeys, setOpenKeys] = useState<string[]>([])
   const { pathname } = useLocation()
@@ -29,6 +34,52 @@ export const Component: FC = () => {
   const handleMenuClick: MenuProps['onClick'] = e => {
     navigate(e.key)
   }
+
+  // 用户下拉菜单项，hover触发，内容更丰富
+  const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'userInfo',
+      label: (
+        <div
+          className="min-w-[280px] max-w-[340px] rounded-lg bg-white px-4 py-3"
+          style={{ lineHeight: 1.6 }}
+        >
+          {/* 用户名 */}
+          <div className="mb-2 text-base font-semibold text-gray-800">
+            {user?.name || '未知用户'}
+          </div>
+          {/* 用户编号 */}
+          <div className="mb-2 flex items-center text-sm text-gray-600">
+            <span className="mr-2 text-gray-400">编号：</span>
+            <span className="font-mono">{user?.code || '-'}</span>
+          </div>
+          {/* 角色名称 */}
+          <div className="mb-2 flex items-center text-sm text-gray-600">
+            <span className="mr-2 text-gray-400">角色：</span>
+            <span>{user?.role?.name || '-'}</span>
+          </div>
+          {/* 所属部门 */}
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="mr-2 text-gray-400">部门：</span>
+            <span>{user?.department || '-'}</span>
+          </div>
+        </div>
+      ),
+      disabled: true
+    },
+    {
+      type: 'divider'
+    },
+    {
+      key: 'logout',
+      label: <div className="px-2 py-1 text-red-600 hover:text-red-700">退出登录</div>,
+      icon: <LogoutOutlined />,
+      onClick: () => {
+        logout()
+        navigate('/login')
+      }
+    }
+  ]
 
   // 计算顶部导航菜单的激活项
   const topNavSelectedKey = useMemo(() => {
@@ -95,6 +146,18 @@ export const Component: FC = () => {
     }))
   }, [pathname])
 
+  // 路由守卫：无权限跳转403
+  const hasPermission = useMemo(() => {
+    if (!user?.role) return false
+    if (user.role.name === 'admin') return true
+    // 获取所有允许的路由
+    const allowed = user.role.allowedRoutes || []
+    // 允许访问首页
+    if (pathname === '/' || pathname === '/home') return true
+    // 精确匹配或以参数结尾的动态路由
+    return allowed.some(route => pathname === route || pathname.startsWith(route + '/'))
+  }, [user, pathname])
+
   return (
     <Layout className="h-screen w-full">
       <Header className="flex items-center px-6 text-white">
@@ -113,7 +176,29 @@ export const Component: FC = () => {
         />
         <div className="flex-grow" />
         <div className="flex-shrink-0">
-          <UserOutlined className="text-xl" />
+          {/* 用户头像及信息浮窗，hover触发 */}
+          <Dropdown
+            menu={{ items: userMenuItems }}
+            placement="bottomRight"
+            trigger={['hover']} // 改为hover触发
+            overlayClassName="user-info-dropdown"
+          >
+            <div
+              className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-white/10"
+              title={user?.name || '用户'}
+            >
+              {/* 用户头像 */}
+              <Avatar
+                icon={<UserOutlined />}
+                className="h-8 w-8 cursor-pointer bg-blue-500 text-sm hover:bg-blue-600"
+                style={{ width: 32, height: 32 }}
+              />
+              {/* 用户名显示在头像旁边 */}
+              <span className="max-w-[120px] truncate text-sm font-medium text-white">
+                {user?.name || '用户'}
+              </span>
+            </div>
+          </Dropdown>
         </div>
       </Header>
       <Layout className="flex-grow">
@@ -150,7 +235,12 @@ export const Component: FC = () => {
               <Breadcrumb items={breadcrumbItems} />
             </div>
             <div className="box-border flex flex-grow justify-center overflow-y-auto rounded-lg bg-white p-6 shadow-md">
-              <ErrorBoundary FallbackComponent={ErrorPage}>{outlet}</ErrorBoundary>
+              {/* 路由守卫：无权限跳转403 */}
+              {!hasPermission ? (
+                <Forbidden />
+              ) : (
+                <ErrorBoundary FallbackComponent={ErrorPage}>{outlet}</ErrorBoundary>
+              )}
             </div>
           </Content>
           {/* <Footer>

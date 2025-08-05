@@ -11,6 +11,8 @@ export type RouteItem = {
   hideInMenu?: boolean
   hideInBreadcrumb?: boolean
   children?: RouteItem[]
+  adminOnly?: boolean // 仅admin可见
+  roleAssignType?: 'parent' | 'children' // 角色分配类型，parent表示父级可分配，children表示只分配子级
 }
 
 /**
@@ -51,3 +53,46 @@ export const ExportFormatOptions = [
   { value: ExportFormat.XLSX, label: 'XLSX (Excel)' },
   { value: ExportFormat.JSON, label: 'JSON' }
 ]
+
+// 统一引入后端DTO类型，供前端全局使用
+import type {
+  // 角色管理相关DTO
+  AssignRoleRoutesDto,
+  CreateRoleDto,
+  CreateUserDto,
+  DeleteRoleDto,
+  DeleteUserDto,
+  // 认证相关
+  LoginDto,
+  LoginResponseDto,
+  ResetUserPasswordDto,
+  RoleListItemDto,
+  RoleListResDto,
+  TokenPayloadDto,
+  UpdateRoleDto,
+  UpdateUserDto,
+  // 用户管理相关DTO
+  UserListItemDto,
+  UserListResDto,
+  UserProfileDto
+} from 'urbanization-backend/types/dto'
+// 认证相关DTO
+export type { LoginDto, LoginResponseDto, TokenPayloadDto, UserProfileDto }
+// 角色管理相关DTO
+export type {
+  AssignRoleRoutesDto,
+  CreateRoleDto,
+  DeleteRoleDto,
+  RoleListItemDto,
+  RoleListResDto,
+  UpdateRoleDto
+}
+// 用户管理相关DTO
+export type {
+  CreateUserDto,
+  DeleteUserDto,
+  ResetUserPasswordDto,
+  UpdateUserDto,
+  UserListItemDto,
+  UserListResDto
+}

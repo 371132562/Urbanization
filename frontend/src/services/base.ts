@@ -14,15 +14,22 @@ const http = axios.create({
 // 请求拦截器
 http.interceptors.request.use(
   config => {
-    // 添加token到请求头
-    // const token = localStorage.getItem('token')
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`
-    // }
+    // 自动携带token
+    let token = null
+    try {
+      // 兼容Zustand persist的auth-storage结构
+      const authPersist = JSON.parse(localStorage.getItem('auth-storage') || '{}')
+      token = authPersist.state?.token || null
+    } catch {
+      // 忽略JSON解析错误，token保持为null
+    }
+    if (token) {
+      config.headers = config.headers || {}
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   error => {
-    // 处理请求错误，例如网络不通，请求被取消等
     notification.error({
       message: '错误',
       description: '网络请求失败，请稍后再试！'
@@ -44,6 +51,9 @@ http.interceptors.response.use(
     const { status, data } = response
     const { code, msg } = data // 解构后端返回的 code, msg, data
     // 统一处理后端返回的成功状态（HTTP Status 200）
+    // 兼容子路径部署的登录页路径
+    const deployPath = (import.meta.env.VITE_DEPLOY_PATH || '/').replace(/\/$/, '')
+    const loginPath = `${deployPath}/login`
     if (status === 200) {
       if (code === ErrorCode.SUCCESS) {
         // 业务成功，直接返回后端 data 字段的数据
@@ -58,10 +68,11 @@ http.interceptors.response.use(
         switch (code) {
           case ErrorCode.TOKEN_EXPIRED:
           case ErrorCode.UNAUTHORIZED:
-            // 认证过期或未认证，可以清空本地 token 并跳转到登录页
-            // localStorage.removeItem('token')
-            // 这里可以添加路由跳转逻辑，例如：
-            // router.push('/login');
+            // 认证过期或未认证，清空本地 token 并跳转到登录页
+            localStorage.removeItem('auth-storage')
+            if (window.location.pathname !== loginPath) {
+              window.location.href = loginPath
+            }
             break
           case ErrorCode.FORBIDDEN:
             // 权限不足
@@ -96,48 +107,26 @@ http.interceptors.response.use(
   error => {
     // 处理网络错误、请求超时、HTTP 非 2xx 响应等
     if (error.response) {
-      // 请求已发出，但服务器响应的状态码不在 2xx 范围内
+      // 兼容子路径部署的登录页路径
+      const deployPath = (import.meta.env.VITE_DEPLOY_PATH || '/').replace(/\/$/, '')
+      const loginPath = `${deployPath}/login`
       const { status, data } = error.response
       let errorMessage = data.msg || data.message || '未知错误'
-
-      // 根据 HTTP 状态码进行提示
-      switch (status) {
-        case 400:
-          errorMessage = '请求参数错误，请检查输入！'
-          // 如果后端 ValidationPipe 返回的 data.message 是数组，可以显示更详细的错误
-          if (Array.isArray(data.data) && data.data.length > 0) {
-            errorMessage += ': ' + data.data.join('; ')
-          }
-          break
-        case 401:
-          errorMessage = '您的认证已过期或无效，请重新登录！'
-          localStorage.removeItem('token')
-          // router.push('/login'); // 跳转到登录页
-          break
-        case 403:
-          errorMessage = '您没有权限执行此操作！'
-          break
-        case 404:
-          errorMessage = '请求的资源不存在！'
-          break
-        case 500:
-          errorMessage = '服务器内部错误，请稍后再试！'
-          break
-        default:
-          errorMessage = `网络错误: ${status}`
+      if (status === 401) {
+        errorMessage = '您的认证已过期或无效，请重新登录！'
+        // 清空authStore和本地token
+        localStorage.removeItem('auth-storage')
+        if (window.location.pathname !== loginPath) {
+          window.location.href = loginPath
+        }
       }
-      notification.error({
-        message: '错误',
-        description: errorMessage
-      })
+      notification.error({ message: '错误', description: errorMessage })
     } else if (error.request) {
-      // 请求已发出但没有收到响应 (例如网络断开或服务器没有响应)
       notification.error({
         message: '错误',
         description: '服务器无响应，请检查网络或稍后再试！'
       })
     } else {
-      // 发送请求时出了问题
       notification.error({
         message: '错误',
         description: '请求发送失败：' + error.message

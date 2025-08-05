@@ -13,6 +13,23 @@ export enum ErrorCode {
   UNAUTHORIZED = 30000, // 未认证 (例如，缺少token或token无效)
   FORBIDDEN = 30001, // 无权限 (例如，有token但权限不足)
   TOKEN_EXPIRED = 30002, // token 过期
+  INVALID_CREDENTIALS = 30003, // 用户名或密码错误
+  // USER_NOT_FOUND = 30004, // 用户不存在（已用4xxxx覆盖）
+  ACCOUNT_DISABLED = 30005, // 账户被禁用
+  PASSWORD_INCORRECT = 30006, // 密码错误
+
+  // 角色管理相关错误 (4xxxx)
+  ROLE_NOT_FOUND = 40001, // 角色不存在
+  ROLE_NAME_EXIST = 40002, // 角色名已存在
+  ROLE_CANNOT_DELETE_ADMIN = 40003, // 超管角色不可删除
+  ROLE_CANNOT_EDIT_ADMIN = 40004, // 超管角色不可编辑
+
+  // 用户管理相关错误 (4xxxx)
+  USER_NOT_FOUND = 40011, // 用户不存在
+  USER_CODE_EXIST = 40012, // 用户编号已存在
+  USER_CANNOT_DELETE_ADMIN = 40013, // 超管用户不可删除
+  USER_CANNOT_EDIT_ADMIN = 40014, // 超管用户不可编辑
+  USER_CANNOT_RESET_ADMIN_PASSWORD = 40015, // 超管用户密码不可重置
 
   // 系统内部错误 (5xxxx)
   SYSTEM_ERROR = 50000, // 通用系统内部错误

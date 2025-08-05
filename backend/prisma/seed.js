@@ -9,6 +9,7 @@ const dayjs = require('dayjs'); // 引入 dayjs
 const { continents } = require('./initialData/countries'); // 导入大洲和国家的初始数据
 const indicatorData = require('./initialData/indicatorData'); // 导入指标体系的初始数据
 const indicatorValues = require('./initialData/indicatorValues'); // 导入指标值的初始数据
+const { roles, generateUsers } = require('./initialData/authData');
 
 const prisma = new PrismaClient();
 
@@ -299,6 +300,69 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
 }
 
 /**
+ * 认证相关数据初始化（角色和用户）
+ */
+async function seedAuthData(prisma) {
+  console.log('开始初始化认证数据...');
+  // 只保留超管角色
+  let adminRole = await prisma.role.findFirst({ where: { name: 'admin', delete: 0 } });
+  if (adminRole) {
+    adminRole = await prisma.role.update({
+      where: { id: adminRole.id },
+      data: {
+        description: '拥有所有权限，可以访问所有功能模块',
+        allowedRoutes: [],
+      },
+    });
+    console.log('超管角色已存在，已更新');
+  } else {
+    adminRole = await prisma.role.create({
+      data: {
+        name: 'admin',
+        description: '拥有所有权限，可以访问所有功能模块',
+        allowedRoutes: [],
+      },
+    });
+    console.log('超管角色已创建');
+  }
+  // 只保留超管用户
+  const encryptedUsers = await generateUsers();
+  for (const user of encryptedUsers) {
+    const existingUser = await prisma.user.findFirst({ where: { code: user.code, delete: 0 } });
+    if (existingUser) {
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name: user.name,
+          department: user.department,
+          email: user.email,
+          phone: user.phone,
+          password: user.password,
+          roleId: adminRole.id,
+        },
+      });
+      console.log(`超管用户 "${user.name}" (${user.code}) 已更新`);
+    } else {
+      await prisma.user.create({
+        data: {
+          code: user.code,
+          name: user.name,
+          department: user.department,
+          email: user.email,
+          phone: user.phone,
+          password: user.password,
+          roleId: adminRole.id,
+        },
+      });
+      console.log(`超管用户 "${user.name}" (${user.code}) 已创建`);
+    }
+  }
+  console.log('认证数据初始化完成！');
+  console.log('\n初始用户账号：');
+  console.log('管理员: admin / admin123');
+}
+
+/**
  * 主函数，是整个填充脚本的入口和调度中心。
  * 它负责初始化所有需要的缓存，并按正确的依赖顺序调用各个填充函数。
  */
@@ -315,6 +379,8 @@ async function main() {
   await seedUrbanizationWorldMap(countryCache); // 在国家数据创建后，立即为其创建对应的地图展示数据。
   await seedIndicators(topIndicatorCache, secondaryIndicatorCache, detailedIndicatorCache);
   // await seedIndicatorValues(countryCache, detailedIndicatorCache);
+  // 认证相关数据初始化
+  await seedAuthData(prisma);
 }
 
 // 脚本的执行入口点。
