@@ -12,7 +12,6 @@ export type RouteItem = {
   hideInBreadcrumb?: boolean
   children?: RouteItem[]
   adminOnly?: boolean // 仅admin可见
-  roleAssignType?: 'parent' | 'children' // 角色分配类型，parent表示父级可分配，children表示只分配子级
 }
 
 /**

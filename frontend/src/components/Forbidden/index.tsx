@@ -9,7 +9,7 @@ const Forbidden: React.FC = () => {
       <Result
         status="403"
         title="403"
-        subTitle="抱歉，您没有权限访问该页面。"
+        subTitle="抱歉，您没有权限访问该页面。可联系管理员申请账号和权限。"
         extra={
           <Button
             type="primary"

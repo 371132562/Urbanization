@@ -46,7 +46,6 @@ export const topRoutes: RouteItem[] = [
     title: '综合评价',
     icon: <BarChartOutlined />,
     component: ComprehensiveEvaluation,
-    roleAssignType: 'parent', // 仅父级可分配
     children: [
       {
         path: '/comprehensiveEvaluation/detail/:countryId/:year',
@@ -256,12 +255,15 @@ export const getFilteredRoutes = (userRole?: {
   topRoutes: RouteItem[]
   sideRoutes: RouteItem[]
 } => {
-  // 超管显示所有菜单
+  // 顶部菜单不做权限限制，始终显示
+  const filteredTopRoutes = topRoutes
+
+  // 超管显示所有侧边栏菜单
   if (userRole?.name === 'admin') {
-    return { topRoutes, sideRoutes }
+    return { topRoutes: filteredTopRoutes, sideRoutes }
   }
 
-  // 其他角色按allowedRoutes过滤
+  // 其他角色按allowedRoutes过滤侧边栏菜单
   const allowedRoutes = userRole?.allowedRoutes || []
 
   const filterRoute = (route: RouteItem): RouteItem | null => {
@@ -289,10 +291,6 @@ export const getFilteredRoutes = (userRole?: {
     return null
   }
 
-  const filteredTopRoutes = topRoutes
-    .map(route => filterRoute(route))
-    .filter(Boolean) as RouteItem[]
-
   const filteredSideRoutes = sideRoutes
     .map(route => filterRoute(route))
     .filter(Boolean) as RouteItem[]
@@ -307,33 +305,11 @@ export const getFilteredRoutes = (userRole?: {
 export const getMenuOptionsForRoleEdit = () => {
   const options: Array<{ label: string; options: Array<{ label: string; value: string }> }> = []
 
-  // 从topRoutes生成选项
-  topRoutes.forEach(route => {
-    if (route.adminOnly) return // 跳过系统管理等adminOnly菜单
-    const routeOptions: Array<{ label: string; value: string }> = []
-    if (route.roleAssignType === 'parent') {
-      routeOptions.push({ label: route.title, value: route.path })
-    } else if (route.children) {
-      route.children.forEach(child => {
-        if (!child.hideInMenu) {
-          routeOptions.push({ label: child.title, value: child.path })
-        }
-      })
-    } else {
-      routeOptions.push({ label: route.title, value: route.path })
-    }
-    if (routeOptions.length > 0) {
-      options.push({ label: route.title, options: routeOptions })
-    }
-  })
-
-  // 从sideRoutes生成选项
+  // 只从sideRoutes生成选项，顶部菜单不做权限限制
   sideRoutes.forEach(route => {
     if (route.adminOnly) return // 跳过系统管理等adminOnly菜单
     const routeOptions: Array<{ label: string; value: string }> = []
-    if (route.roleAssignType === 'parent') {
-      routeOptions.push({ label: route.title, value: route.path })
-    } else if (route.children) {
+    if (route.children) {
       route.children.forEach(child => {
         if (!child.hideInMenu) {
           routeOptions.push({ label: child.title, value: child.path })

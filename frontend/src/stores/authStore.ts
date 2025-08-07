@@ -1,10 +1,11 @@
 import { notification } from 'antd'
+import { ErrorCode } from 'urbanization-backend/types/response'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import { loginApiUrl, profileApiUrl } from '../services/apis'
 import http from '../services/base'
-import type { LoginDto, LoginResponseDto, UserProfileDto } from '../types'
+import type { LoginDto, UserProfileDto } from '../types'
 
 // 认证store的类型定义
 export type AuthStore = {
@@ -51,9 +52,33 @@ export const useAuthStore = create<AuthStore>()(
         set({ loading: true })
         try {
           const user = await http.get(profileApiUrl)
-          set({ user: user.data, loading: false })
+          set({ user: user.data, loading: false, error: null })
         } catch (err: any) {
-          set({ loading: false, error: err?.msg || '获取用户信息失败' })
+          // 根据后端错误码处理
+          const errorCode = err?.response?.data?.code
+          const errorMsg = err?.response?.data?.msg || err?.msg || '获取用户信息失败'
+
+          // 用户不存在、token过期或认证失败，清除本地存储
+          if (
+            errorCode === ErrorCode.USER_NOT_FOUND ||
+            errorCode === ErrorCode.TOKEN_EXPIRED ||
+            errorCode === ErrorCode.UNAUTHORIZED
+          ) {
+            set({
+              loading: false,
+              error: errorMsg,
+              token: null,
+              user: null
+            })
+            localStorage.removeItem('auth-storage')
+            return
+          }
+
+          // 其他错误
+          set({
+            loading: false,
+            error: errorMsg
+          })
         }
       },
       setToken(token) {

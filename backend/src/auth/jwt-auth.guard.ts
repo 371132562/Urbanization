@@ -23,13 +23,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
     return super.canActivate(context);
   }
-  handleRequest(err: any, user: any, info: any) {
+  handleRequest(err: unknown, user: unknown) {
     if (err || !user) {
       throw new UnauthorizedException({
         code: ErrorCode.UNAUTHORIZED,
         msg: '认证失败，请重新登录',
       });
     }
-    return user;
+    return user as any;
   }
 }

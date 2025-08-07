@@ -21,7 +21,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let code: number;
     let msg: string;
-    let data: any = null; // 错误数据，通常为null
+    let data: unknown = null; // 错误数据，通常为null
 
     if (exception instanceof BusinessException) {
       // 2xxxx 范围：自定义业务异常
@@ -33,45 +33,45 @@ export class AllExceptionsFilter implements ExceptionFilter {
       msg = exceptionResponse.message || '业务处理失败';
       data = (exception as Error).message || '业务处理失败';
     } else if (exception instanceof HttpException) {
-      // 4xxxx 范围：NestJS 内置的 HttpException (例如 ValidationPipe, NotFoundException 等)
-      const status = exception.getStatus();
+      // 处理 HttpException，但所有响应都是 200 状态码
       const exceptionResponse = exception.getResponse() as {
+        code?: number;
         message?: string | string[];
       };
 
-      // 这里我们将 HTTP 状态码直接作为 code，因为它们本身就是一种错误码分类
-      code = status;
-
-      const responseMessage =
-        typeof exceptionResponse === 'string'
-          ? exceptionResponse
-          : exceptionResponse.message;
-
-      msg = Array.isArray(responseMessage)
-        ? responseMessage.join(', ')
-        : responseMessage || exception.message || 'HTTP请求错误';
-
-      // 对于 ValidationPipe 抛出的错误，其 message 可能是一个数组
-      if (Array.isArray(responseMessage)) {
-        data = responseMessage; // 将详细验证错误放入 data
+      // 如果是 BusinessException，直接使用其错误码和消息
+      if (exceptionResponse.code) {
+        code = exceptionResponse.code;
+        msg = (exceptionResponse.message as string) || '业务处理失败';
       } else {
-        data = null;
-      }
+        // 其他 HttpException 的处理
+        const responseMessage =
+          typeof exceptionResponse === 'string'
+            ? exceptionResponse
+            : exceptionResponse.message;
 
-      // 可以根据 HTTP 状态码进一步细化 msg
-      if (status === (HttpStatus.BAD_REQUEST as number)) {
-        msg = '请求参数错误';
-      } else if (status === (HttpStatus.UNAUTHORIZED as number)) {
-        code = ErrorCode.UNAUTHORIZED; // 将 HTTP 401 映射到 3xxxx 认证错误
-        msg = '未认证或认证失败';
-      } else if (status === (HttpStatus.FORBIDDEN as number)) {
-        code = ErrorCode.FORBIDDEN; // 将 HTTP 403 映射到 3xxxx 权限错误
-        msg = '无权限访问';
-      } else if (status === (HttpStatus.NOT_FOUND as number)) {
-        msg = '请求资源不存在';
-      } else if (status === (HttpStatus.INTERNAL_SERVER_ERROR as number)) {
-        code = ErrorCode.SYSTEM_ERROR; // 将 HTTP 500 映射到 5xxxx 系统错误
-        msg = '服务器内部错误';
+        msg = Array.isArray(responseMessage)
+          ? responseMessage.join(', ')
+          : responseMessage || exception.message || 'HTTP请求错误';
+
+        // 对于 ValidationPipe 抛出的错误，其 message 可能是一个数组
+        if (Array.isArray(responseMessage)) {
+          data = responseMessage; // 将详细验证错误放入 data
+        } else {
+          data = null;
+        }
+
+        // 根据异常类型设置错误码
+        if (exception.getStatus() === 400) {
+          code = ErrorCode.INVALID_INPUT;
+          msg = '请求参数错误';
+        } else if (exception.getStatus() === 404) {
+          code = ErrorCode.RESOURCE_NOT_FOUND;
+          msg = '请求资源不存在';
+        } else {
+          code = ErrorCode.SYSTEM_ERROR;
+          msg = '服务器内部错误';
+        }
       }
     } else {
       // 5xxxx 范围：其他未知错误

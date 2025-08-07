@@ -1,4 +1,4 @@
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons' // 导入图标
+import { LoginOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons' // 导入图标
 import { Avatar, Breadcrumb, Dropdown, Layout, Menu, MenuProps } from 'antd'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -19,67 +19,103 @@ export const Component: FC = () => {
   const getIndicatorHierarchy = useIndicatorStore(state => state.getIndicatorHierarchy)
   const getCountries = useCountryAndContinentStore(state => state.getCountries)
   const user = useAuthStore(state => state.user)
+  const token = useAuthStore(state => state.token)
+  const fetchProfile = useAuthStore(state => state.fetchProfile)
   const { sideRoutes, topRoutes } = getFilteredRoutes(user?.role)
   const logout = useAuthStore(state => state.logout)
   const [collapsed, setCollapsed] = useState(false)
   const [openKeys, setOpenKeys] = useState<string[]>([])
   const { pathname } = useLocation()
 
+  // 主动获取用户信息
+  useEffect(() => {
+    // 有token时，无条件获取用户信息来验证token有效性
+    if (token) {
+      fetchProfile()
+    }
+  }, [token, fetchProfile])
+
   // 全局获取一次指标数据
   useEffect(() => {
     getIndicatorHierarchy()
     getCountries()
-  }, [])
+  }, [getIndicatorHierarchy, getCountries])
 
   const handleMenuClick: MenuProps['onClick'] = e => {
     navigate(e.key)
   }
 
   // 用户下拉菜单项，hover触发，内容更丰富
-  const userMenuItems: MenuProps['items'] = [
-    {
-      key: 'userInfo',
-      label: (
-        <div
-          className="min-w-[280px] max-w-[340px] rounded-lg bg-white px-4 py-3"
-          style={{ lineHeight: 1.6 }}
-        >
-          {/* 用户名 */}
-          <div className="mb-2 text-base font-semibold text-gray-800">
-            {user?.name || '未知用户'}
-          </div>
-          {/* 用户编号 */}
-          <div className="mb-2 flex items-center text-sm text-gray-600">
-            <span className="mr-2 text-gray-400">编号：</span>
-            <span className="font-mono">{user?.code || '-'}</span>
-          </div>
-          {/* 角色名称 */}
-          <div className="mb-2 flex items-center text-sm text-gray-600">
-            <span className="mr-2 text-gray-400">角色：</span>
-            <span>{user?.role?.name || '-'}</span>
-          </div>
-          {/* 所属部门 */}
-          <div className="flex items-center text-sm text-gray-600">
-            <span className="mr-2 text-gray-400">部门：</span>
-            <span>{user?.department || '-'}</span>
-          </div>
-        </div>
-      ),
-      disabled: true
-    },
-    {
-      type: 'divider'
-    },
-    {
-      key: 'logout',
-      label: <div className="px-2 py-1 text-red-600 hover:text-red-700">退出登录</div>,
-      icon: <LogoutOutlined />,
-      onClick: () => {
-        logout()
-        navigate('/login')
-      }
-    }
-  ]
+  const userMenuItems: MenuProps['items'] = user
+    ? [
+        {
+          key: 'userInfo',
+          label: (
+            <div
+              className="min-w-[280px] max-w-[340px] rounded-lg bg-white px-4 py-3"
+              style={{ lineHeight: 1.6 }}
+            >
+              {/* 用户名 */}
+              <div className="mb-2 text-base font-semibold text-gray-800">{user.name}</div>
+              {/* 用户编号 */}
+              <div className="mb-2 flex items-center text-sm text-gray-600">
+                <span className="mr-2 text-gray-400">编号：</span>
+                <span className="font-mono">{user.code || '-'}</span>
+              </div>
+              {/* 角色名称 */}
+              <div className="mb-2 flex items-center text-sm text-gray-600">
+                <span className="mr-2 text-gray-400">角色：</span>
+                <span>{user.role?.name || '-'}</span>
+              </div>
+              {/* 所属部门 */}
+              <div className="flex items-center text-sm text-gray-600">
+                <span className="mr-2 text-gray-400">部门：</span>
+                <span>{user.department || '-'}</span>
+              </div>
+            </div>
+          ),
+          disabled: true
+        },
+        {
+          type: 'divider'
+        },
+        {
+          key: 'logout',
+          label: <div className="px-2 py-1 text-red-600 hover:text-red-700">退出登录</div>,
+          icon: <LogoutOutlined />,
+          onClick: () => {
+            logout()
+            navigate('/home')
+          }
+        }
+      ]
+    : [
+        {
+          key: 'guestInfo',
+          label: (
+            <div
+              className="min-w-[280px] max-w-[340px] rounded-lg bg-white px-4 py-3"
+              style={{ lineHeight: 1.6 }}
+            >
+              {/* 访客提示 */}
+              <div className="mb-2 text-base font-semibold text-gray-800">访客模式</div>
+              <div className="text-sm text-gray-600">登录后可使用全部功能</div>
+            </div>
+          ),
+          disabled: true
+        },
+        {
+          type: 'divider'
+        },
+        {
+          key: 'login',
+          label: <div className="px-2 py-1 text-blue-600 hover:text-blue-700">立即登录</div>,
+          icon: <LoginOutlined />,
+          onClick: () => {
+            navigate('/login')
+          }
+        }
+      ]
 
   // 计算顶部导航菜单的激活项
   const topNavSelectedKey = useMemo(() => {
@@ -146,17 +182,23 @@ export const Component: FC = () => {
     }))
   }, [pathname])
 
-  // 路由守卫：无权限跳转403
+  // 路由守卫：检查权限
   const hasPermission = useMemo(() => {
-    if (!user?.role) return false
-    if (user.role.name === 'admin') return true
+    // 未登录用户只能访问顶部菜单
+    if (!user) {
+      const topMenuPaths = topRoutes.map(route => route.path)
+      return topMenuPaths.some(path => pathname === path || pathname.startsWith(path + '/'))
+    }
+
+    // 登录用户检查权限
+    if (user.role?.name === 'admin') return true
     // 获取所有允许的路由
-    const allowed = user.role.allowedRoutes || []
+    const allowed = user.role?.allowedRoutes || []
     // 允许访问首页
     if (pathname === '/' || pathname === '/home') return true
     // 精确匹配或以参数结尾的动态路由
     return allowed.some(route => pathname === route || pathname.startsWith(route + '/'))
-  }, [user, pathname])
+  }, [user, pathname, topRoutes])
 
   return (
     <Layout className="h-screen w-full">
@@ -185,49 +227,54 @@ export const Component: FC = () => {
           >
             <div
               className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-white/10"
-              title={user?.name || '用户'}
+              title={user?.name || '访客'}
             >
               {/* 用户头像 */}
               <Avatar
                 icon={<UserOutlined />}
-                className="h-8 w-8 cursor-pointer bg-blue-500 text-sm hover:bg-blue-600"
+                className={`h-8 w-8 cursor-pointer text-sm hover:opacity-80 ${
+                  user ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-500 hover:bg-gray-600'
+                }`}
                 style={{ width: 32, height: 32 }}
               />
               {/* 用户名显示在头像旁边 */}
               <span className="max-w-[120px] truncate text-sm font-medium text-white">
-                {user?.name || '用户'}
+                {user?.name || '访客'}
               </span>
             </div>
           </Dropdown>
         </div>
       </Header>
       <Layout className="flex-grow">
-        <Sider
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-          theme="dark"
-          width={220}
-          className="flex flex-col"
-        >
-          <Menu
+        {/* 只有登录用户才显示侧边栏 */}
+        {user && (
+          <Sider
+            collapsible
+            collapsed={collapsed}
+            onCollapse={setCollapsed}
             theme="dark"
-            mode="inline"
-            items={menuItems}
-            onClick={handleMenuClick}
-            onOpenChange={handleOpenChange}
-            // 将菜单的选中状态与路由同步
-            selectedKeys={[pathname]}
-            // 控制菜单展开状态，支持手动操作和路由驱动
-            openKeys={openKeys}
-            // 设置菜单高度和滚动，确保所有菜单项都能显示
-            style={{
-              height: '100%',
-              overflowY: 'auto',
-              overflowX: 'hidden'
-            }}
-          />
-        </Sider>
+            width={220}
+            className="flex flex-col"
+          >
+            <Menu
+              theme="dark"
+              mode="inline"
+              items={menuItems}
+              onClick={handleMenuClick}
+              onOpenChange={handleOpenChange}
+              // 将菜单的选中状态与路由同步
+              selectedKeys={[pathname]}
+              // 控制菜单展开状态，支持手动操作和路由驱动
+              openKeys={openKeys}
+              // 设置菜单高度和滚动，确保所有菜单项都能显示
+              style={{
+                height: '100%',
+                overflowY: 'auto',
+                overflowX: 'hidden'
+              }}
+            />
+          </Sider>
+        )}
         <Layout>
           <Content className="!flex flex-grow flex-col bg-gray-100 p-6">
             {/* 添加面包屑导航 */}

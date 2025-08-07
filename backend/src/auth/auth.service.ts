@@ -1,8 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto, LoginResponseDto, TokenPayloadDto } from '../../types/dto';
+import { BusinessException } from '../exceptions/businessException';
+import { ErrorCode } from '../../types/response';
 
 @Injectable()
 export class AuthService {
@@ -38,13 +40,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('用户不存在');
+      throw new BusinessException(ErrorCode.USER_NOT_FOUND, '用户不存在');
     }
 
     // 验证密码
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('密码错误');
+      throw new BusinessException(ErrorCode.PASSWORD_INCORRECT, '密码错误');
     }
 
     // 生成JWT token
@@ -88,10 +90,12 @@ export class AuthService {
    */
   async validateToken(token: string) {
     try {
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify(
+        token,
+      ) as unknown as TokenPayloadDto;
 
       // 验证用户是否仍然存在且未删除
-      const user = (await this.prisma.user.findFirst({
+      const user = await this.prisma.user.findFirst({
         where: {
           id: payload.userId,
           delete: 0,
@@ -106,26 +110,13 @@ export class AuthService {
             },
           },
         },
-      })) as {
-        id: string;
-        code: string;
-        name: string;
-        department: string;
-        email?: string;
-        phone?: string;
-        roleId?: string;
-        role?: {
-          id: string;
-          name: string;
-          description?: string;
-          allowedRoutes: string[];
-        };
-        createTime: Date;
-        updateTime: Date;
-      } | null;
+      });
 
       if (!user) {
-        throw new UnauthorizedException('用户不存在');
+        throw new BusinessException(
+          ErrorCode.USER_NOT_FOUND,
+          '用户不存在或已被删除',
+        );
       }
 
       return {
@@ -139,12 +130,12 @@ export class AuthService {
               id: user.role.id,
               name: user.role.name,
               description: user.role.description || undefined,
-              allowedRoutes: user.role.allowedRoutes,
+              allowedRoutes: user.role.allowedRoutes as string[],
             }
           : undefined,
       };
     } catch {
-      throw new UnauthorizedException('Token无效或已过期');
+      throw new BusinessException(ErrorCode.TOKEN_EXPIRED, 'Token无效或已过期');
     }
   }
 
@@ -172,7 +163,10 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('用户不存在');
+      throw new BusinessException(
+        ErrorCode.USER_NOT_FOUND,
+        '用户不存在或已被删除',
+      );
     }
 
     return {
