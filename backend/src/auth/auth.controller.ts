@@ -24,7 +24,7 @@ export class AuthController {
    * @param user 当前用户信息
    * @returns 用户信息
    */
-  @Get('profile')
+  @Post('profile')
   async getProfile(@CurrentUser() user: UserInfo): Promise<UserProfileDto> {
     return await this.authService.getUserProfile(user.userId);
   }

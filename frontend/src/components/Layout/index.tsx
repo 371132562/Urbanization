@@ -1,12 +1,12 @@
 import { LoginOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons' // 导入图标
-import { Avatar, Breadcrumb, Dropdown, Layout, Menu, MenuProps } from 'antd'
+import { Avatar, /* Breadcrumb, */ Dropdown, Layout, Menu, MenuProps } from 'antd'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-import { Link, useLocation, useNavigate, useOutlet } from 'react-router'
+import { /* Link,  */ useLocation, useNavigate, useOutlet } from 'react-router'
 
 import ErrorPage from '@/components/Error'
 import Forbidden from '@/components/Forbidden'
-import { getBreadcrumbItems, getFilteredRoutes } from '@/router/routesConfig'
+import { /* getBreadcrumbItems,  */ getFilteredRoutes } from '@/router/routesConfig'
 import { useAuthStore } from '@/stores/authStore'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useIndicatorStore from '@/stores/indicatorStore'
@@ -171,16 +171,16 @@ export const Component: FC = () => {
   })
 
   // 获取面包屑项
-  const breadcrumbItems = useMemo(() => {
-    return getBreadcrumbItems(pathname).map(item => ({
-      title:
-        item.component && item.path !== pathname ? (
-          <Link to={item.path}>{item.title}</Link>
-        ) : (
-          item.title
-        )
-    }))
-  }, [pathname])
+  // const breadcrumbItems = useMemo(() => {
+  //   return getBreadcrumbItems(pathname).map(item => ({
+  //     title:
+  //       item.component && item.path !== pathname ? (
+  //         <Link to={item.path}>{item.title}</Link>
+  //       ) : (
+  //         item.title
+  //       )
+  //   }))
+  // }, [pathname])
 
   // 路由守卫：检查权限
   const hasPermission = useMemo(() => {
@@ -278,9 +278,9 @@ export const Component: FC = () => {
         <Layout>
           <Content className="!flex flex-grow flex-col bg-gray-100 p-6">
             {/* 添加面包屑导航 */}
-            <div className="mb-2">
+            {/* <div className="mb-2">
               <Breadcrumb items={breadcrumbItems} />
-            </div>
+            </div> */}
             <div className="box-border flex flex-grow justify-center overflow-y-auto rounded-lg bg-white p-6 shadow-md">
               {/* 路由守卫：无权限跳转403 */}
               {!hasPermission ? (

@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthStore>()(
       async fetchProfile() {
         set({ loading: true })
         try {
-          const user = await http.get(profileApiUrl)
+          const user = await http.post(profileApiUrl)
           set({ user: user.data, loading: false, error: null })
         } catch (err: any) {
           // 根据后端错误码处理
