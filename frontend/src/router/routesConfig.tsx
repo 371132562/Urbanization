@@ -106,14 +106,14 @@ export const sideRoutes: RouteItem[] = [
         component: ImportData
       },
       {
-        path: '/dataManagement/export',
-        title: '数据导出',
-        component: ExportData
-      },
-      {
         path: '/dataManagement/create',
         title: '数据录入',
         component: ModifyData
+      },
+      {
+        path: '/dataManagement/export',
+        title: '数据导出',
+        component: ExportData
       },
       {
         path: '/dataManagement/modify/:countryId/:year',
