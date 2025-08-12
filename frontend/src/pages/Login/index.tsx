@@ -1,4 +1,4 @@
-import { LockOutlined, LoginOutlined, UserOutlined } from '@ant-design/icons'
+import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { Button, Card, Form, Input } from 'antd'
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -36,7 +36,11 @@ const LoginPage: React.FC = () => {
       <div className="relative z-10 mx-4 w-full max-w-lg">
         <Card
           className="overflow-hidden rounded-2xl border-0 bg-white/80 shadow-2xl backdrop-blur-sm"
-          bodyStyle={{ padding: '2rem' }}
+          styles={{
+            body: {
+              padding: '2rem'
+            }
+          }}
         >
           {/* 标题区域 */}
           <div className="mb-8 text-center">
