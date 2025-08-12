@@ -9,7 +9,7 @@ const dayjs = require('dayjs'); // 引入 dayjs
 const { continents } = require('./initialData/countries'); // 导入大洲和国家的初始数据
 const indicatorData = require('./initialData/indicatorData'); // 导入指标体系的初始数据
 const indicatorValues = require('./initialData/indicatorValues'); // 导入指标值的初始数据
-const { roles, generateUsers } = require('./initialData/authData');
+const { generateUsers } = require('./initialData/authData');
 
 const prisma = new PrismaClient();
 
@@ -302,7 +302,7 @@ async function seedIndicatorValues(countryCache, detailedIndicatorCache) {
 /**
  * 认证相关数据初始化（角色和用户）
  */
-async function seedAuthData(prisma) {
+async function seedAuthData() {
   console.log('开始初始化认证数据...');
   // 只保留超管角色
   let adminRole = await prisma.role.findFirst({ where: { name: 'admin', delete: 0 } });
@@ -325,7 +325,7 @@ async function seedAuthData(prisma) {
       });
     console.log('超管角色已创建');
   }
-  // 只保留超管用户
+
   const encryptedUsers = await generateUsers();
   for (const user of encryptedUsers) {
     const existingUser = await prisma.user.findFirst({ where: { code: user.code, delete: 0 } });
@@ -359,7 +359,7 @@ async function seedAuthData(prisma) {
   }
   console.log('认证数据初始化完成！');
   console.log('\n初始用户账号：');
-  console.log('管理员: 88888888 / 88888888');
+  console.log('超管 账号/密码均为 8个8');
 }
 
 /**
@@ -380,7 +380,7 @@ async function main() {
   await seedIndicators(topIndicatorCache, secondaryIndicatorCache, detailedIndicatorCache);
   // await seedIndicatorValues(countryCache, detailedIndicatorCache);
   // 认证相关数据初始化
-  await seedAuthData(prisma);
+  await seedAuthData();
 }
 
 // 脚本的执行入口点。
