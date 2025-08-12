@@ -1,9 +1,11 @@
 import {
   BarChartOutlined,
-  CalculatorOutlined,
   DatabaseOutlined,
   EnvironmentOutlined,
+  FieldBinaryOutlined,
   FileTextOutlined,
+  ForkOutlined,
+  FunctionOutlined,
   GlobalOutlined,
   GoldOutlined,
   HomeOutlined,
@@ -22,6 +24,7 @@ import { Component as ExportData } from '@/pages/DataManagement/Export'
 import { Component as ImportData } from '@/pages/DataManagement/Import'
 import { Component as ModifyData } from '@/pages/DataManagement/Modify'
 import { Component as EvaluationModel } from '@/pages/EvaluationModel'
+import FormulaDetail from '@/pages/EvaluationModel/FormulaDetail'
 import { Component as WeightManagement } from '@/pages/EvaluationModel/WeightManagement'
 import { Component as Home } from '@/pages/Home'
 import { Component as HumanDynamics } from '@/pages/HumanDynamics'
@@ -30,10 +33,14 @@ import { Component as UrbanizationRate } from '@/pages/Map/UrbanizationRate'
 import { Component as MaterialDynamics } from '@/pages/MaterialDynamics'
 import RoleManagement from '@/pages/RoleManagement/RoleManagement'
 import { Component as ScoreManagement } from '@/pages/ScoreManagement'
+import Detail from '@/pages/ScoreManagement/Detail'
 import { Component as ScoreEvaluation } from '@/pages/ScoreManagement/Evaluation'
+import Export from '@/pages/ScoreManagement/Export'
 import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
 import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
 import { Component as SpatialDynamics } from '@/pages/SpatialDynamics'
+import DataList from '@/pages/Transform/dataList'
+import Formula from '@/pages/Transform/Formula'
 import { Component as UrbanizationProcess } from '@/pages/UrbanizationProcess'
 import UserManagement from '@/pages/UserManagement/UserManagement'
 import { RouteItem } from '@/types'
@@ -117,6 +124,23 @@ export const sideRoutes: RouteItem[] = [
     ]
   },
   {
+    path: '/transform',
+    title: '数据转换',
+    icon: <ForkOutlined />,
+    children: [
+      {
+        path: '/transform/formula',
+        title: '转换公式',
+        component: Formula
+      },
+      {
+        path: '/transform/dataList',
+        title: '转换数据列表',
+        component: DataList
+      }
+    ]
+  },
+  {
     path: '/map',
     title: '地图功能',
     icon: <EnvironmentOutlined />,
@@ -134,9 +158,31 @@ export const sideRoutes: RouteItem[] = [
     ]
   },
   {
+    path: '/evaluationModel',
+    title: '评估模型',
+    icon: <FunctionOutlined />,
+    children: [
+      {
+        path: '/evaluationModel/introduction',
+        title: '模型介绍',
+        component: EvaluationModel
+      },
+      {
+        path: '/evaluationModel/formulaDetail',
+        title: '公式详情',
+        component: FormulaDetail
+      },
+      {
+        path: '/evaluationModel/weight',
+        title: '权重管理',
+        component: WeightManagement
+      }
+    ]
+  },
+  {
     path: '/scoreManagement',
     title: '评价管理',
-    icon: <CalculatorOutlined />,
+    icon: <FieldBinaryOutlined />,
     children: [
       {
         path: '/scoreManagement/list',
@@ -154,32 +200,25 @@ export const sideRoutes: RouteItem[] = [
         component: ModifyScore
       },
       {
+        path: '/scoreManagement/export',
+        title: '评分导出',
+        component: Export
+      },
+      {
         path: '/scoreManagement/evaluation',
         title: '配置评价体系',
         component: ScoreEvaluation
+      },
+      {
+        path: '/scoreManagement/detail',
+        title: '评价详情',
+        component: Detail
       },
       {
         path: '/scoreManagement/modify/:countryId/:year',
         title: '评分编辑',
         component: ModifyScore,
         hideInMenu: true
-      }
-    ]
-  },
-  {
-    path: '/evaluationModel',
-    title: '评估模型',
-    icon: <CalculatorOutlined />,
-    children: [
-      {
-        path: '/evaluationModel/introduction',
-        title: '模型介绍',
-        component: EvaluationModel
-      },
-      {
-        path: '/evaluationModel/weight',
-        title: '权重管理',
-        component: WeightManagement
       }
     ]
   },
