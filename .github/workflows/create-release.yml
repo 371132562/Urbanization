@@ -37,70 +37,70 @@ jobs:
             image_tag: linstar666/urbanization:latest
             zip_name: urbanization.zip
             description: 主客户端运行文件
-          # 数据管理客户端配置
-          - name: data
-            dockerfile: ./Dockerfile.data
-            docker_compose: docker-compose.data.yml
-            start_script: start-data.ps1
-            image_tag: linstar666/urbanization-data:latest
-            zip_name: urbanization-data.zip
-            description: 数据管理客户端运行文件
-          # 评估管理客户端配置
-          - name: evaluation
-            dockerfile: ./Dockerfile.evaluation
-            docker_compose: docker-compose.evaluation.yml
-            start_script: start-evaluation.ps1
-            image_tag: linstar666/urbanization-evaluation:latest
-            zip_name: urbanization-evaluation.zip
-            description: 评估管理客户端运行文件
-          # 评分管理客户端配置
-          - name: score
-            dockerfile: ./Dockerfile.score
-            docker_compose: docker-compose.score.yml
-            start_script: start-score.ps1
-            image_tag: linstar666/urbanization-score:latest
-            zip_name: urbanization-score.zip
-            description: 评分管理客户端运行文件
-          # 综合评价客户端配置
-          - name: comprehensive
-            dockerfile: ./Dockerfile.comprehensive
-            docker_compose: docker-compose.comprehensive.yml
-            start_script: start-comprehensive.ps1
-            image_tag: linstar666/urbanization-comprehensive:latest
-            zip_name: urbanization-comprehensive.zip
-            description: 综合评价客户端运行文件
-          # 城镇化进程客户端配置
-          - name: urbanization
-            dockerfile: ./Dockerfile.urbanization
-            docker_compose: docker-compose.urbanization.yml
-            start_script: start-urbanization.ps1
-            image_tag: linstar666/urbanization-urbanization:latest
-            zip_name: urbanization-urbanization.zip
-            description: 城镇化进程客户端运行文件
-          # 迁移动力客户端配置
-          - name: human
-            dockerfile: ./Dockerfile.human
-            docker_compose: docker-compose.human.yml
-            start_script: start-human.ps1
-            image_tag: linstar666/urbanization-human:latest
-            zip_name: urbanization-human.zip
-            description: 迁移动力客户端运行文件
-          # 经济动力客户端配置
-          - name: material
-            dockerfile: ./Dockerfile.material
-            docker_compose: docker-compose.material.yml
-            start_script: start-material.ps1
-            image_tag: linstar666/urbanization-material:latest
-            zip_name: urbanization-material.zip
-            description: 经济动力客户端运行文件
-          # 空间动力客户端配置
-          - name: spatial
-            dockerfile: ./Dockerfile.spatial
-            docker_compose: docker-compose.spatial.yml
-            start_script: start-spatial.ps1
-            image_tag: linstar666/urbanization-spatial:latest
-            zip_name: urbanization-spatial.zip
-            description: 空间动力客户端运行文件
+          # # 数据管理客户端配置
+          # - name: data
+          #   dockerfile: ./Dockerfile.data
+          #   docker_compose: docker-compose.data.yml
+          #   start_script: start-data.ps1
+          #   image_tag: linstar666/urbanization-data:latest
+          #   zip_name: urbanization-data.zip
+          #   description: 数据管理客户端运行文件
+          # # 评估管理客户端配置
+          # - name: evaluation
+          #   dockerfile: ./Dockerfile.evaluation
+          #   docker_compose: docker-compose.evaluation.yml
+          #   start_script: start-evaluation.ps1
+          #   image_tag: linstar666/urbanization-evaluation:latest
+          #   zip_name: urbanization-evaluation.zip
+          #   description: 评估管理客户端运行文件
+          # # 评分管理客户端配置
+          # - name: score
+          #   dockerfile: ./Dockerfile.score
+          #   docker_compose: docker-compose.score.yml
+          #   start_script: start-score.ps1
+          #   image_tag: linstar666/urbanization-score:latest
+          #   zip_name: urbanization-score.zip
+          #   description: 评分管理客户端运行文件
+          # # 综合评价客户端配置
+          # - name: comprehensive
+          #   dockerfile: ./Dockerfile.comprehensive
+          #   docker_compose: docker-compose.comprehensive.yml
+          #   start_script: start-comprehensive.ps1
+          #   image_tag: linstar666/urbanization-comprehensive:latest
+          #   zip_name: urbanization-comprehensive.zip
+          #   description: 综合评价客户端运行文件
+          # # 城镇化进程客户端配置
+          # - name: urbanization
+          #   dockerfile: ./Dockerfile.urbanization
+          #   docker_compose: docker-compose.urbanization.yml
+          #   start_script: start-urbanization.ps1
+          #   image_tag: linstar666/urbanization-urbanization:latest
+          #   zip_name: urbanization-urbanization.zip
+          #   description: 城镇化进程客户端运行文件
+          # # 迁移动力客户端配置
+          # - name: human
+          #   dockerfile: ./Dockerfile.human
+          #   docker_compose: docker-compose.human.yml
+          #   start_script: start-human.ps1
+          #   image_tag: linstar666/urbanization-human:latest
+          #   zip_name: urbanization-human.zip
+          #   description: 迁移动力客户端运行文件
+          # # 经济动力客户端配置
+          # - name: material
+          #   dockerfile: ./Dockerfile.material
+          #   docker_compose: docker-compose.material.yml
+          #   start_script: start-material.ps1
+          #   image_tag: linstar666/urbanization-material:latest
+          #   zip_name: urbanization-material.zip
+          #   description: 经济动力客户端运行文件
+          # # 空间动力客户端配置
+          # - name: spatial
+          #   dockerfile: ./Dockerfile.spatial
+          #   docker_compose: docker-compose.spatial.yml
+          #   start_script: start-spatial.ps1
+          #   image_tag: linstar666/urbanization-spatial:latest
+          #   zip_name: urbanization-spatial.zip
+          #   description: 空间动力客户端运行文件
     # 定义输出，用于后续任务使用（虽然这里没有直接使用，但保留以备将来扩展）
     outputs:
       zip-files: ${{ steps.package.outputs.zip-files }}
