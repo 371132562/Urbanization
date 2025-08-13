@@ -17,14 +17,9 @@ import { IndicatorModule } from './businessComponent/indicator/indicator.module'
 import { CountryAndContinentModule } from './businessComponent/countryAndContinent/countryAndContinent.module';
 import { ArticleModule } from './businessComponent/article/article.module';
 import { ScoreModule } from './businessComponent/score/score.module';
-import { TaskModule } from './task/task.module';
-import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    // 注册定时任务模块
-    ScheduleModule.forRoot(),
-    TaskModule,
     //公共模块
     // 配置 @nestjs/serve-static 模块来提供静态文件服务
     ServeStaticModule.forRoot(
