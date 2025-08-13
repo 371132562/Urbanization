@@ -53,7 +53,7 @@ http.interceptors.response.use(
     // 统一处理后端返回的成功状态（HTTP Status 200）
     // 兼容子路径部署的登录页路径
     const deployPath = (import.meta.env.VITE_DEPLOY_PATH || '/').replace(/\/$/, '')
-    const loginPath = `${deployPath}/login`
+    const homePath = `${deployPath}/home`
     if (status === 200) {
       if (code === ErrorCode.SUCCESS) {
         // 业务成功，直接返回后端 data 字段的数据
@@ -70,8 +70,8 @@ http.interceptors.response.use(
           case ErrorCode.UNAUTHORIZED:
             // 认证过期或未认证，清空本地 token 并跳转到登录页
             localStorage.removeItem('auth-storage')
-            if (window.location.pathname !== loginPath) {
-              window.location.href = loginPath
+            if (window.location.pathname !== homePath) {
+              window.location.href = homePath
             }
             break
           case ErrorCode.FORBIDDEN:

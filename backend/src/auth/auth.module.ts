@@ -12,7 +12,7 @@ import { JwtStrategy } from './jwt.strategy';
     JwtModule.register({
       secret: 'urbanization-jwt-secret-key-2024', // JWT密钥（硬编码）
       signOptions: {
-        expiresIn: '24h', // token过期时间（硬编码）
+        expiresIn: '7d', // token过期时间（硬编码）
       },
     }),
   ],

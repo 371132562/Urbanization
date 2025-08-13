@@ -1,5 +1,5 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
-import { Button, Card, Form, Input } from 'antd'
+import { Button, Card, Form, Input, notification } from 'antd'
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router'
 
@@ -19,6 +19,7 @@ const LoginPage: React.FC = () => {
     const success = await login(values)
     setSubmitting(false)
     if (success) {
+      notification.success({ message: '登录成功' })
       navigate('/home')
     }
   }

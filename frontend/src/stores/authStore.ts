@@ -46,6 +46,7 @@ export const useAuthStore = create<AuthStore>()(
       logout() {
         set({ token: null, user: null, error: null })
         localStorage.removeItem('auth-storage')
+        notification.success({ message: '退出成功' })
       },
       // 获取用户信息
       async fetchProfile() {
