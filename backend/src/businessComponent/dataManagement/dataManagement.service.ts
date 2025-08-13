@@ -19,7 +19,7 @@ import {
   ExportFormat,
   IndicatorDataItem,
 } from '../../../types/dto';
-import { IndicatorValue, Country, DetailedIndicator } from '@prisma/client';
+import { IndicatorValue } from '@prisma/client';
 import * as xlsx from 'xlsx';
 import { BusinessException } from '../../exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
@@ -37,29 +37,57 @@ export class DataManagementService {
    */
   async list(): Promise<DataManagementListDto> {
     this.logger.log('从数据库获取所有指标数据。');
-    // 从数据库查询所有指标值，并包含关联的国家和三级指标信息
-    const indicatorValues = await this.prisma.indicatorValue.findMany({
-      where: {
-        delete: 0,
-        country: {
+
+    // 优化：使用Promise.all并行执行查询，减少数据库往返次数
+    const [indicatorValues, allDetailedIndicators] = await Promise.all([
+      // 优化查询：只选择必要的字段，减少数据传输量
+      this.prisma.indicatorValue.findMany({
+        where: {
           delete: 0,
+          country: { delete: 0 },
+          detailedIndicator: { delete: 0 }, // 确保三级指标也未删除
         },
-      },
-      include: {
-        country: true,
-        detailedIndicator: true, // 包含三级指标信息
-      },
-    });
+        select: {
+          year: true,
+          value: true,
+          detailedIndicatorId: true,
+          country: {
+            select: {
+              id: true,
+              cnName: true,
+              enName: true,
+              createTime: true,
+              updateTime: true,
+            },
+          },
+          detailedIndicator: {
+            select: {
+              id: true,
+              indicatorCnName: true,
+              indicatorEnName: true,
+            },
+          },
+        },
+        // 优化：在数据库层面进行排序，减少内存排序开销
+        orderBy: [{ year: 'desc' }, { country: { updateTime: 'desc' } }],
+      }),
+      // 获取所有三级指标定义，用于填充缺失的数据
+      this.prisma.detailedIndicator.findMany({
+        where: { delete: 0 },
+        select: {
+          id: true,
+          indicatorCnName: true,
+          indicatorEnName: true,
+        },
+      }),
+    ]);
 
     if (!indicatorValues || indicatorValues.length === 0) {
       this.logger.log('未找到任何指标数据，返回空数组。');
       return [];
     }
 
-    // 获取所有三级指标定义，用于填充缺失的数据
-    const allDetailedIndicators = await this.prisma.detailedIndicator.findMany({
-      where: { delete: 0 },
-    });
+    // 优化：预构建指标映射表，避免重复查找
     const allIndicatorsMap = new Map(
       allDetailedIndicators.map((i) => [
         i.id,
@@ -70,94 +98,104 @@ export class DataManagementService {
       ]),
     );
 
-    // 定义一个包含国家和三级指标信息的指标值类型
-    type IndicatorValueWithDetails = IndicatorValue & {
-      country: Country;
-      detailedIndicator: DetailedIndicator;
-    };
+    // 优化：使用reduce进行高效数据分组，避免多层嵌套循环
+    const groupedData = indicatorValues.reduce(
+      (acc, iv) => {
+        const year = iv.year;
+        const countryId = iv.country.id;
+        const countryKey = `${year}-${countryId}`;
 
-    // 使用 Map 按年份和国家/地区 ID 对数据进行分组
-    const groupedByCountryYear = new Map<
-      number,
-      Map<string, IndicatorValueWithDetails[]>
-    >();
+        // 初始化年份分组
+        if (!acc.yearGroups.has(year)) {
+          acc.yearGroups.set(year, new Set<string>());
+        }
+        acc.yearGroups.get(year)!.add(countryId);
 
-    for (const iv of indicatorValues as IndicatorValueWithDetails[]) {
-      const year = iv.year; // 直接使用数字年份
-      const countryId = iv.country.id;
-
-      if (!groupedByCountryYear.has(year)) {
-        groupedByCountryYear.set(
-          year,
-          new Map<string, IndicatorValueWithDetails[]>(),
-        );
-      }
-      const countryMap = groupedByCountryYear.get(year)!;
-
-      if (!countryMap.has(countryId)) {
-        countryMap.set(countryId, []);
-      }
-      countryMap.get(countryId)!.push(iv);
-    }
-
-    // 将分组后的 Map 转换为 DTO 所需的数组形式
-    const result: DataManagementListDto = [];
-    for (const [year, countryMap] of groupedByCountryYear.entries()) {
-      const yearData: YearData = {
-        year: year, // 直接使用数字年份
-        data: [],
-      };
-      for (const [countryId, values] of countryMap.entries()) {
-        if (values.length === 0) continue;
-
-        const { cnName, enName, createTime, updateTime } = values[0].country;
-
-        // 创建一个指标值映射表，方便查找
-        const valuesMap = new Map(
-          values.map((v) => [
-            v.detailedIndicatorId,
-            v.value !== null
-              ? typeof v.value === 'string'
-                ? Number(v.value)
-                : v.value.toNumber()
-              : null,
-          ]),
-        );
-
-        // 构建完整的指标列表，包括没有值的指标
-        const indicators: IndicatorDataItem[] = [];
-        for (const [id, indicatorInfo] of allIndicatorsMap.entries()) {
-          indicators.push({
-            id,
-            cnName: indicatorInfo.cnName,
-            enName: indicatorInfo.enName,
-            value: valuesMap.has(id) ? valuesMap.get(id)! : null,
+        // 分组指标值数据
+        if (!acc.countryData.has(countryKey)) {
+          acc.countryData.set(countryKey, {
+            country: iv.country,
+            year,
+            indicators: new Map<string, number | null>(),
           });
         }
 
-        const isComplete = !indicators.some((v) => v.value === null);
+        // 优化：直接处理数值转换，避免重复转换
+        const processedValue =
+          iv.value !== null
+            ? typeof iv.value === 'string'
+              ? Number(iv.value)
+              : iv.value.toNumber()
+            : null;
 
-        const countryData: CountryData = {
-          id: countryId,
-          cnName,
-          enName,
-          year: year, // 直接使用数字年份
-          isComplete,
-          indicators,
-          createTime,
-          updateTime,
+        acc.countryData
+          .get(countryKey)!
+          .indicators.set(iv.detailedIndicatorId, processedValue);
+
+        return acc;
+      },
+      {
+        yearGroups: new Map<number, Set<string>>(),
+        countryData: new Map<
+          string,
+          {
+            country: (typeof indicatorValues)[0]['country'];
+            year: number;
+            indicators: Map<string, number | null>;
+          }
+        >(),
+      },
+    );
+
+    // 优化：构建结果数组，减少重复操作
+    const result: DataManagementListDto = Array.from(
+      groupedData.yearGroups.entries(),
+    )
+      .map(([year, countryIds]) => {
+        const yearData: YearData = {
+          year,
+          data: Array.from(countryIds)
+            .map((countryId) => {
+              const countryKey = `${year}-${countryId}`;
+              const countryInfo = groupedData.countryData.get(countryKey)!;
+              const { country, indicators: indicatorMap } = countryInfo;
+
+              // 优化：使用Array.from和map构建指标列表，提高性能
+              const indicators: IndicatorDataItem[] = Array.from(
+                allIndicatorsMap.entries(),
+              ).map(([id, indicatorInfo]) => ({
+                id,
+                cnName: indicatorInfo.cnName,
+                enName: indicatorInfo.enName,
+                value: indicatorMap.get(id) ?? null,
+              }));
+
+              // 优化：使用every方法检查完整性，更简洁高效
+              const isComplete = indicators.every(
+                (indicator) => indicator.value !== null,
+              );
+
+              return {
+                id: countryId,
+                cnName: country.cnName,
+                enName: country.enName,
+                year,
+                isComplete,
+                indicators,
+                createTime: country.createTime,
+                updateTime: country.updateTime,
+              } as CountryData;
+            })
+            // 优化：由于数据库已排序，这里只需要保持顺序即可
+            .sort((a, b) => b.updateTime.getTime() - a.updateTime.getTime()),
         };
-        yearData.data.push(countryData);
-      }
-      yearData.data.sort(
-        (a, b) => b.updateTime.getTime() - a.updateTime.getTime(),
-      );
-      result.push(yearData);
-    }
+        return yearData;
+      })
+      // 优化：由于数据库已按年份降序排序，这里可以简化
+      .sort((a, b) => b.year - a.year);
 
-    // 按年份降序排序
     this.logger.log('指标数据处理完成并按年份排序。');
-    return result.sort((a, b) => b.year - a.year);
+    return result;
   }
 
   /**
