@@ -248,20 +248,21 @@ const OrderConfig = () => {
           </Button>
         </Space>
       </div>
+
+      <Tabs
+        activeKey={activePage}
+        onChange={setActivePage}
+        type="card"
+        items={PAGES.map(page => ({
+          key: page.key,
+          label: page.label
+        }))}
+      />
       {/* 加载时显示骨架屏 */}
       {orderConfigLoading ? (
         <OrderConfigSkeleton />
       ) : (
         <>
-          <Tabs
-            activeKey={activePage}
-            onChange={setActivePage}
-            type="card"
-            items={PAGES.map(page => ({
-              key: page.key,
-              label: page.label
-            }))}
-          />
           <div className="min-h-[300px] rounded-md border border-gray-300 p-4">
             <DndContext
               sensors={sensors}

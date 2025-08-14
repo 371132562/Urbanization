@@ -30,26 +30,6 @@ const { Search } = Input
 
 const DataManagementSkeleton = () => (
   <div>
-    <div className="mb-4 flex">
-      <Skeleton.Button
-        active
-        style={{ width: 280, height: 96, marginRight: 24 }}
-      />
-      <Skeleton.Button
-        active
-        style={{ width: 280, height: 96, marginRight: 24 }}
-      />
-      <Skeleton.Button
-        active
-        style={{ width: 280, height: 96 }}
-      />
-    </div>
-    <div className="mb-4">
-      <Skeleton.Input
-        active
-        style={{ width: 320 }}
-      />
-    </div>
     <div className="space-y-4">
       {[...Array(3)].map((_, i) => (
         <div
