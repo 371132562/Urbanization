@@ -10,6 +10,10 @@ import {
   CountryDetailResDto,
   CreateIndicatorValuesDto,
   DataManagementListDto,
+  DataManagementListReqDto,
+  DataManagementListResDto,
+  PaginatedYearData,
+  PaginationInfo,
   DetailedIndicatorItem,
   SecondaryIndicatorItem,
   TopIndicatorItem,
@@ -18,6 +22,9 @@ import {
   ExportDataReqDto,
   ExportFormat,
   IndicatorDataItem,
+  DataManagementYearsResDto,
+  DataManagementCountriesByYearReqDto,
+  DataManagementCountriesByYearResDto,
 } from '../../../types/dto';
 import { IndicatorValue } from '@prisma/client';
 import * as xlsx from 'xlsx';
@@ -195,6 +202,221 @@ export class DataManagementService {
       .sort((a, b) => b.year - a.year);
 
     this.logger.log('指标数据处理完成并按年份排序。');
+    return result;
+  }
+
+  /**
+   * 获取数据管理条目（支持分页）
+   * @param params 分页参数
+   * @returns 带分页信息的年份数据
+   */
+  async listPaginated(
+    params: DataManagementListReqDto,
+  ): Promise<DataManagementListResDto> {
+    this.logger.log('获取分页数据管理列表');
+
+    // 如果没有提供分页参数，获取所有年份的第一页数据
+    if (!params.yearPaginations || params.yearPaginations.length === 0) {
+      // 获取所有年份
+      const years = await this.getYears();
+      params.yearPaginations = years.map((year) => ({
+        year,
+        page: 1,
+        pageSize: 10,
+      }));
+    }
+
+    const result: DataManagementListResDto = [];
+    const searchTerm = params.searchTerm;
+
+    // 为每个年份获取分页数据
+    for (const yearPagination of params.yearPaginations) {
+      const { year, page = 1, pageSize = 10 } = yearPagination;
+
+      // 计算分页参数
+      const skip = (page - 1) * pageSize;
+
+      // 构建查询条件
+      const whereCondition = {
+        year,
+        delete: 0,
+        country: {
+          delete: 0,
+          ...(searchTerm && {
+            OR: [
+              { cnName: { contains: searchTerm } },
+              { enName: { contains: searchTerm } },
+            ],
+          }),
+        },
+        detailedIndicator: { delete: 0 },
+      };
+
+      // 获取该年份下的总国家数量
+      const countryGroups = await this.prisma.indicatorValue.groupBy({
+        by: ['countryId'],
+        where: whereCondition,
+      });
+      const totalCount = countryGroups.length;
+
+      // 获取该年份下的国家ID列表（分页）
+      const countryIds = await this.prisma.indicatorValue.findMany({
+        where: whereCondition,
+        select: {
+          countryId: true,
+        },
+        distinct: ['countryId'],
+        skip,
+        take: pageSize,
+        orderBy: {
+          country: { updateTime: 'desc' },
+        },
+      });
+
+      const countryIdList = countryIds.map((item) => item.countryId);
+
+      // 获取这些国家的详细数据
+      const [indicatorValues, allDetailedIndicators] = await Promise.all([
+        this.prisma.indicatorValue.findMany({
+          where: {
+            year,
+            countryId: { in: countryIdList },
+            delete: 0,
+            country: { delete: 0 },
+            detailedIndicator: { delete: 0 },
+          },
+          select: {
+            year: true,
+            value: true,
+            detailedIndicatorId: true,
+            country: {
+              select: {
+                id: true,
+                cnName: true,
+                enName: true,
+                createTime: true,
+                updateTime: true,
+              },
+            },
+            detailedIndicator: {
+              select: {
+                id: true,
+                indicatorCnName: true,
+                indicatorEnName: true,
+              },
+            },
+          },
+          orderBy: [{ country: { updateTime: 'desc' } }],
+        }),
+        this.prisma.detailedIndicator.findMany({
+          where: { delete: 0 },
+          select: {
+            id: true,
+            indicatorCnName: true,
+            indicatorEnName: true,
+          },
+        }),
+      ]);
+
+      // 构建指标映射表
+      const allIndicatorsMap = new Map(
+        allDetailedIndicators.map((i) => [
+          i.id,
+          {
+            cnName: i.indicatorCnName,
+            enName: i.indicatorEnName,
+          },
+        ]),
+      );
+
+      // 处理数据分组
+      const countryDataMap = new Map<
+        string,
+        {
+          country: (typeof indicatorValues)[0]['country'];
+          indicators: Map<string, number | null>;
+        }
+      >();
+
+      indicatorValues.forEach((iv) => {
+        const countryId = iv.country.id;
+
+        if (!countryDataMap.has(countryId)) {
+          countryDataMap.set(countryId, {
+            country: iv.country,
+            indicators: new Map<string, number | null>(),
+          });
+        }
+
+        const processedValue =
+          iv.value !== null
+            ? typeof iv.value === 'string'
+              ? Number(iv.value)
+              : iv.value.toNumber()
+            : null;
+
+        countryDataMap
+          .get(countryId)!
+          .indicators.set(iv.detailedIndicatorId, processedValue);
+      });
+
+      // 构建国家数据列表
+      const countryDataList: CountryData[] = countryIdList
+        .map((countryId) => {
+          const countryInfo = countryDataMap.get(countryId);
+          if (!countryInfo) return null;
+
+          const { country, indicators: indicatorMap } = countryInfo;
+
+          const indicators: IndicatorDataItem[] = Array.from(
+            allIndicatorsMap.entries(),
+          ).map(([id, indicatorInfo]) => ({
+            id,
+            cnName: indicatorInfo.cnName,
+            enName: indicatorInfo.enName,
+            value: indicatorMap.get(id) ?? null,
+          }));
+
+          const isComplete = indicators.every(
+            (indicator) => indicator.value !== null,
+          );
+
+          return {
+            id: countryId,
+            cnName: country.cnName,
+            enName: country.enName,
+            year,
+            isComplete,
+            indicators,
+            createTime: country.createTime,
+            updateTime: country.updateTime,
+          } as CountryData;
+        })
+        .filter(Boolean) as CountryData[];
+
+      // 构建分页信息
+      const totalPages = Math.ceil(totalCount / pageSize);
+      const pagination: PaginationInfo = {
+        page,
+        pageSize,
+        total: totalCount,
+        totalPages,
+      };
+
+      // 构建年份数据
+      const yearData: PaginatedYearData = {
+        year,
+        data: countryDataList,
+        pagination,
+      };
+
+      result.push(yearData);
+    }
+
+    // 按年份降序排列结果
+    result.sort((a, b) => b.year - a.year);
+
+    this.logger.log('分页数据处理完成');
     return result;
   }
 
@@ -962,5 +1184,78 @@ export class DataManagementService {
     }
 
     return { buffer, mime, fileName };
+  }
+
+  /**
+   * 获取有数据的年份列表（用于导出页面优化）
+   * @returns {Promise<DataManagementYearsResDto>} 年份数组，按降序排列
+   */
+  async getYears(): Promise<DataManagementYearsResDto> {
+    this.logger.log('获取有数据的年份列表');
+
+    // 查询所有不重复的年份，只返回年份字段以减少数据传输
+    const years = await this.prisma.indicatorValue.findMany({
+      where: {
+        delete: 0,
+        country: { delete: 0 },
+        detailedIndicator: { delete: 0 },
+      },
+      select: {
+        year: true,
+      },
+      distinct: ['year'],
+      orderBy: {
+        year: 'desc',
+      },
+    });
+
+    const result = years.map((item) => item.year);
+    this.logger.log(`找到 ${result.length} 个年份`);
+    return result;
+  }
+
+  /**
+   * 根据年份获取该年份下的国家列表（用于导出页面优化）
+   * @param params 包含年份的请求参数
+   * @returns {Promise<DataManagementCountriesByYearResDto>} 国家列表
+   */
+  async getCountriesByYear(
+    params: DataManagementCountriesByYearReqDto,
+  ): Promise<DataManagementCountriesByYearResDto> {
+    this.logger.log(`获取年份 ${params.year} 下的国家列表`);
+
+    // 查询指定年份下的所有国家，只返回必要字段
+    const countries = await this.prisma.indicatorValue.findMany({
+      where: {
+        year: params.year,
+        delete: 0,
+        country: { delete: 0 },
+        detailedIndicator: { delete: 0 },
+      },
+      select: {
+        country: {
+          select: {
+            id: true,
+            cnName: true,
+            enName: true,
+          },
+        },
+      },
+      distinct: ['countryId'],
+      orderBy: {
+        country: {
+          cnName: 'asc', // 按中文名称排序
+        },
+      },
+    });
+
+    const result = countries.map((item) => ({
+      id: item.country.id,
+      cnName: item.country.cnName,
+      enName: item.country.enName,
+    }));
+
+    this.logger.log(`年份 ${params.year} 下找到 ${result.length} 个国家`);
+    return result;
   }
 }

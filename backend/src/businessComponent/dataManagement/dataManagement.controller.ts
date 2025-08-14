@@ -16,8 +16,13 @@ import {
   CountryDetailResDto,
   CreateIndicatorValuesDto,
   DataManagementListDto,
+  DataManagementListReqDto,
+  DataManagementListResDto,
   CountryYearQueryDto,
   ExportDataReqDto,
+  DataManagementYearsResDto,
+  DataManagementCountriesByYearReqDto,
+  DataManagementCountriesByYearResDto,
 } from '../../../types/dto';
 
 @Controller('dataManagement')
@@ -26,12 +31,45 @@ export class DataManagementController {
   constructor(private readonly dataManagementService: DataManagementService) {}
 
   /**
-   * 获取所有数据管理条目
+   * 获取所有数据管理条目（原接口，保持向后兼容）
    * @returns {Promise<DataManagementListDto>}
    */
   @Post('list')
   async list(): Promise<DataManagementListDto> {
     return this.dataManagementService.list();
+  }
+
+  /**
+   * 获取数据管理条目（支持分页）
+   * @param {DataManagementListReqDto} params - 分页参数
+   * @returns {Promise<DataManagementListResDto>}
+   */
+  @Post('listPaginated')
+  async listPaginated(
+    @Body() params: DataManagementListReqDto,
+  ): Promise<DataManagementListResDto> {
+    return await this.dataManagementService.listPaginated(params);
+  }
+
+  /**
+   * 获取有数据的年份列表（用于导出页面优化）
+   * @returns {Promise<DataManagementYearsResDto>} 年份数组
+   */
+  @Post('years')
+  async getYears(): Promise<DataManagementYearsResDto> {
+    return await this.dataManagementService.getYears();
+  }
+
+  /**
+   * 根据年份获取该年份下的国家列表（用于导出页面优化）
+   * @param params 包含年份的请求参数
+   * @returns {Promise<DataManagementCountriesByYearResDto>} 国家列表
+   */
+  @Post('countriesByYear')
+  async getCountriesByYear(
+    @Body() params: DataManagementCountriesByYearReqDto,
+  ): Promise<DataManagementCountriesByYearResDto> {
+    return await this.dataManagementService.getCountriesByYear(params);
   }
 
   /**

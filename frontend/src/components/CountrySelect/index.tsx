@@ -2,7 +2,12 @@
 import { Select, Skeleton } from 'antd'
 import type { SelectProps } from 'antd/es/select'
 import { useEffect, useMemo } from 'react'
-import type { Country, CountryData, CountryWithContinentDto } from 'urbanization-backend/types/dto'
+import type {
+  Country,
+  CountryData,
+  CountryWithContinentDto,
+  SimpleCountryData
+} from 'urbanization-backend/types/dto'
 
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 
@@ -15,7 +20,7 @@ const { Option, OptGroup } = Select
  * 2. 如果传入`options`，则只展示`options`中的国家，不分组
  */
 type CountrySelectProps = {
-  options?: (Country | CountryData)[] // 外部传入的国家选项
+  options?: (Country | CountryData | SimpleCountryData)[] // 外部传入的国家选项
 } & Omit<
   SelectProps,
   'options' | 'value' | 'onChange' | 'mode' | 'placeholder' | 'style' | 'disabled'

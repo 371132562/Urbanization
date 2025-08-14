@@ -7,7 +7,12 @@ import type {
   CountryDetailResDto,
   CountryYearQueryDto,
   CreateIndicatorValuesDto,
+  DataManagementCountriesByYearReqDto,
+  DataManagementCountriesByYearResDto,
   DataManagementListDto,
+  DataManagementListReqDto,
+  DataManagementListResDto,
+  DataManagementYearsResDto,
   ExportDataReqDto,
   TopIndicatorItem
 } from 'urbanization-backend/types/dto'
@@ -17,11 +22,14 @@ import {
   dataManagementBatchCheckExistingData,
   dataManagementBatchCreate,
   dataManagementCheckExistingData,
+  dataManagementCountriesByYear,
   dataManagementCreate,
   dataManagementDelete,
   dataManagementDetail,
   dataManagementExport,
-  dataManagementList
+  dataManagementList,
+  dataManagementListPaginated,
+  dataManagementYears
 } from '@/services/apis'
 import http from '@/services/base.ts'
 import { dayjs } from '@/utils/dayjs'
@@ -29,11 +37,22 @@ import { dayjs } from '@/utils/dayjs'
 type DataManagementStore = {
   data: DataManagementListDto
   listLoading: boolean
+  // 新增：分页数据相关状态
+  paginatedData: DataManagementListResDto | null
+  paginatedListLoading: boolean
   detailData: CountryDetailResDto | null
   detailLoading: boolean
   saveLoading: boolean
   exportLoading: boolean
+  years: DataManagementYearsResDto
+  yearsLoading: boolean
+  countriesByYear: DataManagementCountriesByYearResDto
+  countriesByYearLoading: boolean
   getDataManagementList: () => Promise<void>
+  // 新增：分页获取数据管理列表
+  getDataManagementListPaginated: (params?: DataManagementListReqDto) => Promise<void>
+  getDataManagementYears: () => Promise<void>
+  getDataManagementCountriesByYear: (params: DataManagementCountriesByYearReqDto) => Promise<void>
   getDataManagementDetail: (params: CountryDetailReqDto) => Promise<void>
   saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<boolean>
   batchSaveDataManagementDetail: (data: BatchCreateIndicatorValuesDto) => Promise<{
@@ -55,10 +74,18 @@ type DataManagementStore = {
 const useDataManagementStore = create<DataManagementStore>(set => ({
   data: [],
   listLoading: false,
+  // 新增：分页数据相关状态
+  paginatedData: null,
+  paginatedListLoading: false,
   detailData: null,
   detailLoading: false,
   saveLoading: false,
   exportLoading: false,
+  // 新增：用于导出页面优化的状态
+  years: [],
+  yearsLoading: false,
+  countriesByYear: [],
+  countriesByYearLoading: false,
 
   // 获取数据管理列表
   getDataManagementList: async () => {
@@ -69,6 +96,47 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     } catch (error) {
       console.error('Failed to fetch data:', error)
       set({ listLoading: false })
+    }
+  },
+
+  // 获取有数据的年份列表
+  getDataManagementYears: async () => {
+    set({ yearsLoading: true })
+    try {
+      const res = await http.post(dataManagementYears, {})
+      set({ years: res.data })
+    } catch (error) {
+      console.error('获取年份列表失败:', error)
+    } finally {
+      set({ yearsLoading: false })
+    }
+  },
+
+  // 根据年份获取国家列表
+  getDataManagementCountriesByYear: async (params: DataManagementCountriesByYearReqDto) => {
+    set({ countriesByYearLoading: true })
+    try {
+      const res = await http.post(dataManagementCountriesByYear, params)
+      set({ countriesByYear: res.data })
+    } catch (error) {
+      console.error('获取国家列表失败:', error)
+    } finally {
+      set({ countriesByYearLoading: false })
+    }
+  },
+
+  // 新增：分页获取数据管理列表
+  getDataManagementListPaginated: async (params?: DataManagementListReqDto) => {
+    set({ paginatedListLoading: true })
+    try {
+      const response = await http.post<DataManagementListResDto>(
+        dataManagementListPaginated,
+        params || {}
+      )
+      set({ paginatedData: response.data, paginatedListLoading: false })
+    } catch (error) {
+      console.error('获取分页数据失败:', error)
+      set({ paginatedListLoading: false })
     }
   },
 

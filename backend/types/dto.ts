@@ -61,6 +61,42 @@ export type YearData = {
 export type DataManagementListDto = YearData[];
 
 /**
+ * 分页信息类型
+ */
+export type PaginationInfo = {
+  page: number; // 当前页码，从1开始
+  pageSize: number; // 每页数量
+  total: number; // 总数量
+  totalPages: number; // 总页数
+};
+
+/**
+ * 带分页的年份数据类型
+ */
+export type PaginatedYearData = {
+  year: number;
+  data: CountryData[];
+  pagination: PaginationInfo;
+};
+
+/**
+ * 数据管理列表请求参数（支持分页）
+ */
+export type DataManagementListReqDto = {
+  searchTerm?: string; // 搜索关键词，用于按国家名称搜索
+  yearPaginations?: {
+    year: number;
+    page?: number; // 默认为1
+    pageSize?: number; // 默认为10
+  }[];
+};
+
+/**
+ * 数据管理列表响应（支持分页）
+ */
+export type DataManagementListResDto = PaginatedYearData[];
+
+/**
  * 国家详细指标数据请求参数
  */
 export type CountryDetailReqDto = {
@@ -185,6 +221,32 @@ export type ExportDataReqDto = {
   countryIds: string[]; // 国家ID数组
   format: ExportFormat; // 导出格式
 };
+
+/**
+ * 获取有数据的年份列表响应类型
+ */
+export type DataManagementYearsResDto = number[];
+
+/**
+ * 根据年份获取国家列表请求参数
+ */
+export type DataManagementCountriesByYearReqDto = {
+  year: number; // 年份
+};
+
+/**
+ * 简化的国家数据类型（仅用于导出页面的下拉选择）
+ */
+export type SimpleCountryData = {
+  id: string; // 国家ID
+  cnName: string; // 中文名称
+  enName: string; // 英文名称
+};
+
+/**
+ * 根据年份获取国家列表响应类型
+ */
+export type DataManagementCountriesByYearResDto = SimpleCountryData[];
 
 /*
  * ==================== 指标管理模块 ====================

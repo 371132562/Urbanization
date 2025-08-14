@@ -15,11 +15,14 @@ import {
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import type { CountryData, YearData } from 'urbanization-backend/types/dto'
+import type {
+  CountryData,
+  DataManagementListReqDto,
+  PaginatedYearData
+} from 'urbanization-backend/types/dto'
 
 import { DETAILED_INDICATORS } from '@/config/dataImport'
 import useDataManagementStore from '@/stores/dataManagementStore'
-import { filterDataByCountry } from '@/utils'
 import { dayjs } from '@/utils/dayjs'
 
 const { Panel } = Collapse
@@ -74,18 +77,49 @@ const DataManagementSkeleton = () => (
 )
 
 const DataManagement = () => {
-  const data = useDataManagementStore(state => state.data)
-  const loading = useDataManagementStore(state => state.listLoading)
-  const getDataManagementList = useDataManagementStore(state => state.getDataManagementList)
+  // 使用新的分页数据状态
+  const paginatedData = useDataManagementStore(state => state.paginatedData)
+  const loading = useDataManagementStore(state => state.paginatedListLoading)
+  const getDataManagementListPaginated = useDataManagementStore(
+    state => state.getDataManagementListPaginated
+  )
   const deleteData = useDataManagementStore(state => state.deleteData)
 
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 })
+  // 存储每个年份的分页参数
+  const [yearPaginationParams, setYearPaginationParams] = useState<
+    Record<number, { page: number; pageSize: number }>
+  >({})
+  // 记录当前展开的年份
+  const [activeCollapseKey, setActiveCollapseKey] = useState<string[] | ''>('')
   const navigate = useNavigate()
 
+  // 搜索时重新加载数据
   useEffect(() => {
-    getDataManagementList()
-  }, [])
+    if (debouncedSearchTerm !== undefined) {
+      const params: DataManagementListReqDto = {
+        searchTerm: debouncedSearchTerm || undefined,
+        yearPaginations: Object.entries(yearPaginationParams).map(([year, pagination]) => ({
+          year: Number(year),
+          page: pagination.page,
+          pageSize: pagination.pageSize
+        }))
+      }
+      getDataManagementListPaginated(params)
+    }
+  }, [debouncedSearchTerm, yearPaginationParams])
+
+  // 初始化年份分页参数
+  useEffect(() => {
+    if (paginatedData && Object.keys(yearPaginationParams).length === 0) {
+      const initialParams: Record<number, { page: number; pageSize: number }> = {}
+      paginatedData.forEach(yearData => {
+        initialParams[yearData.year] = { page: 1, pageSize: 10 }
+      })
+      setYearPaginationParams(initialParams)
+    }
+  }, [paginatedData, yearPaginationParams])
 
   const handleDelete = async (record: CountryData) => {
     const success = await deleteData({
@@ -94,7 +128,40 @@ const DataManagement = () => {
     })
     if (success) {
       message.success('删除成功')
-      await getDataManagementList() // 重新获取列表
+
+      // 检查删除后当前页是否还有数据，如果没有则回到前一页
+      const currentYearData = paginatedData?.find(data => data.year === record.year)
+      const currentPagination = yearPaginationParams[record.year]
+
+      if (currentYearData && currentPagination) {
+        const remainingCount = currentYearData.data.length - 1
+        const totalPages = Math.ceil(
+          (currentYearData.pagination.total - 1) / currentPagination.pageSize
+        )
+
+        // 如果当前页删除后没有数据且不是第一页，则回到前一页
+        if (remainingCount === 0 && currentPagination.page > 1) {
+          const newPage = Math.min(currentPagination.page - 1, totalPages)
+          setYearPaginationParams(prev => ({
+            ...prev,
+            [record.year]: {
+              ...prev[record.year],
+              page: newPage
+            }
+          }))
+        }
+      }
+
+      // 重新获取当前分页数据
+      const params: DataManagementListReqDto = {
+        searchTerm: debouncedSearchTerm || undefined,
+        yearPaginations: Object.entries(yearPaginationParams).map(([year, pagination]) => ({
+          year: Number(year),
+          page: pagination.page,
+          pageSize: pagination.pageSize
+        }))
+      }
+      await getDataManagementListPaginated(params)
     } else {
       message.error('删除失败')
     }
@@ -208,12 +275,12 @@ const DataManagement = () => {
     return [...baseColumns, ...indicatorColumns, ...timeColumns, ...actionColumn]
   }, [navigate])
 
-  const filteredData = useMemo(() => {
-    return filterDataByCountry(debouncedSearchTerm, data)
-  }, [debouncedSearchTerm, data])
-
-  if (loading) {
-    return <DataManagementSkeleton />
+  // 处理分页年份数据的分页变更
+  const handleYearPaginationChange = (year: number, page: number, pageSize: number) => {
+    setYearPaginationParams(prev => ({
+      ...prev,
+      [year]: { page, pageSize }
+    }))
   }
 
   return (
@@ -227,12 +294,17 @@ const DataManagement = () => {
         />
       </div>
 
-      {filteredData.length > 0 ? (
+      {loading || Object.keys(yearPaginationParams).length === 0 ? (
+        <DataManagementSkeleton />
+      ) : paginatedData && paginatedData.length > 0 ? (
         <Collapse
           accordion
-          defaultActiveKey={filteredData[0]?.year.toString()}
+          activeKey={activeCollapseKey || paginatedData[0]?.year.toString()}
+          onChange={key => {
+            setActiveCollapseKey(key)
+          }}
         >
-          {filteredData.map((yearData: YearData) => (
+          {paginatedData.map((yearData: PaginatedYearData) => (
             <Panel
               header={<span className="text-base font-semibold">{yearData.year}年</span>}
               key={yearData.year.toString()}
@@ -242,8 +314,13 @@ const DataManagement = () => {
                 dataSource={yearData.data}
                 rowKey="id"
                 pagination={{
-                  pageSize: 10,
-                  showSizeChanger: false
+                  current: yearData.pagination.page,
+                  pageSize: yearData.pagination.pageSize,
+                  total: yearData.pagination.total,
+                  showSizeChanger: false,
+                  showQuickJumper: true,
+                  onChange: (page, pageSize) =>
+                    handleYearPaginationChange(yearData.year, page, pageSize || 10)
                 }}
                 scroll={{ x: 'max-content' }}
               />

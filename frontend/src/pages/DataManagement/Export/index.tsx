@@ -1,12 +1,11 @@
 import { Button, Form, message, Radio, Select, Skeleton, Space } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { CountryData, ExportDataReqDto } from 'urbanization-backend/types/dto'
+import { ExportDataReqDto } from 'urbanization-backend/types/dto'
 
 import CountrySelect from '@/components/CountrySelect'
 import useDataManagementStore from '@/stores/dataManagementStore'
 import { ExportFormat, ExportFormatOptions } from '@/types'
-import { dayjs } from '@/utils/dayjs'
 
 const { Option } = Select
 
@@ -15,19 +14,22 @@ const DataExport = () => {
   const [form] = Form.useForm()
 
   const {
-    data: dataManagementList,
-    listLoading,
-    getDataManagementList,
+    years,
+    yearsLoading,
+    countriesByYear,
+    countriesByYearLoading,
+    getDataManagementYears,
+    getDataManagementCountriesByYear,
     exportData,
     exportLoading
   } = useDataManagementStore()
 
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
-  // 加载数据
+  // 加载年份数据
   useEffect(() => {
-    getDataManagementList()
-  }, [getDataManagementList])
+    getDataManagementYears()
+  }, [getDataManagementYears])
 
   // 监视表单字段的变化，以控制按钮的禁用状态
   const yearValue = Form.useWatch('year', form)
@@ -37,23 +39,17 @@ const DataExport = () => {
     [yearValue, countriesValue]
   )
 
-  // 根据选择的年份，动态获取国家选项
-  const countryOptions = useMemo(() => {
-    if (!selectedYear) return []
-    const yearData = dataManagementList.find(d => d.year === selectedYear)
-    return yearData ? yearData.data : []
-  }, [selectedYear, dataManagementList])
-
   const handleYearChange = (yearString: string) => {
     const year = parseInt(yearString)
     setSelectedYear(year)
     form.setFieldsValue({ countryIds: [] }) // 年份变化时清空已选国家
+    // 根据选择的年份获取对应的国家列表
+    getDataManagementCountriesByYear({ year })
   }
 
   const handleSelectAllCountries = () => {
-    // 错误信息表明 data.country 是 undefined，因此 countryOptions 应该是 Country 对象的数组
-    // 直接从 data 对象上获取 id
-    const allCountryIds = (countryOptions as any[]).map(data => data.id)
+    // 获取所有国家的ID
+    const allCountryIds = countriesByYear.map(country => country.id)
     form.setFieldsValue({ countryIds: allCountryIds })
   }
 
@@ -74,7 +70,7 @@ const DataExport = () => {
     }
   }
 
-  if (listLoading) {
+  if (yearsLoading) {
     return (
       <div className="w-full max-w-2xl rounded-lg bg-white p-8 shadow-sm">
         <Skeleton active />
@@ -99,12 +95,12 @@ const DataExport = () => {
               placeholder="请选择年份"
               onChange={handleYearChange}
             >
-              {dataManagementList.map(yearData => (
+              {years.map(year => (
                 <Option
-                  key={yearData.year}
-                  value={yearData.year}
+                  key={year}
+                  value={year}
                 >
-                  {yearData.year}
+                  {year}
                 </Option>
               ))}
             </Select>
@@ -124,13 +120,14 @@ const DataExport = () => {
                   mode="multiple"
                   placeholder="请先选择年份，再选择国家"
                   disabled={!selectedYear}
-                  options={countryOptions as CountryData[]}
+                  loading={countriesByYearLoading}
+                  options={countriesByYear}
                   className="w-full"
                 />
               </Form.Item>
               <Button
                 onClick={handleSelectAllCountries}
-                disabled={!selectedYear}
+                disabled={!selectedYear || countriesByYearLoading}
                 className="!ml-2"
               >
                 全选
