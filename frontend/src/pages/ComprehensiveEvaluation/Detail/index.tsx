@@ -1,6 +1,7 @@
-import { Card, Descriptions, Divider, Skeleton, Typography } from 'antd'
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Button, Card, Descriptions, Divider, Skeleton, Typography } from 'antd'
 import { FC, useEffect, useMemo } from 'react'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 
 import useScoreStore from '@/stores/scoreStore'
 
@@ -8,6 +9,7 @@ const { Title, Paragraph, Text } = Typography
 
 const ComprehensiveEvaluationDetail: FC = () => {
   const { countryId, year } = useParams<{ countryId: string; year: string }>()
+  const navigate = useNavigate()
 
   // 从Zustand store中获取数据和方法
   const {
@@ -55,7 +57,15 @@ const ComprehensiveEvaluationDetail: FC = () => {
             paragraph={{ rows: 6 }}
           />
         ) : detailData && 'country' in detailData ? (
-          <div className="p-4">
+          <div className="relative p-4">
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate(-1)}
+            >
+              返回
+            </Button>
+
             <Title
               level={2}
               className="!mb-2 text-center"

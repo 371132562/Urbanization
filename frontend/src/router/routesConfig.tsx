@@ -1,8 +1,8 @@
 import {
   BarChartOutlined,
+  CommentOutlined,
   DatabaseOutlined,
   EnvironmentOutlined,
-  FieldBinaryOutlined,
   FileTextOutlined,
   ForkOutlined,
   FunctionOutlined,
@@ -182,7 +182,7 @@ export const sideRoutes: RouteItem[] = [
   {
     path: '/scoreManagement',
     title: '评价管理',
-    icon: <FieldBinaryOutlined />,
+    icon: <CommentOutlined />,
     children: [
       {
         path: '/scoreManagement/list',

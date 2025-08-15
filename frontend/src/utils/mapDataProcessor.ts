@@ -69,8 +69,8 @@ export const processUrbanizationData = (
 
   // --- 初始化所有需要返回的数据结构 ---
   const valueMap: WorldMapProps['valueMap'] = {
-    // 0 是一个特殊值，代表"未城镇化"，具有固定的文本和颜色。
-    0: { text: '未城镇化', color: '#e5e5e5' }
+    // 0 是一个特殊值，代表"未计入研究范围的国家"，具有固定的文本和颜色。
+    0: { text: '未计入研究范围的国家', color: '#e5e5e5' }
   }
   const nameMap: Record<string, string> = {}
   const mapData: { name: string; value: number }[] = []
@@ -96,14 +96,14 @@ export const processUrbanizationData = (
 
     // 1. 准备地图所需数据 (mapData, nameMap, valueMap)
     nameMap[item.country.enName] = item.country.cnName
-    let mapValue = 0 // 默认为"未城镇化"
+    let mapValue = 0 // 默认为"未计入研究范围的国家"
     if (currentStatus) {
       // 如果已城镇化，则根据其大洲获取对应的编码值。
       mapValue = continentValueMapping[continentName] || 0
       // 动态构建 valueMap，如果某个大洲的图例项还不存在，则创建它。
       if (mapValue !== 0 && !valueMap[mapValue]) {
         valueMap[mapValue] = {
-          text: continentName,
+          text: continentName + ' 已计入研究范围的国家',
           color: continentColors[mapValue]
         }
       }
@@ -182,7 +182,7 @@ export const createUrbanizationTooltipFormatter = (
     }
 
     if (valueMap && valueMap[value]) {
-      // 值为0，代表未城镇化，显示 "国家: 未城镇化"
+      // 值为0，代表未城镇化，显示 "国家: 未计入研究范围的国家"
       if (value === 0) {
         return `${countryName}: ${valueMap[value].text}`
       }
