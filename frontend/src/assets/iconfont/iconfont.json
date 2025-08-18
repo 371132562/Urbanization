@@ -1,0 +1,16 @@
+{
+  "id": "4462198",
+  "name": "urbanization",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "5975445",
+      "name": "城市",
+      "font_class": "chengshi1",
+      "unicode": "ec70",
+      "unicode_decimal": 60528
+    }
+  ]
+}

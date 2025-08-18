@@ -184,18 +184,26 @@ export const Component: FC = () => {
 
   // 路由守卫：检查权限
   const hasPermission = useMemo(() => {
-    // 未登录用户只能访问顶部菜单
-    if (!user) {
-      const topMenuPaths = topRoutes.map(route => route.path)
-      return topMenuPaths.some(path => pathname === path || pathname.startsWith(path + '/'))
+    // 顶部菜单对所有用户开放，无需权限检查
+    const topMenuPaths = topRoutes.map(route => route.path)
+    const isTopMenuRoute = topMenuPaths.some(
+      path => pathname === path || pathname.startsWith(path + '/')
+    )
+
+    if (isTopMenuRoute) {
+      return true
     }
 
-    // 登录用户检查权限
+    // 侧边栏菜单需要登录用户才能访问
+    if (!user) {
+      return false
+    }
+
+    // 超管可以访问所有侧边栏菜单
     if (user.role?.name === 'admin') return true
-    // 获取所有允许的路由
+
+    // 其他角色按allowedRoutes检查侧边栏菜单权限
     const allowed = user.role?.allowedRoutes || []
-    // 允许访问首页
-    if (pathname === '/' || pathname === '/home') return true
     // 精确匹配或以参数结尾的动态路由
     return allowed.some(route => pathname === route || pathname.startsWith(route + '/'))
   }, [user, pathname, topRoutes])

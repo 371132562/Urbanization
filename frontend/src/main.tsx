@@ -1,5 +1,6 @@
 import './index.css'
 import 'normalize.css'
+import './assets/iconfont/iconfont.css'
 import 'dayjs/locale/zh-cn'
 
 import { ConfigProvider } from 'antd'

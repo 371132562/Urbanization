@@ -1,39 +1,12 @@
-import { LockOutlined, UserOutlined } from '@ant-design/icons'
-import { Button, Form, Input, notification } from 'antd'
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router'
+'use client'
 
-import { useAuthStore } from '../../stores/authStore'
-
-// 登录页组件
-const LoginPage: React.FC = () => {
-  const [form] = Form.useForm()
-  const [submitting, setSubmitting] = useState(false)
-  const login = useAuthStore(s => s.login)
-  const error = useAuthStore(s => s.error)
-  const navigate = useNavigate()
-
-  // 登录提交
-  const onFinish = async (values: { code: string; password: string }) => {
-    if (!values.code || !values.password) {
-      notification.warning({ message: '请输入用户编号和密码' })
-      return
-    }
-    setSubmitting(true)
-    const success = await login(values)
-    setSubmitting(false)
-    if (success) {
-      notification.success({ message: '登录成功' })
-      navigate('/home')
-    }
-  }
-
+export default function Home() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      {/* 背景渐变 */}
+      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-blue-800 to-cyan-700" />
 
-      {/* 浮动装饰元素 */}
+      {/* Floating Decorative Elements */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* 线条形式动画 */}
         <div
@@ -95,9 +68,9 @@ const LoginPage: React.FC = () => {
       <div className="relative z-10 mx-auto w-full max-w-6xl px-8">
         <div className="overflow-hidden rounded-2xl border-0 bg-transparent shadow-2xl">
           <div className="flex min-h-[600px]">
-            {/* 左侧 - 产品信息区域，带玻璃效果 */}
+            {/* Left Side - Product Information with Glass Effect */}
             <div className="relative hidden lg:flex lg:w-1/2">
-              {/* 背景图案 */}
+              {/* Background Pattern */}
               <div className="absolute inset-0 overflow-hidden border-r border-white/20 bg-white/10 backdrop-blur-md">
                 <div className="absolute inset-0 opacity-10">
                   <div
@@ -110,95 +83,118 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div className="relative z-10 flex flex-col justify-center px-12 text-white">
-                {/* 图标和标题在同一行 */}
-                <div className="mb-8 flex items-center gap-4">
-                  <span className="iconfont icon-chengshi1 flex-shrink-0 !text-4xl text-white"></span>
-                  <div className="text-3xl font-bold leading-tight">
-                    <div className="mb-2">城镇化发展质量评价</div>
-                    <div>技术示范平台</div>
-                  </div>
+                <div className="mb-8">
+                  <svg
+                    className="h-16 w-16 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
                 </div>
+
+                {/* Main Title */}
+                <h1 className="mb-4 text-4xl font-bold leading-tight">智能数据管理平台</h1>
               </div>
             </div>
 
-            {/* 右侧 - 登录表单 */}
+            {/* Right Side - Login Form */}
             <div className="flex w-full items-center justify-center rounded-r-2xl bg-white p-8 lg:w-1/2">
               <div className="w-full max-w-md">
-                {/* 欢迎标题 */}
-                <div className="mb-6 text-center">
-                  <h2 className="mb-2 text-2xl font-bold text-gray-900">欢迎回来</h2>
+                {/* Welcome Header */}
+                <div className="mb-8 text-center">
+                  <h2 className="mb-2 text-3xl font-bold text-gray-900">欢迎回来</h2>
                 </div>
 
-                <Form
-                  form={form}
-                  name="login"
-                  onFinish={onFinish}
-                  autoComplete="off"
-                  layout="vertical"
-                  className="space-y-6"
-                >
-                  {/* 用户编号字段 */}
+                <form className="space-y-6">
+                  {/* Username Field */}
                   <div className="space-y-2">
-                    <Form.Item
-                      label={<span className="text-sm font-medium text-gray-700">用户编号</span>}
-                      name="code"
-                      className="mb-0"
+                    <label
+                      htmlFor="username"
+                      className="text-sm font-medium text-gray-700"
                     >
-                      <div className="relative">
-                        <Input
-                          prefix={<UserOutlined />}
-                          placeholder="请输入用户编号"
-                          autoFocus
-                          className="h-12 w-full rounded-md border border-gray-300 pl-10 pr-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </Form.Item>
-                  </div>
-
-                  {/* 密码字段 */}
-                  <div className="space-y-2">
-                    <Form.Item
-                      label={<span className="text-sm font-medium text-gray-700">密码</span>}
-                      name="password"
-                      className="mb-0"
-                    >
-                      <div className="relative">
-                        <Input.Password
-                          prefix={<LockOutlined />}
-                          placeholder="请输入密码"
-                          className="h-12 w-full rounded-md border border-gray-300 pl-10 pr-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </Form.Item>
-                  </div>
-
-                  {/* 错误信息 */}
-                  {error && (
-                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3">
-                      <div className="text-center text-sm text-red-600">{error}</div>
+                      用户编号
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="username"
+                        type="text"
+                        placeholder="请输入用户编号"
+                        className="h-12 w-full rounded-md border border-gray-300 pl-10 pr-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                      <svg
+                        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                      </svg>
                     </div>
-                  )}
+                  </div>
 
-                  {/* 登录按钮 */}
-                  <Form.Item className="mb-0">
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={submitting}
-                      className="!h-12 w-full rounded-md !bg-gradient-to-r !from-blue-600 !to-cyan-600 text-base font-medium text-white !transition-colors !duration-200 hover:from-blue-700 hover:to-cyan-700"
+                  {/* Password Field */}
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="password"
+                      className="text-sm font-medium text-gray-700"
                     >
-                      {submitting ? '登录中...' : '登录'}
-                    </Button>
-                  </Form.Item>
-                </Form>
+                      密码
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type="password"
+                        placeholder="请输入密码"
+                        className="h-12 w-full rounded-md border border-gray-300 pl-10 pr-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                      <svg
+                        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Login Button */}
+                  <button
+                    type="submit"
+                    className="h-12 w-full rounded-md bg-gradient-to-r from-blue-600 to-cyan-600 text-base font-medium text-white transition-colors duration-200 hover:from-blue-700 hover:to-cyan-700"
+                  >
+                    登录
+                  </button>
+                </form>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 自定义CSS动画样式 */}
-      <style>{`
+      {/* Custom CSS Animation Styles */}
+      <style jsx>{`
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-20px) rotate(180deg);
+          }
+        }
+
+        @keyframes float-delayed {
+          0%,
+          100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-15px) rotate(-180deg);
+          }
+        }
+
         @keyframes slide-horizontal {
           0% {
             transform: translateX(-100px) scaleX(0.5);
@@ -358,6 +354,15 @@ const LoginPage: React.FC = () => {
           }
         }
 
+        .animate-float {
+          animation: float 8s ease-in-out infinite;
+        }
+
+        .animate-float-delayed {
+          animation: float-delayed 10s ease-in-out infinite;
+          animation-delay: 2s;
+        }
+
         .animate-slide-horizontal {
           animation: slide-horizontal 8s ease-in-out infinite;
         }
@@ -409,5 +414,3 @@ const LoginPage: React.FC = () => {
     </div>
   )
 }
-
-export default LoginPage

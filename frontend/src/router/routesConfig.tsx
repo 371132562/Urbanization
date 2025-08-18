@@ -295,11 +295,9 @@ export const getFilteredRoutes = (userRole?: {
   sideRoutes: RouteItem[]
 } => {
   // 顶部菜单不做权限限制，始终显示
-  const filteredTopRoutes = topRoutes
-
   // 超管显示所有侧边栏菜单
   if (userRole?.name === 'admin') {
-    return { topRoutes: filteredTopRoutes, sideRoutes }
+    return { topRoutes, sideRoutes }
   }
 
   // 其他角色按allowedRoutes过滤侧边栏菜单
@@ -335,7 +333,7 @@ export const getFilteredRoutes = (userRole?: {
     .filter(Boolean) as RouteItem[]
 
   return {
-    topRoutes: filteredTopRoutes,
+    topRoutes,
     sideRoutes: filteredSideRoutes
   }
 }
