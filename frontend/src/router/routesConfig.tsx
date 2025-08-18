@@ -123,23 +123,23 @@ export const sideRoutes: RouteItem[] = [
       }
     ]
   },
-  // {
-  //   path: '/transform',
-  //   title: '数据转换',
-  //   icon: <ForkOutlined />,
-  //   children: [
-  //     {
-  //       path: '/transform/formula',
-  //       title: '转换公式',
-  //       component: Formula
-  //     },
-  //     {
-  //       path: '/transform/dataList',
-  //       title: '转换数据列表',
-  //       component: DataList
-  //     }
-  //   ]
-  // },
+  {
+    path: '/transform',
+    title: '数据转换',
+    icon: <ForkOutlined />,
+    children: [
+      {
+        path: '/transform/formula',
+        title: '转换公式',
+        component: Formula
+      },
+      {
+        path: '/transform/dataList',
+        title: '转换数据列表',
+        component: DataList
+      }
+    ]
+  },
   {
     path: '/map',
     title: '地图功能',
@@ -167,11 +167,11 @@ export const sideRoutes: RouteItem[] = [
         title: '模型介绍',
         component: EvaluationModel
       },
-      // {
-      //   path: '/evaluationModel/formulaDetail',
-      //   title: '公式详情',
-      //   component: FormulaDetail
-      // },
+      {
+        path: '/evaluationModel/formulaDetail',
+        title: '公式详情',
+        component: FormulaDetail
+      },
       {
         path: '/evaluationModel/weight',
         title: '权重管理',
@@ -199,21 +199,21 @@ export const sideRoutes: RouteItem[] = [
         title: '评分录入',
         component: ModifyScore
       },
-      // {
-      //   path: '/scoreManagement/export',
-      //   title: '评分导出',
-      //   component: Export
-      // },
+      {
+        path: '/scoreManagement/export',
+        title: '评分导出',
+        component: Export
+      },
       {
         path: '/scoreManagement/evaluation',
         title: '配置评价体系',
         component: ScoreEvaluation
       },
-      // {
-      //   path: '/scoreManagement/detail',
-      //   title: '评价详情',
-      //   component: Detail
-      // },
+      {
+        path: '/scoreManagement/detail',
+        title: '评价详情',
+        component: Detail
+      },
       {
         path: '/scoreManagement/modify/:countryId/:year',
         title: '评分编辑',
