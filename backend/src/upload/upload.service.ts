@@ -2,11 +2,12 @@
 import { Injectable, Logger } from '@nestjs/common'; // 导入 Logger
 import { BusinessException } from '../exceptions/businessException';
 import { ErrorCode } from '../../types/response';
-import { getImagePath } from '../utils/file-upload.utils'; // 导入 getImagePath
-import { unlink, readFile } from 'fs/promises'; // 导入 fs/promises 中的 unlink 用于异步删除文件
+import { getImagePath, UPLOAD_DIR } from '../utils/file-upload.utils'; // 导入 getImagePath 和 UPLOAD_DIR
+import { unlink, readFile, readdir } from 'fs/promises'; // 导入 fs/promises 中的 unlink 用于异步删除文件
 import { existsSync } from 'fs'; // 导入 existsSync
 import { createHash } from 'crypto';
 import { PrismaService } from 'prisma/prisma.service';
+import { join } from 'path';
 
 // 可插拔的“图片在用收集器”类型定义
 export type InUseImageCollector = () => Promise<Set<string>>;
@@ -170,6 +171,66 @@ export class UploadService {
         this.logger.error(`清理图片 ${filename} 失败: ${errorMessage}`);
       }
     }
+  }
+
+  /**
+   * 列出系统中的“孤立图片”（未被任何业务引用）
+   * 规则：
+   * - 物理目录中的图片文件 不在 inUse 集合中
+   * - 数据库 image 表中的记录 不在 inUse 集合中
+   * 两者取并集返回，供前端操作
+   */
+  async listOrphanImages(): Promise<string[]> {
+    // 1) 枚举物理目录下的所有图片文件名
+    const uploadAbsDir = join(process.cwd(), UPLOAD_DIR);
+    const diskFiles = existsSync(uploadAbsDir)
+      ? await readdir(uploadAbsDir)
+      : [];
+    const imageRegex = /^[0-9a-zA-Z._-]+\.(?:png|jpe?g|gif|webp|svg)$/;
+    const diskImageFiles = diskFiles.filter((f) => imageRegex.test(f));
+
+    // 2) 获取数据库 image 表中的所有文件名
+    const dbRows = await this.prisma.image.findMany({
+      select: { filename: true },
+    });
+    const dbImageFiles = dbRows.map((r) => r.filename);
+
+    // 3) 收集系统内正在使用的文件名集合
+    const inUse = await this.collectInUseImageFilenames();
+
+    // 4) 计算孤立集合（目录中未使用 ∪ 数据库未使用）
+    const orphanSet = new Set<string>();
+    for (const f of diskImageFiles) {
+      if (!inUse.has(f)) orphanSet.add(f);
+    }
+    for (const f of dbImageFiles) {
+      if (!inUse.has(f)) orphanSet.add(f);
+    }
+
+    return Array.from(orphanSet);
+  }
+
+  /**
+   * 批量删除图片（按文件名）
+   * 使用现有 deleteFile 逐个删除，失败不会中断其他删除
+   */
+  async deleteImages(filenames: string[]): Promise<{
+    deleted: string[];
+    failed: { filename: string; error: string }[];
+  }> {
+    const deleted: string[] = [];
+    const failed: { filename: string; error: string }[] = [];
+    for (const name of filenames) {
+      try {
+        await this.deleteFile(name);
+        deleted.push(name);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        failed.push({ filename: name, error: errorMessage });
+      }
+    }
+    return { deleted, failed };
   }
 
   /**

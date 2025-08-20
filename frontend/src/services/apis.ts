@@ -61,3 +61,7 @@ export const userCreateApi = '/user/create'
 export const userUpdateApi = '/user/update'
 export const userDeleteApi = '/user/delete'
 export const userResetPasswordApi = '/user/resetPassword'
+
+// 系统维护（图片）API
+export const listOrphanImagesApi = '/upload/maintenance/listOrphans'
+export const deleteOrphanImagesApi = '/upload/maintenance/deleteOrphans'

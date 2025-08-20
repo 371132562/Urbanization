@@ -69,4 +69,20 @@ export class UploadController {
     // 调用服务执行删除逻辑
     await this.uploadService.deleteFile(filename);
   }
+
+  // ---------- 系统维护：孤立图片 ----------
+  @Post('maintenance/listOrphans')
+  async listOrphans() {
+    const list = await this.uploadService.listOrphanImages();
+    return { list };
+  }
+
+  @Post('maintenance/deleteOrphans')
+  async deleteOrphans(@Body('filenames') filenames: string[]) {
+    if (!Array.isArray(filenames)) {
+      throw new BadRequestException('参数错误：filenames 必须为数组');
+    }
+    const result = await this.uploadService.deleteImages(filenames);
+    return result;
+  }
 }

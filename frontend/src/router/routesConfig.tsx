@@ -39,6 +39,7 @@ import Export from '@/pages/ScoreManagement/Export'
 import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
 import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
 import { Component as SpatialDynamics } from '@/pages/SpatialDynamics'
+import { Component as SystemMaintenance } from '@/pages/SystemMaintenance'
 import DataList from '@/pages/Transform/dataList'
 import Formula from '@/pages/Transform/Formula'
 import { Component as UrbanizationProcess } from '@/pages/UrbanizationProcess'
@@ -266,6 +267,11 @@ export const sideRoutes: RouteItem[] = [
         path: '/system/roleManagement',
         title: '角色管理',
         component: RoleManagement
+      },
+      {
+        path: '/system/maintenance',
+        title: '系统维护',
+        component: SystemMaintenance
       }
     ]
   }
