@@ -8,10 +8,40 @@ import { existsSync } from 'fs'; // 导入 existsSync
 import { createHash } from 'crypto';
 import { PrismaService } from 'prisma/prisma.service';
 
+// 可插拔的“图片在用收集器”类型定义
+export type InUseImageCollector = () => Promise<Set<string>>;
+
 @Injectable()
 export class UploadService {
   private readonly logger = new Logger(UploadService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly inUseCollectors: InUseImageCollector[] = [];
+
+  constructor(private readonly prisma: PrismaService) {
+    // 默认注册：文章模块收集器（images 字段 + content 富文本图片）
+    this.registerInUseImageCollector(async () => {
+      const inUse = new Set<string>();
+      const articles = await this.prisma.article.findMany({
+        where: { delete: 0 },
+        select: { images: true, content: true },
+      });
+      for (const article of articles) {
+        const images = (article.images as unknown as string[]) || [];
+        images.forEach((f) => inUse.add(f));
+        const content =
+          (article as unknown as { content?: string }).content || '';
+        if (content.length > 0) {
+          const names = this.extractImageFilenamesFromContent(content);
+          names.forEach((f) => inUse.add(f));
+        }
+      }
+      return inUse;
+    });
+  }
+
+  // 允许其他业务模块注册其“在用图片收集器”
+  registerInUseImageCollector(collector: InUseImageCollector) {
+    this.inUseCollectors.push(collector);
+  }
 
   private async getFileHash(filePath: string): Promise<string> {
     const fileBuffer = await readFile(filePath);
@@ -110,5 +140,90 @@ export class UploadService {
         `删除文件 ${filename} 失败。`,
       );
     }
+  }
+
+  // ---------- 通用清理逻辑（供多个业务模块复用） ----------
+
+  /**
+   * 清理未被任何业务引用的图片
+   * 当前支持引用来源：文章模块 Article（images 字段 + content 富文本内的 <img src>）
+   * 后续可在此扩展其他模块的引用收集
+   */
+  async cleanupUnusedImages(candidateFilenames: string[]): Promise<void> {
+    if (!Array.isArray(candidateFilenames) || candidateFilenames.length === 0) {
+      return;
+    }
+
+    const inUse = await this.collectInUseImageFilenames();
+
+    for (const filename of candidateFilenames) {
+      try {
+        if (!inUse.has(filename)) {
+          await this.deleteFile(filename);
+          this.logger.log(`清理未引用图片成功: ${filename}`);
+        } else {
+          this.logger.log(`图片仍在使用，跳过删除: ${filename}`);
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        this.logger.error(`清理图片 ${filename} 失败: ${errorMessage}`);
+      }
+    }
+  }
+
+  /**
+   * 对外公开：从富文本 HTML 内容中解析图片文件名
+   */
+  parseImageFilenamesFromHtml(content: string): string[] {
+    return this.extractImageFilenamesFromContent(content);
+  }
+
+  /**
+   * 收集当前系统中被引用的所有图片文件名
+   * 迭代所有已注册的在用收集器并合并结果
+   */
+  private async collectInUseImageFilenames(): Promise<Set<string>> {
+    const inUse = new Set<string>();
+
+    for (const collector of this.inUseCollectors) {
+      try {
+        const set = await collector();
+        for (const name of set) {
+          inUse.add(name);
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        this.logger.error(`在用图片收集器执行失败: ${errorMessage}`);
+      }
+    }
+
+    return inUse;
+  }
+
+  /**
+   * 从富文本 HTML 内容中提取图片文件名（与文章模块解析保持一致）
+   * 支持以下 src 形式：
+   * - /images/uuid.ext, //host/images/uuid.ext, http(s)://host/images/uuid.ext?x=1
+   * - 仅文件名 uuid.ext
+   */
+  private extractImageFilenamesFromContent(content: string): string[] {
+    if (!content) return [];
+
+    const result = new Set<string>();
+    const imgSrcRegex = /<img[^*>]*\s+src=["']([^"']+)["'][^>]*>/gi;
+    let match: RegExpExecArray | null;
+    while ((match = imgSrcRegex.exec(content)) !== null) {
+      const rawSrc = match[1];
+      if (!rawSrc) continue;
+      const lastSlashIndex = rawSrc.lastIndexOf('/');
+      const filename =
+        lastSlashIndex >= 0 ? rawSrc.substring(lastSlashIndex + 1) : rawSrc;
+      if (/^[0-9a-zA-Z._-]+\.(?:png|jpe?g|gif|webp|svg)$/.test(filename)) {
+        result.add(filename);
+      }
+    }
+    return Array.from(result);
   }
 }

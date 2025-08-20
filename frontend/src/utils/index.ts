@@ -73,3 +73,52 @@ export const filterDataByCountry = <T extends { data: { cnName: string; enName: 
     })
     .filter(yearData => yearData.data.length > 0)
 }
+
+// ---------------- 富文本图片地址转换通用方法 ----------------
+// 说明：以下方法用于在富文本保存与展示时，在“文件名”与“完整URL”之间进行互转。
+
+// 从 URL 中提取文件名
+export const extractFilename = (url: string): string => {
+  const lastSlashIndex = url.lastIndexOf('/')
+  return lastSlashIndex !== -1 ? url.substring(lastSlashIndex + 1) : url
+}
+
+// 根据文件名构造完整图片地址（需与富文本编辑器内的 parseImageSrc 逻辑保持一致）
+export const buildFullImageUrl = (filename: string): string => {
+  return (
+    '//' +
+    location.hostname +
+    (import.meta.env.DEV ? ':3888' : location.port ? ':' + location.port : '') +
+    (import.meta.env.VITE_DEPLOY_PATH === '/' ? '' : import.meta.env.VITE_DEPLOY_PATH) +
+    import.meta.env.VITE_IMAGES_BASE_URL +
+    filename
+  )
+}
+
+// 将 HTML 内容中的 <img src> 统一为文件名（用于提交给后端存储）
+export const toFilenameContent = (html: string): string => {
+  if (!html) return ''
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  doc.querySelectorAll('img').forEach(img => {
+    const src = img.getAttribute('src') || ''
+    if (!src) return
+    img.setAttribute('src', extractFilename(src))
+  })
+  return doc.body.innerHTML
+}
+
+// 将 HTML 内容中的 <img src> 从文件名扩展为完整路径（用于编辑/预览/展示显示）
+export const toFullPathContent = (html: string): string => {
+  if (!html) return ''
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  doc.querySelectorAll('img').forEach(img => {
+    const src = img.getAttribute('src') || ''
+    if (!src) return
+    // 已是完整地址则跳过（http/https/双斜杠）或包含路径分隔符（相对路径）
+    if (/^(https?:)?\/\//.test(src) || src.includes('/')) return
+    img.setAttribute('src', buildFullImageUrl(src))
+  })
+  return doc.body.innerHTML
+}

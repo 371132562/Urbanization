@@ -130,36 +130,62 @@ export class ArticleService {
   }
 
   async create(createArticleDto: CreateArticleDto): Promise<ArticleItem> {
-    const { deletedImages, ...articleData } = createArticleDto;
+    const { deletedImages: incomingDeletedImages, ...articleData } =
+      createArticleDto;
+
+    // 保险：根据 content 实际包含的图片，纠正 images / deletedImages
+    const reconciled = this._reconcileImages(
+      (articleData as unknown as { images?: string[] }).images ?? [],
+      incomingDeletedImages ?? [],
+      (articleData as unknown as { content?: string }).content ?? '',
+    );
+    (articleData as unknown as { images: string[] }).images = reconciled.images;
 
     const article = await this.prisma.article.create({
       data: articleData,
     });
 
     // 异步清理不再使用的图片，不阻塞主流程
-    if (deletedImages && deletedImages.length > 0) {
-      this._handleImageCleanup(deletedImages).catch((err) => {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        this.logger.error(`后台图片清理任务失败: ${errorMessage}`);
-      });
+    if (reconciled.deletedImages && reconciled.deletedImages.length > 0) {
+      this.uploadService
+        .cleanupUnusedImages(reconciled.deletedImages)
+        .catch((err) => {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          this.logger.error(`后台图片清理任务失败: ${errorMessage}`);
+        });
     }
 
     return this.mapToDto(article);
   }
 
   async update(updateArticleDto: UpdateArticleDto): Promise<ArticleItem> {
-    const { id, deletedImages, ...data } = updateArticleDto;
+    const {
+      id,
+      deletedImages: incomingDeletedImages,
+      ...data
+    } = updateArticleDto;
+
+    // 保险：根据 content 实际包含的图片，纠正 images / deletedImages
+    const reconciled = this._reconcileImages(
+      (data as unknown as { images?: string[] }).images ?? [],
+      incomingDeletedImages ?? [],
+      (data as unknown as { content?: string }).content ?? '',
+    );
+    (data as unknown as { images: string[] }).images = reconciled.images;
+
     const article = await this.prisma.article.update({
       where: { id },
       data,
     });
 
     // 异步清理不再使用的图片，不阻塞主流程
-    if (deletedImages && deletedImages.length > 0) {
-      this._handleImageCleanup(deletedImages).catch((err) => {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        this.logger.error(`后台图片清理任务失败: ${errorMessage}`);
-      });
+    if (reconciled.deletedImages && reconciled.deletedImages.length > 0) {
+      this.uploadService
+        .cleanupUnusedImages(reconciled.deletedImages)
+        .catch((err) => {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          this.logger.error(`后台图片清理任务失败: ${errorMessage}`);
+        });
     }
 
     return this.mapToDto(article);
@@ -187,7 +213,7 @@ export class ArticleService {
     // 3. 异步清理该文章关联的图片
     const imagesToCheck = articleToDelete.images as string[];
     if (imagesToCheck && imagesToCheck.length > 0) {
-      this._handleImageCleanup(imagesToCheck).catch((err) => {
+      this.uploadService.cleanupUnusedImages(imagesToCheck).catch((err) => {
         const errorMessage = err instanceof Error ? err.message : String(err);
         this.logger.error(`后台图片清理任务失败 (文章删除时): ${errorMessage}`);
       });
@@ -201,43 +227,43 @@ export class ArticleService {
    * 仅当图片在所有文章中都未被引用时，才会执行物理删除。
    * @param deletedImages - 包含待删除图片文件名的数组
    */
-  private async _handleImageCleanup(deletedImages: string[]) {
-    this.logger.log(
-      `开始图片清理任务，待处理图片: ${deletedImages.join(', ')}`,
+
+  /**
+   * 根据 content 中引用情况与前端提交的 images/deletedImages 进行纠正
+   * - 最终 images = 去重(前端 images ∪ content 中的图片)
+   * - 最终 deletedImages = 前端 deletedImages 去除所有仍在 content 或最终 images 中的项
+   */
+  private _reconcileImages(
+    imagesFromDto: string[],
+    deletedImagesFromDto: string[],
+    content: string,
+  ): { images: string[]; deletedImages: string[] } {
+    const contentImages = new Set(
+      this.uploadService.parseImageFilenamesFromHtml(content),
     );
 
-    // 1. 获取所有未删除文章中正在使用的图片
-    const allInUseImagesResult = await this.prisma.article.findMany({
-      where: { delete: 0 },
-      select: { images: true },
-    });
+    // 合并 images（确保不丢）
+    const finalImagesSet = new Set<string>(imagesFromDto);
+    contentImages.forEach((f) => finalImagesSet.add(f));
 
-    // 2. 将所有正在使用的图片文件名收集到一个 Set 中，以便快速查找
-    const inUseImageSet = new Set<string>();
-    allInUseImagesResult.forEach((article) => {
-      const images = article.images as string[]; // Prisma 返回的 Json 类型需要断言
-      if (Array.isArray(images)) {
-        images.forEach((img) => inUseImageSet.add(img));
-      }
-    });
+    // 过滤 deleted（避免误删）
+    const finalDeleted = (deletedImagesFromDto || []).filter(
+      (f) => !contentImages.has(f) && !finalImagesSet.has(f),
+    );
 
-    // 3. 遍历待删除列表，判断是否可以安全删除
-    for (const filename of deletedImages) {
-      try {
-        if (!inUseImageSet.has(filename)) {
-          // 如果图片已不在任何文章中使用，则进行物理删除
-          await this.uploadService.deleteFile(filename);
-          this.logger.log(`成功删除孤立图片: ${filename}`);
-        } else {
-          this.logger.log(`图片 ${filename} 仍在被其他文章使用，跳过删除。`);
-        }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        this.logger.error(`删除图片 ${filename} 失败: ${errorMessage}`);
-        // 不向上抛出异常，以确保单个文件删除失败不影响其他文件处理
-      }
+    // 可选日志：如有修正则打点
+    if (finalImagesSet.size !== (imagesFromDto || []).length) {
+      this.logger.log(
+        `纠正 images：由 ${imagesFromDto.length} 调整为 ${finalImagesSet.size}`,
+      );
     }
+    if (finalDeleted.length !== (deletedImagesFromDto || []).length) {
+      this.logger.log(
+        `纠正 deletedImages：由 ${(deletedImagesFromDto || []).length} 调整为 ${finalDeleted.length}`,
+      );
+    }
+
+    return { images: Array.from(finalImagesSet), deletedImages: finalDeleted };
   }
 
   async upsertArticleOrder(

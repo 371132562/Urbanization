@@ -1,6 +1,8 @@
 import React from 'react'
 import { ArticleItem } from 'urbanization-backend/types/dto'
 
+import { toFullPathContent } from '@/utils'
+
 import RichEditor from '../RichEditor'
 
 interface ArticleDisplayProps {
@@ -23,7 +25,7 @@ const ArticleDisplay: React.FC<ArticleDisplayProps> = ({ articles }) => {
             <h2 className="mb-4 text-2xl font-bold text-gray-800">{article.title}</h2>
             <div className="prose max-w-none">
               <RichEditor
-                value={article.content}
+                value={toFullPathContent(article.content)}
                 readOnly={true}
               />
             </div>

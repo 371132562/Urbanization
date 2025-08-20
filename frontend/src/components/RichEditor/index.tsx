@@ -6,6 +6,8 @@ import type { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor/edit
 import { Editor, Toolbar } from '@wangeditor/editor-for-react'
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 
+import { extractFilename } from '@/utils'
+
 /**
  * @description 专用于 wangeditor 的图片元素类型，因为 @wangeditor/editor 未导出
  */
@@ -68,16 +70,15 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
   ) => {
     // editor 实例，必须用 state 来存储，不能直接创建
     const [editor, setEditor] = useState<IDomEditor | null>(null)
-    // 使用 state 存储所有插入过的图片 src
+    // 使用 state 存储所有插入过的图片（仅文件名），用于计算删除列表
     const [allInsertedImages, setAllInsertedImages] = useState<string[]>([])
 
     // 当外部传入的初始图片列表变化时，更新 allInsertedImages 状态
     // 只在非只读模式下执行，因为只读模式下不需要追踪图片变化
     useEffect(() => {
       if (!readOnly) {
-        // 使用 Set 来合并初始图片和当前已插入的图片，并自动去重
-        // 这可以确保在编辑模式下，从详情加载的图片被正确追踪
-        setAllInsertedImages(prev => [...new Set([...prev, ...initialImages])])
+        // 将外部传入的初始图片统一规范为文件名后再合并，使用 Set 去重
+        setAllInsertedImages(prev => [...new Set([...prev, ...initialImages.map(extractFilename)])])
       }
     }, [initialImages, readOnly]) // 依赖 readOnly 状态，确保模式切换时正确处理
 
@@ -153,15 +154,17 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
             const { src } = imageNode
             // 只在非只读模式下追踪图片，避免不必要的状态更新
             if (!readOnly) {
-              // 使用 Set 去重，确保 src 唯一
-              setAllInsertedImages(prevSrcs => [...new Set([...prevSrcs, src])])
+              // 统一按文件名追踪，使用 Set 去重，确保唯一
+              const filename = extractFilename(src)
+              setAllInsertedImages(prevSrcs => [...new Set([...prevSrcs, filename])])
             }
           },
           parseImageSrc: (src: string) => {
+            console.log(import.meta.env.MODE)
             return (
               '//' +
               location.hostname +
-              (location.port ? ':' + location.port : '') +
+              (import.meta.env.DEV ? ':3888' : location.port ? ':' + location.port : '') +
               (import.meta.env.VITE_DEPLOY_PATH === '/' ? '' : import.meta.env.VITE_DEPLOY_PATH) +
               import.meta.env.VITE_IMAGES_BASE_URL +
               src
@@ -187,11 +190,11 @@ const RichEditor = forwardRef<RichEditorRef, RichEditorProps>(
           return { images: [], deletedImages: [] }
         }
 
-        // 1. 获取当前编辑器中所有图片元素
+        // 1. 获取当前编辑器中所有图片元素，并将 src 统一规范为文件名
         const currentImageNodes = editor.getElemsByType('image') as unknown as ImageElement[]
-        const images = currentImageNodes.map(node => node.src)
+        const images = currentImageNodes.map(node => extractFilename(node.src))
 
-        // 2. 对比所有插入过的图片和当前保留的图片，计算出已删除的图片
+        // 2. 对比所有插入过（统一为文件名）的图片和当前保留的图片，计算出已删除的图片
         const deletedImages = allInsertedImages.filter(src => !images.includes(src))
 
         return {

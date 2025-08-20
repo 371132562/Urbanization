@@ -6,6 +6,7 @@ import type { CreateArticleDto, UpdateArticleDto } from 'urbanization-backend/ty
 // 引入自定义的富文本编辑器组件和文章状态管理 store
 import RichEditor, { type RichEditorRef } from '@/components/RichEditor'
 import useArticleStore from '@/stores/articleStore'
+import { extractFilename, toFilenameContent, toFullPathContent } from '@/utils'
 
 /**
  * 文章创建/编辑组件
@@ -61,7 +62,8 @@ const ArticleModify: FC = () => {
       setTimeout(() => {
         form.setFieldsValue({
           title: articleDetail.title,
-          content: articleDetail.content
+          // 将后端存储的文件名形式的 content 转换为完整图片地址后再注入编辑器
+          content: toFullPathContent(articleDetail.content)
         })
       }, 0)
     }
@@ -79,11 +81,9 @@ const ArticleModify: FC = () => {
     }
     const { images, deletedImages } = editorRef.current.getImages()
 
-    // 根据用户需求，只保留 URL 中的文件名部分
-    const extractFilename = (url: string) => {
-      // 从 URL 中找到最后一个 "/" 的位置，并截取之后的部分
-      return url.substring(url.lastIndexOf('/') + 1)
-    }
+    // 将富文本内容中的图片地址统一转为文件名，用于后端存储
+    const contentWithFilenames = toFilenameContent(values.content)
+
     const processedImages = images.map(extractFilename)
     const processedDeletedImages = deletedImages.map(extractFilename)
 
@@ -94,7 +94,8 @@ const ArticleModify: FC = () => {
       // 编辑模式：需要传入文章 ID
       const data: UpdateArticleDto = {
         id: id as string,
-        ...values,
+        title: values.title,
+        content: contentWithFilenames,
         images: processedImages,
         deletedImages: processedDeletedImages
       }
@@ -102,11 +103,11 @@ const ArticleModify: FC = () => {
     } else {
       // 新增模式：直接使用表单数据
       const data: CreateArticleDto = {
-        ...values,
+        title: values.title,
+        content: contentWithFilenames,
         images: processedImages,
         deletedImages: processedDeletedImages
       }
-      console.log(data)
       success = await createArticle(data)
     }
 
