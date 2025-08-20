@@ -1,5 +1,4 @@
 /* 数据管理列表页 */
-import { useDebounce } from 'ahooks'
 import type { TableProps } from 'antd'
 import {
   Button,
@@ -66,7 +65,8 @@ const DataManagement = () => {
   const deleteData = useDataManagementStore(state => state.deleteData)
 
   const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 })
+  // 移除 useDebounce
+  // const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 })
   // 存储每个年份的分页参数
   const [yearPaginationParams, setYearPaginationParams] = useState<
     Record<number, { page: number; pageSize: number }>
@@ -75,20 +75,23 @@ const DataManagement = () => {
   const [activeCollapseKey, setActiveCollapseKey] = useState<string[] | ''>('')
   const navigate = useNavigate()
 
-  // 搜索时重新加载数据
+  // 统一组装请求参数
+  const buildParams = (
+    yearParams: Record<number, { page: number; pageSize: number }>,
+    term: string
+  ): DataManagementListReqDto => ({
+    searchTerm: term || undefined,
+    yearPaginations: Object.entries(yearParams).map(([year, pagination]) => ({
+      year: Number(year),
+      page: pagination.page,
+      pageSize: pagination.pageSize
+    }))
+  })
+
+  // 首次加载列表
   useEffect(() => {
-    if (debouncedSearchTerm !== undefined) {
-      const params: DataManagementListReqDto = {
-        searchTerm: debouncedSearchTerm || undefined,
-        yearPaginations: Object.entries(yearPaginationParams).map(([year, pagination]) => ({
-          year: Number(year),
-          page: pagination.page,
-          pageSize: pagination.pageSize
-        }))
-      }
-      getDataManagementListPaginated(params)
-    }
-  }, [debouncedSearchTerm, yearPaginationParams])
+    getDataManagementListPaginated({ searchTerm: undefined, yearPaginations: [] })
+  }, [])
 
   // 初始化年份分页参数
   useEffect(() => {
@@ -132,16 +135,28 @@ const DataManagement = () => {
         }
       }
 
-      // 重新获取当前分页数据
-      const params: DataManagementListReqDto = {
-        searchTerm: debouncedSearchTerm || undefined,
-        yearPaginations: Object.entries(yearPaginationParams).map(([year, pagination]) => ({
-          year: Number(year),
-          page: pagination.page,
-          pageSize: pagination.pageSize
-        }))
+      // 重新获取当前分页数据（根据是否调整分页决定使用的新参数）
+      let nextYearParams = yearPaginationParams
+      if (currentYearData && currentPagination) {
+        const remainingCount = currentYearData.data.length - 1
+        const totalPages = Math.ceil(
+          (currentYearData.pagination.total - 1) / currentPagination.pageSize
+        )
+
+        if (remainingCount === 0 && currentPagination.page > 1) {
+          const newPage = Math.min(currentPagination.page - 1, totalPages)
+          nextYearParams = {
+            ...yearPaginationParams,
+            [record.year]: {
+              ...yearPaginationParams[record.year],
+              page: newPage
+            }
+          }
+          setYearPaginationParams(nextYearParams)
+        }
       }
-      await getDataManagementListPaginated(params)
+
+      await getDataManagementListPaginated(buildParams(nextYearParams, searchTerm))
     } else {
       message.error('删除失败')
     }
@@ -257,10 +272,24 @@ const DataManagement = () => {
 
   // 处理分页年份数据的分页变更
   const handleYearPaginationChange = (year: number, page: number, pageSize: number) => {
-    setYearPaginationParams(prev => ({
-      ...prev,
+    const next = {
+      ...yearPaginationParams,
       [year]: { page, pageSize }
-    }))
+    }
+    setYearPaginationParams(next)
+    getDataManagementListPaginated(buildParams(next, searchTerm))
+  }
+
+  // Search组件onSearch事件处理
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+    // 搜索时重置所有年份的页码为第一页，避免搜索结果分页错乱
+    const resetParams: Record<number, { page: number; pageSize: number }> = {}
+    Object.entries(yearPaginationParams).forEach(([year, pagination]) => {
+      resetParams[Number(year)] = { page: 1, pageSize: pagination.pageSize }
+    })
+    setYearPaginationParams(resetParams)
+    getDataManagementListPaginated(buildParams(resetParams, value))
   }
 
   return (
@@ -269,7 +298,9 @@ const DataManagement = () => {
         <Search
           placeholder="按国家名称搜索"
           allowClear
+          value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
+          onSearch={handleSearch}
           style={{ width: 300 }}
         />
       </div>
