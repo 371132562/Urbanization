@@ -1,6 +1,6 @@
 // src/upload/upload.service.ts
 import { Injectable, Logger } from '@nestjs/common'; // 导入 Logger
-import { BusinessException } from '../exceptions/businessException';
+import { BusinessException } from '../common/exceptions/businessException';
 import { ErrorCode } from '../../types/response';
 import { getImagePath, UPLOAD_DIR } from '../utils/file-upload.utils'; // 导入 getImagePath 和 UPLOAD_DIR
 import { unlink, readFile, readdir } from 'fs/promises'; // 导入 fs/promises 中的 unlink 用于异步删除文件

@@ -28,7 +28,7 @@ import {
 } from '../../../types/dto';
 import { IndicatorValue } from '@prisma/client';
 import * as xlsx from 'xlsx';
-import { BusinessException } from '../../exceptions/businessException';
+import { BusinessException } from '../../common/exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
 import dayjs from '../../utils/dayjs';
 

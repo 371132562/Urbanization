@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { join } from 'path';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { RequestContextMiddleware } from './common/middlewares/request-context.middleware';
 
 //公共模块
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -60,4 +62,8 @@ import { ScoreModule } from './businessComponent/score/score.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}

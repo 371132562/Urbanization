@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { IndicatorHierarchyResDto, UpdateWeightsDto } from '../../../types/dto'; // 使用正确的路径
 
 import { PrismaService } from '../../../prisma/prisma.service'; // 使用正确的路径
-import { BusinessException } from '../../exceptions/businessException';
+import { BusinessException } from '../../common/exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
 
 type ErrorWithMessage = {

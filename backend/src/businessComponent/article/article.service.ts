@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Article, ArticleOrder } from '@prisma/client';
-import { BusinessException } from 'src/exceptions/businessException';
+import { BusinessException } from 'src/common/exceptions/businessException';
 import {
   CreateArticleDto,
   ArticleItem,

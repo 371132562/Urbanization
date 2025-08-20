@@ -7,7 +7,7 @@ import {
   AssignRoleRoutesDto,
   RoleListResDto,
 } from '../../../types/dto';
-import { BusinessException } from '../../exceptions/businessException';
+import { BusinessException } from '../../common/exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
 import { Prisma } from '@prisma/client';
 
