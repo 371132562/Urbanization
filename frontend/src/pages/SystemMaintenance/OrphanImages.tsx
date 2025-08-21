@@ -1,4 +1,5 @@
-import { Button, Card, Checkbox, Image, List, message, Space } from 'antd'
+import { QuestionCircleOutlined } from '@ant-design/icons'
+import { Button, Card, Checkbox, Collapse, Image, List, message, Space } from 'antd'
 import { FC, useMemo, useState } from 'react'
 
 import useSystemMaintenanceStore from '@/stores/systemMaintenanceStore'
@@ -41,6 +42,49 @@ const OrphanImages: FC = () => {
 
   return (
     <div className="w-full max-w-6xl">
+      {/* 可展开的说明信息 */}
+      <Collapse
+        ghost
+        size="small"
+        className="mb-4"
+        items={[
+          {
+            key: '1',
+            label: (
+              <span className="flex items-center gap-2 text-blue-600">
+                <QuestionCircleOutlined />
+                什么是孤立图片？为什么要清除？
+              </span>
+            ),
+            children: (
+              <div className="space-y-3 text-gray-700">
+                <div>
+                  <p className="mb-2 font-medium">什么是孤立图片？</p>
+                  <p className="mb-2">
+                    孤立图片是指存储在服务器上但数据库中没有任何记录引用的图片文件。这些图片通常是由于以下原因产生的：
+                  </p>
+                  <ul className="ml-4 list-inside list-disc space-y-1">
+                    <li>上传后未成功保存到数据库</li>
+                    <li>数据库记录被删除但文件未清理</li>
+                    <li>系统异常导致的数据不一致</li>
+                    <li>手动删除数据时遗漏了文件清理</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="mb-2 font-medium">为什么要清除孤立图片？</p>
+                  <ul className="ml-4 list-inside list-disc space-y-1">
+                    <li>释放服务器存储空间</li>
+                    <li>避免存储资源浪费</li>
+                    <li>保持系统数据一致性</li>
+                    <li>提高系统性能</li>
+                  </ul>
+                </div>
+              </div>
+            )
+          }
+        ]}
+      />
+
       <div className="mb-4 flex items-center justify-between">
         <div></div>
         <Space>
@@ -48,7 +92,12 @@ const OrphanImages: FC = () => {
             loading={scanning}
             onClick={async () => {
               setSelected([])
-              await scanOrphanImages()
+              const result = await scanOrphanImages()
+              if (result.success) {
+                message.success(result.message)
+              } else {
+                message.error(result.message)
+              }
             }}
           >
             扫描孤立图片

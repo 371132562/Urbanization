@@ -1,4 +1,4 @@
-import { notification } from 'antd'
+import { message } from 'antd'
 import { ErrorCode } from 'urbanization-backend/types/response'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -38,7 +38,6 @@ export const useAuthStore = create<AuthStore>()(
           return true
         } catch (err: any) {
           set({ loading: false, error: err?.msg || '登录失败' })
-          notification.error({ message: '登录失败', description: err?.msg || '请检查账号密码' })
           return false
         }
       },
@@ -46,7 +45,7 @@ export const useAuthStore = create<AuthStore>()(
       logout() {
         set({ token: null, user: null, error: null })
         localStorage.removeItem('auth-storage')
-        notification.success({ message: '退出成功' })
+        message.success('退出成功')
       },
       // 获取用户信息
       async fetchProfile() {
