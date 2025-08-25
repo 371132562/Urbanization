@@ -13,22 +13,22 @@ const DataExport = () => {
   const navigate = useNavigate()
   const [form] = Form.useForm()
 
-  const {
-    years,
-    yearsLoading,
-    countriesByYears,
-    countriesByYearsLoading,
-    getDataManagementYears,
-    getDataManagementCountriesByYears,
-    exportDataMultiYear,
-    isCsvSupported,
-    exportLoading
-  } = useDataManagementStore()
+  const years = useDataManagementStore(state => state.years)
+  const yearsLoading = useDataManagementStore(state => state.yearsLoading)
+  const countriesByYears = useDataManagementStore(state => state.countriesByYears)
+  const countriesByYearsLoading = useDataManagementStore(state => state.countriesByYearsLoading)
+  const getDataManagementYears = useDataManagementStore(state => state.getDataManagementYears)
+  const getDataManagementCountriesByYears = useDataManagementStore(
+    state => state.getDataManagementCountriesByYears
+  )
+  const exportDataMultiYear = useDataManagementStore(state => state.exportDataMultiYear)
+  const isCsvSupported = useDataManagementStore(state => state.isCsvSupported)
+  const exportLoading = useDataManagementStore(state => state.exportLoading)
 
   // 加载年份数据
   useEffect(() => {
     getDataManagementYears()
-  }, [getDataManagementYears])
+  }, [])
 
   // 获取按年份分组的国家选项
   const getGroupedCountryOptions = () => {

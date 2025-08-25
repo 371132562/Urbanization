@@ -215,9 +215,11 @@ export class ScoreService {
    * @returns {Promise<CountryScoreData[]>} 按国家分组的评分数据。
    */
   async listByCountry(): Promise<CountryScoreData[]> {
-    this.logger.log('开始从数据库获取所有评分数据，并按国家分组。');
+    this.logger.log(
+      '开始从数据库获取所有评分数据，并按国家分组，只返回城镇化的国家。',
+    );
 
-    // 1. 从数据库查询所有未被软删除的评分记录
+    // 1. 从数据库查询所有未被软删除的评分记录，只包含城镇化为"是"的国家
     //    - 包含关联的国家信息
     //    - 按国家中文名升序, 年份降序排序
     const scores = await this.prisma.score.findMany({
@@ -225,6 +227,12 @@ export class ScoreService {
         delete: 0, // 过滤未被删除的记录
         country: {
           delete: 0, // 确保关联的国家也未被删除
+          urbanizationWorldMap: {
+            some: {
+              urbanization: true, // 只包含城镇化为"是"的国家
+              delete: 0,
+            },
+          },
         },
       },
       include: {
@@ -244,12 +252,12 @@ export class ScoreService {
 
     // 如果查询结果为空，直接返回空数组
     if (!scores || scores.length === 0) {
-      this.logger.log('未找到任何评分数据，返回空数组。');
+      this.logger.log('未找到任何城镇化国家的评分数据，返回空数组。');
       return [];
     }
 
     // 2. 使用 Map 按国家对数据进行分组
-    //    - Key: countryId (number)
+    //    - Key: countryId (string)
     //    - Value: 当个国家的所有评分记录数组 (Score with Country)
     const groupedByCountry = new Map<
       string,
@@ -276,37 +284,14 @@ export class ScoreService {
         // 遍历该国家的所有评分记录，并将其映射为 DTO 格式
         data: countryScores.map((score): CountryScoreDataItem => {
           return {
-            id: score.id,
             year: score.year,
-            totalScore:
-              score.totalScore instanceof Decimal
-                ? score.totalScore.toNumber()
-                : score.totalScore,
-            urbanizationProcessDimensionScore:
-              score.urbanizationProcessDimensionScore instanceof Decimal
-                ? score.urbanizationProcessDimensionScore.toNumber()
-                : score.urbanizationProcessDimensionScore,
-            humanDynamicsDimensionScore:
-              score.humanDynamicsDimensionScore instanceof Decimal
-                ? score.humanDynamicsDimensionScore.toNumber()
-                : score.humanDynamicsDimensionScore,
-            materialDynamicsDimensionScore:
-              score.materialDynamicsDimensionScore instanceof Decimal
-                ? score.materialDynamicsDimensionScore.toNumber()
-                : score.materialDynamicsDimensionScore,
-            spatialDynamicsDimensionScore:
-              score.spatialDynamicsDimensionScore instanceof Decimal
-                ? score.spatialDynamicsDimensionScore.toNumber()
-                : score.spatialDynamicsDimensionScore,
-            createTime: score.createTime,
-            updateTime: score.updateTime,
           };
         }),
       };
       result.push(countryData);
     }
 
-    this.logger.log('按国家分组的评分数据处理完成。');
+    this.logger.log('按国家分组的评分数据处理完成，只包含城镇化的国家。');
     return result;
   }
 

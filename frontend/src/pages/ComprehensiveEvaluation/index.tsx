@@ -15,12 +15,10 @@ const ComprehensiveEvaluation: FC = () => {
   // 从Zustand store中获取数据和方法
   const scoreListByCountry = useScoreStore(state => state.scoreListByCountry)
   const getScoreListByCountry = useScoreStore(state => state.getScoreListByCountry)
-  const listLoading = useScoreStore(state => state.paginatedListLoading)
+  const listLoading = useScoreStore(state => state.scoreListByCountryLoading)
 
   const countries = useCountryAndContinentStore(state => state.countries)
   const getCountries = useCountryAndContinentStore(state => state.getCountries)
-  const urbanizationMapData = useCountryAndContinentStore(state => state.urbanizationMapData)
-  const getUrbanizationMapData = useCountryAndContinentStore(state => state.getUrbanizationMapData)
 
   const navigate = useNavigate()
 
@@ -35,44 +33,31 @@ const ComprehensiveEvaluation: FC = () => {
   // 添加高亮状态，用于地图高亮显示
   const [highlightedCountry, setHighlightedCountry] = useState<string>('')
 
-  // 组件加载时，异步获取按国家分组的评分数据、所有国家列表和城镇化数据
+  // 组件加载时，异步获取按国家分组的评分数据和所有国家列表
   useEffect(() => {
     getScoreListByCountry()
     getCountries()
-    getUrbanizationMapData()
-  }, [getScoreListByCountry, getCountries, getUrbanizationMapData])
+  }, [getScoreListByCountry, getCountries])
 
   // 使用useMemo对处理后的数据进行缓存，只有在原始数据变化时才重新计算
   const { mapData, nameMap, valueMap, countryYearsMap, countryEnNameToIdMap } = useMemo(
-    () => processScoreDataForMap(scoreListByCountry, countries, urbanizationMapData),
-    [scoreListByCountry, countries, urbanizationMapData]
+    () => processScoreDataForMap(scoreListByCountry, countries),
+    [scoreListByCountry, countries]
   )
 
-  // 生成有数据的国家列表，只包含城镇化为"是"的国家
+  // 生成有数据的国家列表，后端已经过滤了只包含城镇化为"是"的国家
   const countriesWithData = useMemo(() => {
-    const result: Array<{
-      name: string
-      enName: string
-      years: number[]
-    }> = []
-
-    scoreListByCountry.forEach(country => {
-      // 检查该国家是否城镇化为"是"
-      const urbanizationItem = urbanizationMapData.find(
-        item => item.country.enName === country.enName
-      )
-      if (urbanizationItem?.urbanization === true) {
+    return scoreListByCountry
+      .map(country => {
         const years = country.data.map(d => d.year).sort((a, b) => b - a)
-        result.push({
+        return {
           name: country.cnName,
           enName: country.enName,
           years
-        })
-      }
-    })
-
-    return result.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-  }, [scoreListByCountry, urbanizationMapData])
+        }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+  }, [scoreListByCountry])
 
   // 过滤后的国家列表
   const filteredCountries = useMemo(() => {

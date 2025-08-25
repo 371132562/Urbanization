@@ -541,15 +541,7 @@ export type PaginatedYearScoreData = {
 };
 
 export interface CountryScoreDataItem {
-  id: string;
   year: number;
-  totalScore: number;
-  urbanizationProcessDimensionScore: number;
-  humanDynamicsDimensionScore: number;
-  materialDynamicsDimensionScore: number;
-  spatialDynamicsDimensionScore: number;
-  createTime: Date;
-  updateTime: Date;
 }
 
 /**
