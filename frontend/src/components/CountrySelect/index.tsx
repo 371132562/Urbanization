@@ -20,7 +20,7 @@ const { Option, OptGroup } = Select
  * 2. 如果传入`options`，则只展示`options`中的国家，不分组
  */
 type CountrySelectProps = {
-  options?: (Country | CountryData | SimpleCountryData)[] // 外部传入的国家选项
+  options?: (Country | CountryData | SimpleCountryData | (SimpleCountryData & { year?: number }))[] // 外部传入的国家选项，支持年份信息
 } & Omit<
   SelectProps,
   'options' | 'value' | 'onChange' | 'mode' | 'placeholder' | 'style' | 'disabled'
@@ -58,19 +58,46 @@ const CountrySelect: React.FC<CountrySelectProps & SelectProps> = ({
 
     // 如果是外部传入的options，则直接返回，不需要按大洲分组
     if (options) {
-      return options.map(country => (
-        <Option
-          key={country.id}
-          value={country.id}
-          label={country.cnName}
-          data-en-name={country.enName} // 添加英文名作为data属性
-        >
-          <div className="flex items-center">
-            <span>{country.cnName}</span>
-            <span className="ml-2 text-xs text-gray-400">({country.enName})</span>
-          </div>
-        </Option>
-      ))
+      return options.map(country => {
+        // 检查是否有年份信息
+        const hasYear = 'year' in country && country.year
+
+        if (hasYear) {
+          // 有年份信息，将年份嵌入到value中，格式：countryId:year
+          return (
+            <Option
+              key={`${country.id}:${country.year}`}
+              value={`${country.id}:${country.year}`}
+              label={country.cnName}
+              data-en-name={country.enName}
+              data-year={country.year}
+            >
+              <div className="flex w-full items-center justify-between">
+                <div className="flex items-center">
+                  <span>{country.cnName}</span>
+                  <span className="ml-2 text-xs text-gray-400">({country.enName})</span>
+                </div>
+                <span className="ml-2 text-xs text-gray-500">{country.year}年</span>
+              </div>
+            </Option>
+          )
+        } else {
+          // 没有年份信息，按原来的方式显示
+          return (
+            <Option
+              key={country.id}
+              value={country.id}
+              label={country.cnName}
+              data-en-name={country.enName}
+            >
+              <div className="flex items-center">
+                <span>{country.cnName}</span>
+                <span className="ml-2 text-xs text-gray-400">({country.enName})</span>
+              </div>
+            </Option>
+          )
+        }
+      })
     }
 
     // --- 以下是用于处理内部获取的数据 ---

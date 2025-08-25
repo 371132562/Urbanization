@@ -216,9 +216,14 @@ export const ExportFormatOptions = [
   { value: ExportFormat.JSON, label: 'JSON' },
 ];
 
-export type ExportDataReqDto = {
-  year: number; // 年份
-  countryIds: string[]; // 国家ID数组
+/**
+ * 多年份导出数据请求参数
+ */
+export type ExportDataMultiYearReqDto = {
+  yearCountryPairs: Array<{
+    year: number; // 年份
+    countryIds: string[]; // 该年份下的国家ID数组
+  }>;
   format: ExportFormat; // 导出格式
 };
 
@@ -228,10 +233,10 @@ export type ExportDataReqDto = {
 export type DataManagementYearsResDto = number[];
 
 /**
- * 根据年份获取国家列表请求参数
+ * 根据多个年份获取国家列表请求参数
  */
-export type DataManagementCountriesByYearReqDto = {
-  year: number; // 年份
+export type DataManagementCountriesByYearsReqDto = {
+  years: number[]; // 年份数组
 };
 
 /**
@@ -244,9 +249,12 @@ export type SimpleCountryData = {
 };
 
 /**
- * 根据年份获取国家列表响应类型
+ * 按年份分组的国家列表响应类型
  */
-export type DataManagementCountriesByYearResDto = SimpleCountryData[];
+export type DataManagementCountriesByYearsResDto = Array<{
+  year: number;
+  countries: SimpleCountryData[];
+}>;
 
 /*
  * ==================== 指标管理模块 ====================

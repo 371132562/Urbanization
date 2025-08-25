@@ -2,7 +2,7 @@
 export const dataManagementList = '/dataManagement/list'
 export const dataManagementListPaginated = '/dataManagement/listPaginated'
 export const dataManagementYears = '/dataManagement/years'
-export const dataManagementCountriesByYear = '/dataManagement/countriesByYear'
+export const dataManagementCountriesByYears = '/dataManagement/countriesByYears'
 export const dataManagementDetail = '/dataManagement/detail'
 export const dataManagementCreate = '/dataManagement/create'
 export const dataManagementBatchCreate = '/dataManagement/batchCreate'
@@ -10,6 +10,7 @@ export const dataManagementCheckExistingData = '/dataManagement/checkExistingDat
 export const dataManagementBatchCheckExistingData = '/dataManagement/batchCheckExistingData'
 export const dataManagementDelete = '/dataManagement/delete'
 export const dataManagementExport = '/dataManagement/export'
+export const dataManagementExportMultiYear = '/dataManagement/exportMultiYear'
 
 // 指标API
 export const indicatorHierarchy = '/indicator/indicatorsHierarchy'

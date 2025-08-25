@@ -7,13 +7,13 @@ import type {
   CountryDetailResDto,
   CountryYearQueryDto,
   CreateIndicatorValuesDto,
-  DataManagementCountriesByYearReqDto,
-  DataManagementCountriesByYearResDto,
+  DataManagementCountriesByYearsReqDto,
+  DataManagementCountriesByYearsResDto,
   DataManagementListDto,
   DataManagementListReqDto,
   DataManagementListResDto,
   DataManagementYearsResDto,
-  ExportDataReqDto,
+  ExportDataMultiYearReqDto,
   TopIndicatorItem
 } from 'urbanization-backend/types/dto'
 import { create } from 'zustand'
@@ -22,16 +22,17 @@ import {
   dataManagementBatchCheckExistingData,
   dataManagementBatchCreate,
   dataManagementCheckExistingData,
-  dataManagementCountriesByYear,
+  dataManagementCountriesByYears,
   dataManagementCreate,
   dataManagementDelete,
   dataManagementDetail,
-  dataManagementExport,
+  dataManagementExportMultiYear,
   dataManagementList,
   dataManagementListPaginated,
   dataManagementYears
 } from '@/services/apis'
 import http from '@/services/base.ts'
+import { ExportFormat } from '@/types'
 import { dayjs } from '@/utils/dayjs'
 
 type DataManagementStore = {
@@ -46,13 +47,15 @@ type DataManagementStore = {
   exportLoading: boolean
   years: DataManagementYearsResDto
   yearsLoading: boolean
-  countriesByYear: DataManagementCountriesByYearResDto
-  countriesByYearLoading: boolean
+  // 多年份国家数据
+  countriesByYears: DataManagementCountriesByYearsResDto
+  countriesByYearsLoading: boolean
   getDataManagementList: () => Promise<void>
   // 新增：分页获取数据管理列表
   getDataManagementListPaginated: (params?: DataManagementListReqDto) => Promise<void>
   getDataManagementYears: () => Promise<void>
-  getDataManagementCountriesByYear: (params: DataManagementCountriesByYearReqDto) => Promise<void>
+  // 获取多年份国家数据
+  getDataManagementCountriesByYears: (params: DataManagementCountriesByYearsReqDto) => Promise<void>
   getDataManagementDetail: (params: CountryDetailReqDto) => Promise<void>
   saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<boolean>
   batchSaveDataManagementDetail: (data: BatchCreateIndicatorValuesDto) => Promise<{
@@ -66,7 +69,12 @@ type DataManagementStore = {
   batchCheckDataManagementExistingData: (
     data: BatchCheckIndicatorExistingDto
   ) => Promise<BatchCheckIndicatorExistingResDto>
-  exportData: (params: ExportDataReqDto) => Promise<boolean>
+  exportDataMultiYear: (
+    selectedCountryYearValues: string[],
+    format: ExportFormat
+  ) => Promise<boolean>
+  // 检查是否支持CSV格式（多年份时不支持）
+  isCsvSupported: (selectedYears: number[]) => boolean
   resetDetailData: () => void
   initializeNewData: (indicatorHierarchy: TopIndicatorItem[]) => void
 }
@@ -81,11 +89,12 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
   detailLoading: false,
   saveLoading: false,
   exportLoading: false,
-  // 新增：用于导出页面优化的状态
+  // 用于导出页面优化的状态
   years: [],
   yearsLoading: false,
-  countriesByYear: [],
-  countriesByYearLoading: false,
+  // 多年份国家数据
+  countriesByYears: [],
+  countriesByYearsLoading: false,
 
   // 获取数据管理列表
   getDataManagementList: async () => {
@@ -112,16 +121,16 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     }
   },
 
-  // 根据年份获取国家列表
-  getDataManagementCountriesByYear: async (params: DataManagementCountriesByYearReqDto) => {
-    set({ countriesByYearLoading: true })
+  // 根据多个年份获取国家列表
+  getDataManagementCountriesByYears: async (params: DataManagementCountriesByYearsReqDto) => {
+    set({ countriesByYearsLoading: true })
     try {
-      const res = await http.post(dataManagementCountriesByYear, params)
-      set({ countriesByYear: res.data })
+      const res = await http.post(dataManagementCountriesByYears, params)
+      set({ countriesByYears: res.data })
     } catch (error) {
-      console.error('获取国家列表失败:', error)
+      console.error('获取多年份国家列表失败:', error)
     } finally {
-      set({ countriesByYearLoading: false })
+      set({ countriesByYearsLoading: false })
     }
   },
 
@@ -219,17 +228,51 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     }
   },
 
-  // 导出数据
-  exportData: async (params: ExportDataReqDto): Promise<boolean> => {
+  // 多年份导出数据（包含数据组装逻辑）
+  exportDataMultiYear: async (
+    selectedCountryYearValues: string[],
+    format: ExportFormat
+  ): Promise<boolean> => {
     set({ exportLoading: true })
     try {
-      const response = await http.post(dataManagementExport, params, {
+      // 解析选中的国家-年份值，格式：countryId:year
+      const yearCountryPairs: Array<{ year: number; countryIds: string[] }> = []
+      const yearMap = new Map<number, Set<string>>()
+
+      selectedCountryYearValues.forEach(value => {
+        const [countryId, yearStr] = value.split(':')
+        const year = parseInt(yearStr)
+
+        if (!yearMap.has(year)) {
+          yearMap.set(year, new Set())
+        }
+        yearMap.get(year)!.add(countryId)
+      })
+
+      // 转换为后端需要的格式
+      yearMap.forEach((countryIds, year) => {
+        yearCountryPairs.push({
+          year,
+          countryIds: Array.from(countryIds)
+        })
+      })
+
+      if (yearCountryPairs.length === 0) {
+        throw new Error('没有找到有效的年份-国家组合数据')
+      }
+
+      const params: ExportDataMultiYearReqDto = {
+        yearCountryPairs,
+        format
+      }
+
+      const response = await http.post(dataManagementExportMultiYear, params, {
         responseType: 'blob' // 告诉axios期望接收二进制数据
       })
 
       // 从响应头中获取文件名
       const contentDisposition = response.headers['content-disposition']
-      let fileName = '导出数据.xlsx' // 默认文件名
+      let fileName = '多年份导出数据.xlsx' // 默认文件名
       if (contentDisposition) {
         // 优先匹配 filename* (RFC 5987), 处理UTF-8编码的文件名
         const fileNameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
@@ -245,7 +288,6 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
       }
 
       // 创建一个blob URL并触发下载
-      // response.data 本身就是一个Blob对象，不需要再次包装，否则会丢失MIME类型
       const url = window.URL.createObjectURL(response.data)
       const link = document.createElement('a')
       link.href = url
@@ -260,10 +302,15 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
       set({ exportLoading: false })
       return true
     } catch (error) {
-      console.error('Failed to export data:', error)
+      console.error('Failed to export multi-year data:', error)
       set({ exportLoading: false })
       return false
     }
+  },
+
+  // 检查是否支持CSV格式（多年份时不支持）
+  isCsvSupported: (selectedYears: number[]) => {
+    return selectedYears.length <= 1
   },
 
   // 重置详情数据

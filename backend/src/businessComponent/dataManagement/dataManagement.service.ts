@@ -19,12 +19,11 @@ import {
   TopIndicatorItem,
   YearData,
   CountryYearQueryDto,
-  ExportDataReqDto,
+  ExportDataMultiYearReqDto,
   ExportFormat,
   IndicatorDataItem,
   DataManagementYearsResDto,
-  DataManagementCountriesByYearReqDto,
-  DataManagementCountriesByYearResDto,
+  SimpleCountryData,
 } from '../../../types/dto';
 import { IndicatorValue } from '@prisma/client';
 import * as xlsx from 'xlsx';
@@ -1021,18 +1020,17 @@ export class DataManagementService {
   }
 
   /**
-   * 导出特定年份和多个国家的数据
-   * @param params 导出参数，包含年份、国家ID数组和格式
+   * 导出多个年份和多个国家的数据
+   * @param params 多年份导出参数，包含年份-国家ID对数组和格式
    * @returns 包含文件Buffer、MIME类型和文件名的对象
    */
-  async exportData(
-    params: ExportDataReqDto,
+  async exportDataMultiYear(
+    params: ExportDataMultiYearReqDto,
   ): Promise<{ buffer: Buffer; mime: string; fileName: string }> {
-    const { year, countryIds, format } = params;
-    const yearValue = year;
+    const { yearCountryPairs, format } = params;
 
     this.logger.log(
-      `开始导出 ${yearValue} 年 ${countryIds.length} 个国家的数据，格式为 ${format}`,
+      `开始多年份导出，共 ${yearCountryPairs.length} 个年份，格式为 ${format}`,
     );
 
     // 步骤1: 获取所有三级指标定义作为表头
@@ -1042,86 +1040,79 @@ export class DataManagementService {
     });
     this.logger.log(`成功获取 ${indicators.length} 个三级指标作为表头`);
 
-    // 步骤2: 获取所有请求的国家信息
+    // 步骤2: 获取所有涉及的国家信息
+    const allCountryIds = yearCountryPairs.flatMap((pair) => pair.countryIds);
+    const uniqueCountryIds = [...new Set(allCountryIds)];
+
     const countries = await this.prisma.country.findMany({
       where: {
-        id: { in: countryIds },
+        id: { in: uniqueCountryIds },
         delete: 0,
       },
     });
-    // 创建国家ID到国家实体的映射，方便快速查找中文名
     const countryMap = new Map(countries.map((c) => [c.id, c]));
-    this.logger.log(`成功获取 ${countries.length} 个请求的国家信息`);
+    this.logger.log(`成功获取 ${countries.length} 个涉及的国家信息`);
 
     // 步骤3: 一次性获取所有相关指标值
-    // 使用精确匹配查询，因为现在 year 是 number 类型
-    this.logger.log(
-      `查询条件: countryIds=${JSON.stringify(countryIds)}, year=${yearValue}`,
+    const allYearCountryPairs = yearCountryPairs.flatMap((pair) =>
+      pair.countryIds.map((countryId) => ({ year: pair.year, countryId })),
     );
 
     const values = await this.prisma.indicatorValue.findMany({
       where: {
-        countryId: { in: countryIds },
-        year: yearValue,
+        OR: allYearCountryPairs.map(({ year, countryId }) => ({
+          year,
+          countryId,
+        })),
         delete: 0,
       },
     });
     this.logger.log(`查询到 ${values.length} 条相关指标值`);
 
-    // 步骤4: 将指标值处理成快速查找的嵌套Map: Map<countryId, Map<indicatorId, value>>
+    // 步骤4: 将指标值处理成快速查找的嵌套Map: Map<year-countryId, Map<indicatorId, value>>
     const valuesMap = new Map<string, Map<string, number>>();
     for (const value of values) {
-      if (!valuesMap.has(value.countryId)) {
-        valuesMap.set(value.countryId, new Map());
+      const key = `${value.year}-${value.countryId}`;
+      if (!valuesMap.has(key)) {
+        valuesMap.set(key, new Map());
       }
       if (value.value !== null) {
-        // 兼容 SQLite 下 Decimal 实际为字符串的情况，统一转为 number
         const numValue =
           typeof value.value === 'string'
             ? Number(value.value)
             : value.value.toNumber();
-        valuesMap
-          .get(value.countryId)!
-          .set(value.detailedIndicatorId, numValue);
+        valuesMap.get(key)!.set(value.detailedIndicatorId, numValue);
       }
     }
 
-    // 步骤5: 构建表头行
-    const header = ['国家'];
-    for (const indicator of indicators) {
-      const unit = indicator.unit ? `(${indicator.unit})` : '';
-      header.push(`${indicator.indicatorCnName}${unit}`);
-    }
-
-    // 步骤6: 构建数据行
-    const dataRows: (string | number | null)[][] = [];
-    for (const countryId of countryIds) {
-      const country = countryMap.get(countryId);
-      if (!country) continue; // 如果某个ID无效，则跳过
-
-      const row: (string | number | null)[] = [country.cnName];
-      const countryValues =
-        valuesMap.get(countryId) || new Map<string, number>();
-
-      for (const indicator of indicators) {
-        const value = countryValues.get(indicator.id);
-        // 如果找不到值，则用null填充
-        row.push(value !== undefined ? value : null);
+    // 步骤5: 根据格式生成不同的文件
+    if (format === ExportFormat.JSON) {
+      return this._generateMultiYearJsonFile(
+        yearCountryPairs,
+        indicators,
+        countryMap,
+        valuesMap,
+      );
+    } else if (format === ExportFormat.CSV) {
+      // CSV格式只支持单年份，如果有多个年份，只导出第一个年份的数据
+      if (yearCountryPairs.length > 1) {
+        this.logger.warn('CSV格式不支持多年份，只导出第一个年份的数据');
       }
-      dataRows.push(row);
+      return this._generateSingleYearCsvFile(
+        yearCountryPairs[0],
+        indicators,
+        countryMap,
+        valuesMap,
+      );
+    } else {
+      // Excel格式支持多年份
+      return this._generateMultiYearExcelFile(
+        yearCountryPairs,
+        indicators,
+        countryMap,
+        valuesMap,
+      );
     }
-    this.logger.log(`成功构建 ${dataRows.length} 行导出数据`);
-
-    // 步骤7: 调用辅助方法生成文件
-    const { buffer, mime, fileName } = this._generateFileBuffer(
-      header,
-      dataRows,
-      format,
-      yearValue,
-    );
-
-    this.logger.log(`成功生成 ${fileName}`);
-    return { buffer, mime, fileName };
   }
 
   /**
@@ -1215,47 +1206,245 @@ export class DataManagementService {
   }
 
   /**
-   * 根据年份获取该年份下的国家列表（用于导出页面优化）
-   * @param params 包含年份的请求参数
-   * @returns {Promise<DataManagementCountriesByYearResDto>} 国家列表
+   * 根据多个年份获取该年份下的国家列表（用于导出页面优化）
+   * @param params 包含年份数组的请求参数
+   * @returns {Promise<Array<{ year: number; countries: SimpleCountryData[] }>>} 按年份分组的国家列表
    */
-  async getCountriesByYear(
-    params: DataManagementCountriesByYearReqDto,
-  ): Promise<DataManagementCountriesByYearResDto> {
-    this.logger.log(`获取年份 ${params.year} 下的国家列表`);
+  async getCountriesByYears(params: {
+    years: number[];
+  }): Promise<Array<{ year: number; countries: SimpleCountryData[] }>> {
+    this.logger.log(`获取年份 ${params.years.join(', ')} 下的国家列表`);
 
-    // 查询指定年份下的所有国家，只返回必要字段
-    const countries = await this.prisma.indicatorValue.findMany({
-      where: {
-        year: params.year,
-        delete: 0,
-        country: { delete: 0 },
-        detailedIndicator: { delete: 0 },
-      },
-      select: {
-        country: {
-          select: {
-            id: true,
-            cnName: true,
-            enName: true,
+    const result: Array<{
+      year: number;
+      countries: SimpleCountryData[];
+    }> = [];
+
+    // 为每个年份查询对应的国家列表
+    for (const year of params.years) {
+      const countries = await this.prisma.indicatorValue.findMany({
+        where: {
+          year,
+          delete: 0,
+          country: { delete: 0 },
+          detailedIndicator: { delete: 0 },
+        },
+        select: {
+          country: {
+            select: {
+              id: true,
+              cnName: true,
+              enName: true,
+            },
           },
         },
-      },
-      distinct: ['countryId'],
-      orderBy: {
-        country: {
-          cnName: 'asc', // 按中文名称排序
+        distinct: ['countryId'],
+        orderBy: {
+          country: {
+            cnName: 'asc', // 按中文名称排序
+          },
         },
-      },
+      });
+
+      const yearCountries: SimpleCountryData[] = countries.map((item) => ({
+        id: item.country.id,
+        cnName: item.country.cnName,
+        enName: item.country.enName,
+      }));
+
+      result.push({
+        year,
+        countries: yearCountries,
+      });
+
+      this.logger.log(`年份 ${year} 下找到 ${yearCountries.length} 个国家`);
+    }
+
+    return result;
+  }
+
+  /**
+   * 生成多年份JSON文件（私有辅助方法）
+   * @param yearCountryPairs 年份-国家ID对数组
+   * @param indicators 指标列表
+   * @param countryMap 国家映射
+   * @param valuesMap 指标值映射
+   * @returns 包含文件Buffer、MIME类型和文件名的对象
+   * @private
+   */
+  private _generateMultiYearJsonFile(
+    yearCountryPairs: Array<{ year: number; countryIds: string[] }>,
+    indicators: Array<{
+      id: string;
+      indicatorCnName: string;
+      unit: string | null;
+    }>,
+    countryMap: Map<string, { id: string; cnName: string; enName: string }>,
+    valuesMap: Map<string, Map<string, number>>,
+  ): { buffer: Buffer; mime: string; fileName: string } {
+    const timestamp = dayjs().format('YYYY_MM_DD_HH_mm_ss');
+    const fileName = `多年份城镇化指标数据_${timestamp}.json`;
+
+    // 构建JSON数据结构：按年份分组
+    const jsonData: { [key: string]: any[] } = {};
+
+    yearCountryPairs.forEach(({ year, countryIds }) => {
+      const yearData: any[] = [];
+
+      countryIds.forEach((countryId) => {
+        const country = countryMap.get(countryId);
+        if (!country) return;
+
+        const countryData: { [key: string]: any } = { 国家: country.cnName };
+        const key = `${year}-${countryId}`;
+        const countryValues = valuesMap.get(key) || new Map<string, number>();
+
+        indicators.forEach((indicator) => {
+          const unit = indicator.unit ? `(${indicator.unit})` : '';
+          const indicatorName = `${indicator.indicatorCnName}${unit}`;
+          const value = countryValues.get(indicator.id);
+          countryData[indicatorName] = value !== undefined ? value : null;
+        });
+
+        yearData.push(countryData);
+      });
+
+      jsonData[`${year}年`] = yearData;
     });
 
-    const result = countries.map((item) => ({
-      id: item.country.id,
-      cnName: item.country.cnName,
-      enName: item.country.enName,
-    }));
+    const buffer = Buffer.from(JSON.stringify(jsonData, null, 2));
+    const mime = 'application/json';
 
-    this.logger.log(`年份 ${params.year} 下找到 ${result.length} 个国家`);
-    return result;
+    return { buffer, mime, fileName };
+  }
+
+  /**
+   * 生成单年份CSV文件（私有辅助方法）
+   * @param yearCountryPair 年份-国家ID对
+   * @param indicators 指标列表
+   * @param countryMap 国家映射
+   * @param valuesMap 指标值映射
+   * @returns 包含文件Buffer、MIME类型和文件名的对象
+   * @private
+   */
+  private _generateSingleYearCsvFile(
+    yearCountryPair: { year: number; countryIds: string[] },
+    indicators: Array<{
+      id: string;
+      indicatorCnName: string;
+      unit: string | null;
+    }>,
+    countryMap: Map<string, { id: string; cnName: string; enName: string }>,
+    valuesMap: Map<string, Map<string, number>>,
+  ): { buffer: Buffer; mime: string; fileName: string } {
+    const { year, countryIds } = yearCountryPair;
+    const timestamp = dayjs().format('YYYY_MM_DD_HH_mm_ss');
+    const fileName = `${year}_城镇化指标数据_${timestamp}.csv`;
+
+    // 构建表头
+    const header = ['国家'];
+    indicators.forEach((indicator) => {
+      const unit = indicator.unit ? `(${indicator.unit})` : '';
+      header.push(`${indicator.indicatorCnName}${unit}`);
+    });
+
+    // 构建数据行
+    const dataRows: (string | number | null)[][] = [];
+    countryIds.forEach((countryId) => {
+      const country = countryMap.get(countryId);
+      if (!country) return;
+
+      const row: (string | number | null)[] = [country.cnName];
+      const key = `${year}-${countryId}`;
+      const countryValues = valuesMap.get(key) || new Map<string, number>();
+
+      indicators.forEach((indicator) => {
+        const value = countryValues.get(indicator.id);
+        row.push(value !== undefined ? value : null);
+      });
+
+      dataRows.push(row);
+    });
+
+    // 生成CSV内容
+    const worksheet = xlsx.utils.aoa_to_sheet([header, ...dataRows]);
+    const csvOutput = xlsx.utils.sheet_to_csv(worksheet);
+
+    // 添加BOM以防止Excel打开CSV时中文乱码
+    const bom = Buffer.from([0xef, 0xbb, 0xbf]);
+    const buffer = Buffer.concat([bom, Buffer.from(csvOutput)]);
+    const mime = 'text/csv;charset=utf-8;';
+
+    return { buffer, mime, fileName };
+  }
+
+  /**
+   * 生成多年份Excel文件（私有辅助方法）
+   * @param yearCountryPairs 年份-国家ID对数组
+   * @param indicators 指标列表
+   * @param countryMap 国家映射
+   * @param valuesMap 指标值映射
+   * @returns 包含文件Buffer、MIME类型和文件名的对象
+   * @private
+   */
+  private _generateMultiYearExcelFile(
+    yearCountryPairs: Array<{ year: number; countryIds: string[] }>,
+    indicators: Array<{
+      id: string;
+      indicatorCnName: string;
+      unit: string | null;
+    }>,
+    countryMap: Map<string, { id: string; cnName: string; enName: string }>,
+    valuesMap: Map<string, Map<string, number>>,
+  ): { buffer: Buffer; mime: string; fileName: string } {
+    const timestamp = dayjs().format('YYYY_MM_DD_HH_mm_ss');
+    const fileName = `城镇化指标数据_${timestamp}.xlsx`;
+
+    // 创建新的工作簿
+    const workbook = xlsx.utils.book_new();
+
+    // 为每个年份创建工作表
+    yearCountryPairs.forEach(({ year, countryIds }) => {
+      // 构建表头
+      const header = ['国家'];
+      indicators.forEach((indicator) => {
+        const unit = indicator.unit ? `(${indicator.unit})` : '';
+        header.push(`${indicator.indicatorCnName}${unit}`);
+      });
+
+      // 构建数据行
+      const dataRows: (string | number | null)[][] = [];
+      countryIds.forEach((countryId) => {
+        const country = countryMap.get(countryId);
+        if (!country) return;
+
+        const row: (string | number | null)[] = [country.cnName];
+        const key = `${year}-${countryId}`;
+        const countryValues = valuesMap.get(key) || new Map<string, number>();
+
+        indicators.forEach((indicator) => {
+          const value = countryValues.get(indicator.id);
+          row.push(value !== undefined ? value : null);
+        });
+
+        dataRows.push(row);
+      });
+
+      // 创建工作表
+      const worksheet = xlsx.utils.aoa_to_sheet([header, ...dataRows]);
+      const sheetName = `${year}年`;
+      xlsx.utils.book_append_sheet(workbook, worksheet, sheetName);
+    });
+
+    // 生成文件
+    const buffer = xlsx.write(workbook, {
+      type: 'buffer',
+      bookType: 'xlsx',
+    }) as Buffer;
+
+    const mime =
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+    return { buffer, mime, fileName };
   }
 }

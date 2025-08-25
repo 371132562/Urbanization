@@ -19,10 +19,10 @@ import {
   DataManagementListReqDto,
   DataManagementListResDto,
   CountryYearQueryDto,
-  ExportDataReqDto,
+  ExportDataMultiYearReqDto,
   DataManagementYearsResDto,
-  DataManagementCountriesByYearReqDto,
-  DataManagementCountriesByYearResDto,
+  DataManagementCountriesByYearsReqDto,
+  DataManagementCountriesByYearsResDto,
 } from '../../../types/dto';
 
 @Controller('dataManagement')
@@ -61,15 +61,15 @@ export class DataManagementController {
   }
 
   /**
-   * 根据年份获取该年份下的国家列表（用于导出页面优化）
-   * @param params 包含年份的请求参数
-   * @returns {Promise<DataManagementCountriesByYearResDto>} 国家列表
+   * 根据多个年份获取该年份下的国家列表（用于导出页面优化）
+   * @param params 包含年份数组的请求参数
+   * @returns {Promise<DataManagementCountriesByYearsResDto>} 按年份分组的国家列表
    */
-  @Post('countriesByYear')
-  async getCountriesByYear(
-    @Body() params: DataManagementCountriesByYearReqDto,
-  ): Promise<DataManagementCountriesByYearResDto> {
-    return await this.dataManagementService.getCountriesByYear(params);
+  @Post('countriesByYears')
+  async getCountriesByYears(
+    @Body() params: DataManagementCountriesByYearsReqDto,
+  ): Promise<DataManagementCountriesByYearsResDto> {
+    return await this.dataManagementService.getCountriesByYears(params);
   }
 
   /**
@@ -132,25 +132,23 @@ export class DataManagementController {
   }
 
   /**
-   * 导出特定年份和多个国家的数据
-   * @param params 导出参数，包含年份、国家ID数组和格式
+   * 导出多个年份和多个国家的数据
+   * @param params 多年份导出参数，包含年份-国家ID对数组和格式
    * @param res Express响应对象，用于设置响应头和发送文件
    * @returns {Promise<StreamableFile>} 文件流
    */
-  @Post('export')
-  async exportData(
-    @Body() params: ExportDataReqDto,
+  @Post('exportMultiYear')
+  async exportDataMultiYear(
+    @Body() params: ExportDataMultiYearReqDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     this.logger.log(
-      `收到导出请求, 年份: ${new Date(
-        params.year,
-      ).toISOString()}, 国家数量: ${params.countryIds.length}, 格式: ${
+      `收到多年份导出请求, 年份数量: ${params.yearCountryPairs.length}, 格式: ${
         params.format
       }`,
     );
     const { buffer, mime, fileName } =
-      await this.dataManagementService.exportData(params);
+      await this.dataManagementService.exportDataMultiYear(params);
 
     // 对文件名进行编码，以支持非ASCII字符，并防止"Invalid character"错误
     const encodedFileName = encodeURIComponent(fileName);

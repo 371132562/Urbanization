@@ -1,7 +1,7 @@
 import { Button, Form, message, Radio, Select, Skeleton, Space } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router'
-import { ExportDataReqDto } from 'urbanization-backend/types/dto'
+import { SimpleCountryData } from 'urbanization-backend/types/dto'
 
 import CountrySelect from '@/components/CountrySelect'
 import useDataManagementStore from '@/stores/dataManagementStore'
@@ -16,20 +16,40 @@ const DataExport = () => {
   const {
     years,
     yearsLoading,
-    countriesByYear,
-    countriesByYearLoading,
+    countriesByYears,
+    countriesByYearsLoading,
     getDataManagementYears,
-    getDataManagementCountriesByYear,
-    exportData,
+    getDataManagementCountriesByYears,
+    exportDataMultiYear,
+    isCsvSupported,
     exportLoading
   } = useDataManagementStore()
-
-  const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
   // 加载年份数据
   useEffect(() => {
     getDataManagementYears()
   }, [getDataManagementYears])
+
+  // 获取按年份分组的国家选项
+  const getGroupedCountryOptions = () => {
+    if (!countriesByYears || countriesByYears.length === 0) {
+      return []
+    }
+
+    // 直接返回所有国家的数组，包含年份信息
+    const allCountries: (SimpleCountryData & { year: number })[] = []
+
+    countriesByYears.forEach(yearData => {
+      yearData.countries.forEach(country => {
+        allCountries.push({
+          ...country,
+          year: yearData.year // 直接添加年份属性
+        })
+      })
+    })
+
+    return allCountries
+  }
 
   // 监视表单字段的变化，以控制按钮的禁用状态
   const yearValue = Form.useWatch('year', form)
@@ -39,32 +59,39 @@ const DataExport = () => {
     [yearValue, countriesValue]
   )
 
-  const handleYearChange = (yearString: string) => {
-    const year = parseInt(yearString)
-    setSelectedYear(year)
+  const handleYearChange = (yearStrings: string[]) => {
+    const years = yearStrings.map(yearString => parseInt(yearString))
     form.setFieldsValue({ countryIds: [] }) // 年份变化时清空已选国家
-    // 根据选择的年份获取对应的国家列表
-    getDataManagementCountriesByYear({ year })
+
+    if (years.length > 0) {
+      // 根据选择的多个年份获取对应的国家列表
+      getDataManagementCountriesByYears({ years })
+    }
   }
 
   const handleSelectAllCountries = () => {
-    // 获取所有国家的ID
-    const allCountryIds = countriesByYear.map(country => country.id)
-    form.setFieldsValue({ countryIds: allCountryIds })
+    // 获取所有年份下所有国家的ID（包含年份信息）
+    const allCountryYearValues: string[] = []
+    if (countriesByYears && countriesByYears.length > 0) {
+      countriesByYears.forEach(yearData => {
+        yearData.countries.forEach(country => {
+          allCountryYearValues.push(`${country.id}:${yearData.year}`)
+        })
+      })
+    }
+    form.setFieldsValue({ countryIds: allCountryYearValues })
   }
 
   const handleExport = async (values: { countryIds: string[]; format: ExportFormat }) => {
-    if (!selectedYear) {
-      message.error('请先选择年份')
+    if (values.countryIds.length === 0) {
+      message.error('请先选择要导出的国家')
       return
     }
-    const params: ExportDataReqDto = {
-      ...values,
-      year: selectedYear
-    }
-    const success = await exportData(params)
+
+    // 直接调用store的导出方法，传入选中的国家-年份值和格式
+    const success = await exportDataMultiYear(values.countryIds, values.format)
     if (success) {
-      message.success('导出任务已开始，请注意浏览器下载')
+      message.success('多年份导出任务已开始，请注意浏览器下载')
     } else {
       message.error('导出失败，请稍后重试')
     }
@@ -92,6 +119,7 @@ const DataExport = () => {
             label="选择导出年份"
           >
             <Select
+              mode="multiple"
               placeholder="请选择年份"
               onChange={handleYearChange}
             >
@@ -119,15 +147,15 @@ const DataExport = () => {
                 <CountrySelect
                   mode="multiple"
                   placeholder="请先选择年份，再选择国家"
-                  disabled={!selectedYear}
-                  loading={countriesByYearLoading}
-                  options={countriesByYear}
+                  disabled={!yearValue || yearValue.length === 0}
+                  loading={countriesByYearsLoading}
+                  options={getGroupedCountryOptions()}
                   className="w-full"
                 />
               </Form.Item>
               <Button
                 onClick={handleSelectAllCountries}
-                disabled={!selectedYear || countriesByYearLoading}
+                disabled={!yearValue || yearValue.length === 0 || countriesByYearsLoading}
                 className="!ml-2"
               >
                 全选
@@ -140,14 +168,28 @@ const DataExport = () => {
             label="选择导出格式"
           >
             <Radio.Group>
-              {ExportFormatOptions.map(option => (
-                <Radio
-                  key={option.value}
-                  value={option.value}
-                >
-                  {option.label}
-                </Radio>
-              ))}
+              {ExportFormatOptions.map(option => {
+                const isDisabled =
+                  option.value === ExportFormat.CSV && !isCsvSupported(yearValue || [])
+                const tooltip =
+                  option.value === ExportFormat.CSV && !isCsvSupported(yearValue || [])
+                    ? 'CSV格式不支持多年份导出，请选择单年份或使用其他格式'
+                    : undefined
+
+                return (
+                  <Radio
+                    key={option.value}
+                    value={option.value}
+                    disabled={isDisabled}
+                    title={tooltip}
+                  >
+                    {option.label}
+                    {option.value === ExportFormat.CSV && !isCsvSupported(yearValue || []) && (
+                      <span className="ml-2 text-xs text-gray-500">(多年份时不支持)</span>
+                    )}
+                  </Radio>
+                )
+              })}
             </Radio.Group>
           </Form.Item>
 
