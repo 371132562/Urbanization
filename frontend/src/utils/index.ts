@@ -48,32 +48,6 @@ export const hexToRgba = (hex: string, alpha: number): string => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-/**
- * @description 通用的按国家中英文名称过滤数据函数。
- * @param searchTerm - 搜索关键词。
- * @param data - 包含年份和国家数据的数组 (例如 ScoreListDto 或 DataManagementListDto)。
- * @returns 过滤后的数据数组。
- */
-export const filterDataByCountry = <T extends { data: { cnName: string; enName: string }[] }>(
-  searchTerm: string,
-  data: T[]
-): T[] => {
-  const lowercasedTerm = searchTerm.trim().toLowerCase()
-  if (!lowercasedTerm) {
-    return data
-  }
-  return data
-    .map(yearData => {
-      const filteredCountries = yearData.data.filter(
-        country =>
-          country.cnName.toLowerCase().includes(lowercasedTerm) ||
-          country.enName.toLowerCase().includes(lowercasedTerm)
-      )
-      return { ...yearData, data: filteredCountries }
-    })
-    .filter(yearData => yearData.data.length > 0)
-}
-
 // ---------------- 富文本图片地址转换通用方法 ----------------
 // 说明：以下方法用于在富文本保存与展示时，在“文件名”与“完整URL”之间进行互转。
 

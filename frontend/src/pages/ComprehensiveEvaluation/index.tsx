@@ -15,7 +15,7 @@ const ComprehensiveEvaluation: FC = () => {
   // 从Zustand store中获取数据和方法
   const scoreListByCountry = useScoreStore(state => state.scoreListByCountry)
   const getScoreListByCountry = useScoreStore(state => state.getScoreListByCountry)
-  const listLoading = useScoreStore(state => state.listLoading)
+  const listLoading = useScoreStore(state => state.paginatedListLoading)
 
   const countries = useCountryAndContinentStore(state => state.countries)
   const getCountries = useCountryAndContinentStore(state => state.getCountries)

@@ -6,8 +6,10 @@ import {
   BatchCheckScoreExistingResDto,
   ScoreEvaluationItemDto,
   CreateScoreDto,
-  ScoreListDto,
-  YearScoreData,
+  ScoreListReqDto,
+  ScoreListResDto,
+  PaginatedYearScoreData,
+  ScoreDataItem,
   ScoreDetailReqDto,
   DeleteScoreDto,
   CheckExistingDataResDto,
@@ -30,95 +32,182 @@ export class ScoreService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * @description 获取所有评分数据，并按年份进行分组。
-   * @returns {Promise<ScoreListDto>} 按年份分组的评分数据。
+   * @description 获取所有有评分数据的年份列表
+   * @returns {Promise<number[]>} 年份数组
    */
-  async list(): Promise<ScoreListDto> {
-    this.logger.log('开始从数据库获取所有评分数据。');
-
-    // 1. 从数据库查询所有未被软删除的评分记录
-    //    - 包含关联的国家信息
-    //    - 按年份降序排序
-    const scores = await this.prisma.score.findMany({
+  async getYears(): Promise<number[]> {
+    const years = await this.prisma.score.findMany({
       where: {
-        delete: 0, // 过滤未被删除的记录
+        delete: 0,
         country: {
-          delete: 0, // 确保关联的国家也未被删除
+          delete: 0,
         },
       },
-      include: {
-        country: true, // 包含关联的国家实体
+      select: {
+        year: true,
       },
+      distinct: ['year'],
       orderBy: {
-        year: 'desc', // 按年份降序排序
+        year: 'desc',
       },
     });
 
-    // 如果查询结果为空，直接返回空数组
-    if (!scores || scores.length === 0) {
-      this.logger.log('未找到任何评分数据，返回空数组。');
-      return [];
-    }
+    return years.map((item) => item.year);
+  }
 
-    // 2. 使用 Map 按年份对数据进行分组
-    //    - Key: 年份 (number)
-    //    - Value: 当年的所有评分记录数组 (Score with Country)
-    const groupedByYear = new Map<number, (Score & { country: Country })[]>();
-    for (const score of scores) {
-      const year = score.year; // 直接使用数字年份
-      // 如果 Map 中尚不存在该年份的键，则初始化一个空数组
-      if (!groupedByYear.has(year)) {
-        groupedByYear.set(year, []);
-      }
-      // 将当前记录添加到对应年份的数组中
-      groupedByYear.get(year)!.push(score);
-    }
+  /**
+   * @description 获取评分数据，支持分页和搜索功能。
+   * @param {ScoreListReqDto} params - 分页和搜索参数。
+   * @returns {Promise<ScoreListResDto>} 按年份分组的评分数据，支持分页。
+   */
+  async list(params?: ScoreListReqDto): Promise<ScoreListResDto> {
+    this.logger.log('开始从数据库获取评分数据，支持分页和搜索。');
 
-    // 3. 将分组后的 Map 转换为 DTO 所需的数组结构
-    const result: ScoreListDto = [];
-    for (const [year, yearScores] of groupedByYear.entries()) {
-      const yearData: YearScoreData = {
-        year: year, // 直接使用数字年份
-        // 遍历当年的所有评分记录，并将其映射为 DTO 格式
-        data: yearScores.map((score) => {
-          const s = score as Score & { country: Country };
-          return {
-            id: s.id,
-            countryId: s.countryId,
-            cnName: s.country.cnName,
-            enName: s.country.enName,
-            year: s.year,
-            totalScore:
-              s.totalScore instanceof Decimal
-                ? s.totalScore.toNumber()
-                : s.totalScore,
-            urbanizationProcessDimensionScore:
-              s.urbanizationProcessDimensionScore instanceof Decimal
-                ? s.urbanizationProcessDimensionScore.toNumber()
-                : s.urbanizationProcessDimensionScore,
-            humanDynamicsDimensionScore:
-              s.humanDynamicsDimensionScore instanceof Decimal
-                ? s.humanDynamicsDimensionScore.toNumber()
-                : s.humanDynamicsDimensionScore,
-            materialDynamicsDimensionScore:
-              s.materialDynamicsDimensionScore instanceof Decimal
-                ? s.materialDynamicsDimensionScore.toNumber()
-                : s.materialDynamicsDimensionScore,
-            spatialDynamicsDimensionScore:
-              s.spatialDynamicsDimensionScore instanceof Decimal
-                ? s.spatialDynamicsDimensionScore.toNumber()
-                : s.spatialDynamicsDimensionScore,
-            createTime: s.createTime,
-            updateTime: s.updateTime,
-          };
-        }),
+    // 如果没有提供分页参数，获取所有年份的第一页数据
+    if (!params?.yearPaginations || params.yearPaginations.length === 0) {
+      // 获取所有年份
+      const years = await this.getYears();
+      params = {
+        ...params,
+        yearPaginations: years.map((year) => ({
+          year,
+          page: 1,
+          pageSize: 10,
+        })),
       };
+    }
+
+    const result: ScoreListResDto = [];
+    const searchTerm = params?.searchTerm;
+
+    // 为每个年份获取分页数据
+    for (const yearPagination of params.yearPaginations!) {
+      const { year, page = 1, pageSize = 10 } = yearPagination;
+
+      // 计算分页参数
+      const skip = (page - 1) * pageSize;
+
+      // 构建查询条件
+      const whereCondition = {
+        year,
+        delete: 0,
+        country: {
+          delete: 0,
+          ...(searchTerm && {
+            OR: [
+              { cnName: { contains: searchTerm } },
+              { enName: { contains: searchTerm } },
+            ],
+          }),
+        },
+      };
+
+      // 获取该年份下的总国家数量
+      const totalCount = await this.prisma.score
+        .groupBy({
+          by: ['countryId'],
+          where: whereCondition,
+          _count: {
+            countryId: true,
+          },
+        })
+        .then((groups) => groups.length);
+
+      // 获取该年份下的国家ID列表（分页）
+      const allCountryIds = await this.prisma.score.findMany({
+        where: whereCondition,
+        select: {
+          countryId: true,
+        },
+        orderBy: {
+          country: { updateTime: 'desc' },
+        },
+      });
+
+      // 去重并分页
+      const uniqueCountryIds = [
+        ...new Set(
+          allCountryIds.map((item: { countryId: string }) => item.countryId),
+        ),
+      ];
+      const countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+
+      // 获取这些国家的详细评分数据
+      const scores = await this.prisma.score.findMany({
+        where: {
+          year,
+          countryId: { in: countryIdList },
+          delete: 0,
+          country: { delete: 0 },
+        },
+        include: {
+          country: true,
+        },
+        orderBy: [{ country: { updateTime: 'desc' } }],
+      });
+
+      // 构建国家数据列表
+      const countryDataList: ScoreDataItem[] = countryIdList
+        .map((countryId) => {
+          const score = scores.find((s) => s.countryId === countryId);
+          if (!score) return null;
+
+          return {
+            id: score.id,
+            countryId: score.countryId,
+            cnName: score.country.cnName,
+            enName: score.country.enName,
+            year: score.year,
+            totalScore:
+              score.totalScore instanceof Decimal
+                ? score.totalScore.toNumber()
+                : score.totalScore,
+            urbanizationProcessDimensionScore:
+              score.urbanizationProcessDimensionScore instanceof Decimal
+                ? score.urbanizationProcessDimensionScore.toNumber()
+                : score.urbanizationProcessDimensionScore,
+            humanDynamicsDimensionScore:
+              score.humanDynamicsDimensionScore instanceof Decimal
+                ? score.humanDynamicsDimensionScore.toNumber()
+                : score.humanDynamicsDimensionScore,
+            materialDynamicsDimensionScore:
+              score.materialDynamicsDimensionScore instanceof Decimal
+                ? score.materialDynamicsDimensionScore.toNumber()
+                : score.materialDynamicsDimensionScore,
+            spatialDynamicsDimensionScore:
+              score.spatialDynamicsDimensionScore instanceof Decimal
+                ? score.spatialDynamicsDimensionScore.toNumber()
+                : score.spatialDynamicsDimensionScore,
+            createTime: score.createTime,
+            updateTime: score.updateTime,
+          };
+        })
+        .filter((item): item is ScoreDataItem => item !== null);
+
+      // 构建分页信息
+      const totalPages = Math.ceil(totalCount / pageSize);
+      const pagination = {
+        page,
+        pageSize,
+        total: totalCount,
+        totalPages,
+      };
+
+      // 构建年份数据
+      const yearData: PaginatedYearScoreData = {
+        year,
+        data: countryDataList,
+        pagination,
+      };
+
       result.push(yearData);
     }
 
-    // 4. 按年份降序排序
-    this.logger.log('评分数据处理完成并按年份排序。');
-    return result.sort((a, b) => b.year - a.year);
+    // 按年份降序排列结果
+    result.sort((a, b) => b.year - a.year);
+
+    this.logger.log('分页评分数据处理完成');
+    return result;
   }
 
   /**

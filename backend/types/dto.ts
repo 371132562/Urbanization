@@ -515,14 +515,30 @@ export type ScoreDataItem = {
 };
 
 /**
- * 得分列表按年份分组
+ * 评分列表请求参数（支持分页）
  */
-export type YearScoreData = {
-  year: number;
-  data: ScoreDataItem[];
+export type ScoreListReqDto = {
+  searchTerm?: string; // 搜索关键词，用于按国家名称搜索
+  yearPaginations?: {
+    year: number;
+    page?: number; // 默认为1
+    pageSize?: number; // 默认为10
+  }[];
 };
 
-export type ScoreListDto = YearScoreData[];
+/**
+ * 评分列表响应（支持分页）
+ */
+export type ScoreListResDto = PaginatedYearScoreData[];
+
+/**
+ * 分页年份评分数据
+ */
+export type PaginatedYearScoreData = {
+  year: number;
+  data: ScoreDataItem[];
+  pagination: PaginationInfo;
+};
 
 export interface CountryScoreDataItem {
   id: string;

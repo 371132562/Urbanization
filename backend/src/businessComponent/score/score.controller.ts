@@ -6,6 +6,8 @@ import {
   BatchCheckScoreExistingResDto,
   ScoreEvaluationItemDto,
   CreateScoreDto,
+  ScoreListReqDto,
+  ScoreListResDto,
   ScoreDetailReqDto,
   DeleteScoreDto,
 } from 'types/dto';
@@ -15,11 +17,11 @@ export class ScoreController {
   constructor(private readonly scoreService: ScoreService) {}
 
   /**
-   * @description 获取所有评分数据，按年份分组
+   * @description 获取评分数据，支持分页和搜索功能
    */
   @Post('list')
-  list() {
-    return this.scoreService.list();
+  list(@Body() params?: ScoreListReqDto): Promise<ScoreListResDto> {
+    return this.scoreService.list(params);
   }
 
   /**

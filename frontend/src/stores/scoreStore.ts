@@ -9,7 +9,8 @@ import {
   DeleteScoreDto,
   ScoreDetailReqDto,
   ScoreEvaluationItemDto,
-  ScoreListDto
+  ScoreListReqDto,
+  ScoreListResDto
 } from 'urbanization-backend/types/dto'
 import { create } from 'zustand'
 
@@ -24,16 +25,18 @@ type ScoreDetail = CreateScoreDto & {
 }
 
 interface ScoreStore {
-  data: ScoreListDto
+  // 分页数据相关状态
+  paginatedData: ScoreListResDto | null
+  paginatedListLoading: boolean
   scoreListByCountry: CountryScoreData[]
-  listLoading: boolean
   detailData: ScoreDetail | ScoreFormData | null
   detailLoading: boolean
   saveLoading: boolean
   evaluations: ScoreEvaluationItemDto[]
   evaluationsLoading: boolean
   evaluationsSaveLoading: boolean
-  getScoreList: () => Promise<void>
+  // 分页获取评分列表
+  getScoreListPaginated: (params?: ScoreListReqDto) => Promise<void>
   getScoreListByCountry: () => Promise<void>
   getScoreDetail: (params: ScoreDetailReqDto) => Promise<void>
   createScore: (data: CreateScoreDto) => Promise<boolean>
@@ -55,9 +58,10 @@ interface ScoreStore {
 }
 
 const useScoreStore = create<ScoreStore>()(set => ({
-  data: [],
+  // 分页数据相关状态
+  paginatedData: null,
+  paginatedListLoading: false,
   scoreListByCountry: [],
-  listLoading: false,
   detailData: null,
   detailLoading: false,
   saveLoading: false,
@@ -65,25 +69,26 @@ const useScoreStore = create<ScoreStore>()(set => ({
   evaluationsLoading: false,
   evaluationsSaveLoading: false,
 
-  getScoreList: async () => {
-    set({ listLoading: true })
+  // 分页获取评分列表
+  getScoreListPaginated: async (params?: ScoreListReqDto) => {
+    set({ paginatedListLoading: true })
     try {
-      const res = await http.post<ScoreListDto>(apis.scoreList, {})
-      set({ data: res.data || [], listLoading: false })
+      const response = await http.post<ScoreListResDto>(apis.scoreList, params || {})
+      set({ paginatedData: response.data, paginatedListLoading: false })
     } catch (error) {
-      console.log(error)
-      set({ listLoading: false })
+      console.error('获取分页评分数据失败:', error)
+      set({ paginatedListLoading: false })
     }
   },
 
   getScoreListByCountry: async () => {
-    set({ listLoading: true })
+    set({ paginatedListLoading: true })
     try {
       const res = await http.post<CountryScoreData[]>(apis.scoreListByCountry, {})
-      set({ scoreListByCountry: res.data || [], listLoading: false })
+      set({ scoreListByCountry: res.data || [], paginatedListLoading: false })
     } catch (error) {
       console.log(error)
-      set({ listLoading: false, scoreListByCountry: [] })
+      set({ paginatedListLoading: false, scoreListByCountry: [] })
     }
   },
 
