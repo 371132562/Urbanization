@@ -1,6 +1,5 @@
 // 数据管理API
 export const dataManagementList = '/dataManagement/list'
-export const dataManagementListPaginated = '/dataManagement/listPaginated'
 export const dataManagementYears = '/dataManagement/years'
 export const dataManagementCountriesByYears = '/dataManagement/countriesByYears'
 export const dataManagementDetail = '/dataManagement/detail'

@@ -15,7 +15,6 @@ import {
   CountryDetailReqDto,
   CountryDetailResDto,
   CreateIndicatorValuesDto,
-  DataManagementListDto,
   DataManagementListReqDto,
   DataManagementListResDto,
   CountryYearQueryDto,
@@ -31,24 +30,15 @@ export class DataManagementController {
   constructor(private readonly dataManagementService: DataManagementService) {}
 
   /**
-   * 获取所有数据管理条目（原接口，保持向后兼容）
-   * @returns {Promise<DataManagementListDto>}
-   */
-  @Post('list')
-  async list(): Promise<DataManagementListDto> {
-    return this.dataManagementService.list();
-  }
-
-  /**
-   * 获取数据管理条目（支持分页）
-   * @param {DataManagementListReqDto} params - 分页参数
+   * 获取数据管理条目（分页接口）
+   * @param {DataManagementListReqDto} params - 分页、搜索、排序参数
    * @returns {Promise<DataManagementListResDto>}
    */
-  @Post('listPaginated')
-  async listPaginated(
+  @Post('list')
+  async list(
     @Body() params: DataManagementListReqDto,
   ): Promise<DataManagementListResDto> {
-    return await this.dataManagementService.listPaginated(params);
+    return await this.dataManagementService.list(params);
   }
 
   /**

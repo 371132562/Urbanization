@@ -113,7 +113,97 @@ export class ScoreService {
         })
         .then((groups) => groups.length);
 
-      // 获取该年份下的国家ID列表（分页）
+      // 根据排序字段获取排序后的国家ID列表
+      let countryIdList: string[];
+
+      if (params?.sortField && params?.sortOrder) {
+        // 如果有排序字段，先获取所有数据并排序
+        const allScores = await this.prisma.score.findMany({
+          where: whereCondition,
+          include: {
+            country: true,
+          },
+        });
+
+        // 按排序字段排序
+        const sortedScores = allScores.sort((a, b) => {
+          let aValue: number | null = null;
+          let bValue: number | null = null;
+
+          switch (params.sortField) {
+            case 'totalScore':
+              aValue =
+                a.totalScore instanceof Decimal
+                  ? a.totalScore.toNumber()
+                  : a.totalScore;
+              bValue =
+                b.totalScore instanceof Decimal
+                  ? b.totalScore.toNumber()
+                  : b.totalScore;
+              break;
+            case 'urbanizationProcessDimensionScore':
+              aValue =
+                a.urbanizationProcessDimensionScore instanceof Decimal
+                  ? a.urbanizationProcessDimensionScore.toNumber()
+                  : a.urbanizationProcessDimensionScore;
+              bValue =
+                b.urbanizationProcessDimensionScore instanceof Decimal
+                  ? b.urbanizationProcessDimensionScore.toNumber()
+                  : b.urbanizationProcessDimensionScore;
+              break;
+            case 'humanDynamicsDimensionScore':
+              aValue =
+                a.humanDynamicsDimensionScore instanceof Decimal
+                  ? a.humanDynamicsDimensionScore.toNumber()
+                  : a.humanDynamicsDimensionScore;
+              bValue =
+                b.humanDynamicsDimensionScore instanceof Decimal
+                  ? b.humanDynamicsDimensionScore.toNumber()
+                  : b.humanDynamicsDimensionScore;
+              break;
+            case 'materialDynamicsDimensionScore':
+              aValue =
+                a.materialDynamicsDimensionScore instanceof Decimal
+                  ? a.materialDynamicsDimensionScore.toNumber()
+                  : a.materialDynamicsDimensionScore;
+              bValue =
+                b.materialDynamicsDimensionScore instanceof Decimal
+                  ? b.materialDynamicsDimensionScore.toNumber()
+                  : b.materialDynamicsDimensionScore;
+              break;
+            case 'spatialDynamicsDimensionScore':
+              aValue =
+                a.spatialDynamicsDimensionScore instanceof Decimal
+                  ? a.spatialDynamicsDimensionScore.toNumber()
+                  : a.spatialDynamicsDimensionScore;
+              bValue =
+                b.spatialDynamicsDimensionScore instanceof Decimal
+                  ? b.spatialDynamicsDimensionScore.toNumber()
+                  : b.spatialDynamicsDimensionScore;
+              break;
+            default:
+              // 默认按国家更新时间排序
+              return params.sortOrder === 'asc'
+                ? a.country.updateTime.getTime() -
+                    b.country.updateTime.getTime()
+                : b.country.updateTime.getTime() -
+                    a.country.updateTime.getTime();
+          }
+
+          if (aValue == null && bValue == null) return 0;
+          if (aValue == null) return 1;
+          if (bValue == null) return -1;
+
+          return params.sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+        });
+
+        // 去重并分页
+        const uniqueCountryIds = [
+          ...new Set(sortedScores.map((s) => s.countryId)),
+        ];
+        countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+      } else {
+        // 没有排序字段时，使用原来的逻辑
       const allCountryIds = await this.prisma.score.findMany({
         where: whereCondition,
         select: {
@@ -130,7 +220,8 @@ export class ScoreService {
           allCountryIds.map((item: { countryId: string }) => item.countryId),
         ),
       ];
-      const countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+        countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+      }
 
       // 获取这些国家的详细评分数据
       const scores = await this.prisma.score.findMany({

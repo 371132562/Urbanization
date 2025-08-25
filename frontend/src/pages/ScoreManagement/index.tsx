@@ -1,5 +1,6 @@
 /* 评分管理列表页 */
 import { Button, Collapse, Empty, Input, message, Popconfirm, Skeleton, Space, Table } from 'antd'
+import type { SortOrder } from 'antd/es/table/interface'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type {
@@ -56,6 +57,11 @@ const ScoreManagement = () => {
   >({})
   // 记录当前展开的年份
   const [activeCollapseKey, setActiveCollapseKey] = useState<string[] | ''>('')
+  // 记录排序状态，避免重新渲染时丢失
+  const [sortState, setSortState] = useState<{
+    field: string | null
+    order: 'asc' | 'desc' | null
+  }>({ field: null, order: null })
   const navigate = useNavigate()
 
   // 统一组装请求参数
@@ -68,7 +74,9 @@ const ScoreManagement = () => {
       year: Number(year),
       page: pagination.page,
       pageSize: pagination.pageSize
-    }))
+    })),
+    sortField: sortState.field || undefined,
+    sortOrder: sortState.order || undefined
   })
 
   // 首次加载列表
@@ -174,11 +182,14 @@ const ScoreManagement = () => {
         }
         return String(value || '')
       },
-      sorter: (a: ScoreDataItem, b: ScoreDataItem) => {
-        const aValue = a[dim.enName as keyof ScoreDataItem] as number
-        const bValue = b[dim.enName as keyof ScoreDataItem] as number
-        return aValue - bValue
-      }
+      sorter: true,
+      sortOrder: (sortState.field === dim.enName
+        ? sortState.order === 'asc'
+          ? 'ascend'
+          : sortState.order === 'desc'
+            ? 'descend'
+            : undefined
+        : undefined) as SortOrder | undefined
     }))
 
     const actionColumn = {
@@ -229,6 +240,47 @@ const ScoreManagement = () => {
     getScoreListPaginated(buildParams(next, searchTerm))
   }
 
+  // 处理表格排序变化
+  const handleTableChange = (pagination: any, filters: any, sorter: any, extra: any) => {
+    // 仅处理排序动作，避免分页点击触发重置
+    if (extra && extra.action === 'sort') {
+      const orderVal =
+        sorter && sorter.order === 'ascend'
+          ? 'asc'
+          : sorter && sorter.order === 'descend'
+            ? 'desc'
+            : null
+      const fieldVal = orderVal ? (sorter.field as string) : null
+      const newSortState = {
+        field: fieldVal,
+        order: orderVal as 'asc' | 'desc' | null
+      }
+
+      // 重置所有年份的页码为第一页，然后重新获取数据
+      const resetParams: Record<number, { page: number; pageSize: number }> = {}
+      Object.entries(yearPaginationParams).forEach(([year, pagination]) => {
+        resetParams[Number(year)] = { page: 1, pageSize: pagination.pageSize }
+      })
+
+      setYearPaginationParams(resetParams)
+      setSortState(newSortState)
+
+      const requestParams: ScoreListReqDto = {
+        searchTerm: searchTerm || undefined,
+        yearPaginations: Object.entries(resetParams).map(([year, pagination]) => ({
+          year: Number(year),
+          page: pagination.page,
+          pageSize: pagination.pageSize
+        })),
+        ...(newSortState.field && newSortState.order
+          ? { sortField: newSortState.field, sortOrder: newSortState.order }
+          : {})
+      }
+
+      getScoreListPaginated(requestParams)
+    }
+  }
+
   // Search组件onSearch事件处理
   const handleSearch = (value: string) => {
     setSearchTerm(value)
@@ -238,12 +290,11 @@ const ScoreManagement = () => {
       resetParams[Number(year)] = { page: 1, pageSize: pagination.pageSize }
     })
     setYearPaginationParams(resetParams)
+    // 搜索时清除排序状态
+    setSortState({ field: null, order: null })
     getScoreListPaginated(buildParams(resetParams, value))
   }
 
-  if (loading || Object.keys(yearPaginationParams).length === 0) {
-    return <ScoreManagementSkeleton />
-  }
 
   return (
     <div className="w-full max-w-7xl">
@@ -257,8 +308,9 @@ const ScoreManagement = () => {
           style={{ width: 300 }}
         />
       </div>
-
-      {paginatedData && paginatedData.length > 0 ? (
+      {loading || Object.keys(yearPaginationParams).length === 0 ? (
+        <ScoreManagementSkeleton />
+      ) : paginatedData && paginatedData.length > 0 ? (
         <Collapse
           accordion
           activeKey={activeCollapseKey || paginatedData[0]?.year.toString()}
@@ -275,6 +327,7 @@ const ScoreManagement = () => {
                 columns={getCountryTableColumns(yearData.year)}
                 dataSource={yearData.data}
                 rowKey="id"
+                onChange={handleTableChange}
                 pagination={{
                   current: yearData.pagination.page,
                   pageSize: yearData.pagination.pageSize,

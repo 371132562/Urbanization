@@ -53,13 +53,6 @@ export type CountryData = {
   updateTime: Date; // 所有该年该国家下数据最晚的时间作为更新时间
 };
 
-export type YearData = {
-  year: number;
-  data: CountryData[];
-};
-
-export type DataManagementListDto = YearData[];
-
 /**
  * 分页信息类型
  */
@@ -89,6 +82,8 @@ export type DataManagementListReqDto = {
     page?: number; // 默认为1
     pageSize?: number; // 默认为10
   }[];
+  sortField?: string; // 排序字段名
+  sortOrder?: 'asc' | 'desc'; // 排序方向
 };
 
 /**
@@ -515,7 +510,7 @@ export type ScoreDataItem = {
 };
 
 /**
- * 评分列表请求参数（支持分页）
+ * 评分列表请求参数（支持分页和排序）
  */
 export type ScoreListReqDto = {
   searchTerm?: string; // 搜索关键词，用于按国家名称搜索
@@ -524,6 +519,8 @@ export type ScoreListReqDto = {
     page?: number; // 默认为1
     pageSize?: number; // 默认为10
   }[];
+  sortField?: string; // 排序字段名
+  sortOrder?: 'asc' | 'desc'; // 排序方向
 };
 
 /**

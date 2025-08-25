@@ -9,7 +9,6 @@ import {
   CountryDetailReqDto,
   CountryDetailResDto,
   CreateIndicatorValuesDto,
-  DataManagementListDto,
   DataManagementListReqDto,
   DataManagementListResDto,
   PaginatedYearData,
@@ -17,7 +16,6 @@ import {
   DetailedIndicatorItem,
   SecondaryIndicatorItem,
   TopIndicatorItem,
-  YearData,
   CountryYearQueryDto,
   ExportDataMultiYearReqDto,
   ExportFormat,
@@ -38,178 +36,11 @@ export class DataManagementService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * 查询所有指标数据，并按年份和国家进行分组
-   * @returns 按年份分组的国家指标数据
-   */
-  async list(): Promise<DataManagementListDto> {
-    this.logger.log('从数据库获取所有指标数据。');
-
-    // 优化：使用Promise.all并行执行查询，减少数据库往返次数
-    const [indicatorValues, allDetailedIndicators] = await Promise.all([
-      // 优化查询：只选择必要的字段，减少数据传输量
-      this.prisma.indicatorValue.findMany({
-        where: {
-          delete: 0,
-          country: { delete: 0 },
-          detailedIndicator: { delete: 0 }, // 确保三级指标也未删除
-        },
-        select: {
-          year: true,
-          value: true,
-          detailedIndicatorId: true,
-          country: {
-            select: {
-              id: true,
-              cnName: true,
-              enName: true,
-              createTime: true,
-              updateTime: true,
-            },
-          },
-          detailedIndicator: {
-            select: {
-              id: true,
-              indicatorCnName: true,
-              indicatorEnName: true,
-            },
-          },
-        },
-        // 优化：在数据库层面进行排序，减少内存排序开销
-        orderBy: [{ year: 'desc' }, { country: { updateTime: 'desc' } }],
-      }),
-      // 获取所有三级指标定义，用于填充缺失的数据
-      this.prisma.detailedIndicator.findMany({
-        where: { delete: 0 },
-        select: {
-          id: true,
-          indicatorCnName: true,
-          indicatorEnName: true,
-        },
-      }),
-    ]);
-
-    if (!indicatorValues || indicatorValues.length === 0) {
-      this.logger.log('未找到任何指标数据，返回空数组。');
-      return [];
-    }
-
-    // 优化：预构建指标映射表，避免重复查找
-    const allIndicatorsMap = new Map(
-      allDetailedIndicators.map((i) => [
-        i.id,
-        {
-          cnName: i.indicatorCnName,
-          enName: i.indicatorEnName,
-        },
-      ]),
-    );
-
-    // 优化：使用reduce进行高效数据分组，避免多层嵌套循环
-    const groupedData = indicatorValues.reduce(
-      (acc, iv) => {
-        const year = iv.year;
-        const countryId = iv.country.id;
-        const countryKey = `${year}-${countryId}`;
-
-        // 初始化年份分组
-        if (!acc.yearGroups.has(year)) {
-          acc.yearGroups.set(year, new Set<string>());
-        }
-        acc.yearGroups.get(year)!.add(countryId);
-
-        // 分组指标值数据
-        if (!acc.countryData.has(countryKey)) {
-          acc.countryData.set(countryKey, {
-            country: iv.country,
-            year,
-            indicators: new Map<string, number | null>(),
-          });
-        }
-
-        // 优化：直接处理数值转换，避免重复转换
-        const processedValue =
-          iv.value !== null
-            ? typeof iv.value === 'string'
-              ? Number(iv.value)
-              : iv.value.toNumber()
-            : null;
-
-        acc.countryData
-          .get(countryKey)!
-          .indicators.set(iv.detailedIndicatorId, processedValue);
-
-        return acc;
-      },
-      {
-        yearGroups: new Map<number, Set<string>>(),
-        countryData: new Map<
-          string,
-          {
-            country: (typeof indicatorValues)[0]['country'];
-            year: number;
-            indicators: Map<string, number | null>;
-          }
-        >(),
-      },
-    );
-
-    // 优化：构建结果数组，减少重复操作
-    const result: DataManagementListDto = Array.from(
-      groupedData.yearGroups.entries(),
-    )
-      .map(([year, countryIds]) => {
-        const yearData: YearData = {
-          year,
-          data: Array.from(countryIds)
-            .map((countryId) => {
-              const countryKey = `${year}-${countryId}`;
-              const countryInfo = groupedData.countryData.get(countryKey)!;
-              const { country, indicators: indicatorMap } = countryInfo;
-
-              // 优化：使用Array.from和map构建指标列表，提高性能
-              const indicators: IndicatorDataItem[] = Array.from(
-                allIndicatorsMap.entries(),
-              ).map(([id, indicatorInfo]) => ({
-                id,
-                cnName: indicatorInfo.cnName,
-                enName: indicatorInfo.enName,
-                value: indicatorMap.get(id) ?? null,
-              }));
-
-              // 优化：使用every方法检查完整性，更简洁高效
-              const isComplete = indicators.every(
-                (indicator) => indicator.value !== null,
-              );
-
-              return {
-                id: countryId,
-                cnName: country.cnName,
-                enName: country.enName,
-                year,
-                isComplete,
-                indicators,
-                createTime: country.createTime,
-                updateTime: country.updateTime,
-              } as CountryData;
-            })
-            // 优化：由于数据库已排序，这里只需要保持顺序即可
-            .sort((a, b) => b.updateTime.getTime() - a.updateTime.getTime()),
-        };
-        return yearData;
-      })
-      // 优化：由于数据库已按年份降序排序，这里可以简化
-      .sort((a, b) => b.year - a.year);
-
-    this.logger.log('指标数据处理完成并按年份排序。');
-    return result;
-  }
-
-  /**
    * 获取数据管理条目（支持分页）
    * @param params 分页参数
    * @returns 带分页信息的年份数据
    */
-  async listPaginated(
+  async list(
     params: DataManagementListReqDto,
   ): Promise<DataManagementListResDto> {
     this.logger.log('获取分页数据管理列表');
@@ -252,27 +83,104 @@ export class DataManagementService {
       };
 
       // 获取该年份下的总国家数量
-      const countryGroups = await this.prisma.indicatorValue.groupBy({
-        by: ['countryId'],
+      const countryGroups = await this.prisma.indicatorValue.findMany({
         where: whereCondition,
+        select: { countryId: true },
+        distinct: ['countryId'],
       });
       const totalCount = countryGroups.length;
 
-      // 获取该年份下的国家ID列表（分页）
-      const countryIds = await this.prisma.indicatorValue.findMany({
-        where: whereCondition,
-        select: {
-          countryId: true,
-        },
-        distinct: ['countryId'],
-        skip,
-        take: pageSize,
-        orderBy: {
-          country: { updateTime: 'desc' },
-        },
-      });
+      // 根据排序字段获取排序后的国家ID列表
+      let countryIdList: string[];
 
-      const countryIdList = countryIds.map((item) => item.countryId);
+      if (params?.sortField && params?.sortOrder) {
+        // 优化：仅获取用于排序的指定指标数据，避免加载所有指标以提升性能
+        // 先根据英文名找到对应的三级指标ID
+        const sortIndicator = await this.prisma.detailedIndicator.findFirst({
+          where: { delete: 0, indicatorEnName: params.sortField },
+          select: { id: true },
+        });
+
+        if (!sortIndicator) {
+          // 若未找到对应指标，回退到按更新时间的默认分页逻辑
+          const countryIds = await this.prisma.indicatorValue.findMany({
+            where: whereCondition,
+            select: { countryId: true },
+            distinct: ['countryId'],
+            skip,
+            take: pageSize,
+            orderBy: { updateTime: 'desc' },
+          });
+          countryIdList = countryIds.map((item) => item.countryId);
+        } else {
+          // 获取该年份、该指标下每个国家对应的值（仅取国家ID与数值）
+          const indicatorValuesForSort =
+            await this.prisma.indicatorValue.findMany({
+              where: {
+                ...whereCondition,
+                detailedIndicatorId: sortIndicator.id,
+              },
+              select: {
+                countryId: true,
+                value: true,
+              },
+            });
+
+          // 构建国家到该指标值的映射，仅包含该指标，其他指标不参与排序
+          const countryToValueMap = new Map<string, number | null>();
+          indicatorValuesForSort.forEach((iv) => {
+            let v: number | null = null;
+            if (iv.value !== null) {
+              v =
+                typeof iv.value === 'string'
+                  ? Number(iv.value)
+                  : iv.value.toNumber();
+              if (Number.isNaN(v)) v = null;
+            }
+            countryToValueMap.set(iv.countryId, v);
+          });
+
+          // 使用所有国家ID作为基准（包含该年在其他指标上有数据但该指标缺失的国家）
+          // 这些国家的排序值视为null，排在最后
+          const allCountryIds = countryGroups.map((g) => g.countryId);
+
+          const sortedCountryIds = allCountryIds.sort((a, b) => {
+            const aValue = countryToValueMap.has(a)
+              ? countryToValueMap.get(a)!
+              : null;
+            const bValue = countryToValueMap.has(b)
+              ? countryToValueMap.get(b)!
+              : null;
+
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1; // null 值排后
+            if (bValue == null) return -1;
+
+            return params.sortOrder === 'asc'
+              ? aValue - bValue
+              : bValue - aValue;
+          });
+
+          // 分页切片
+          countryIdList = sortedCountryIds.slice(skip, skip + pageSize);
+        }
+      } else {
+        // 没有排序字段时，使用原来的逻辑
+        const countryIds = await this.prisma.indicatorValue.findMany({
+          where: whereCondition,
+          select: {
+            countryId: true,
+          },
+          distinct: ['countryId'],
+          skip,
+          take: pageSize,
+          orderBy: {
+            updateTime: 'desc',
+          },
+        });
+
+        countryIdList = countryIds.map((item) => item.countryId);
+      }
 
       // 获取这些国家的详细数据
       const [indicatorValues, allDetailedIndicators] = await Promise.all([

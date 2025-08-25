@@ -156,6 +156,8 @@ model IndicatorValue {
 
   @@index([countryId, year])
   @@index([countryId, year, delete])
+  @@index([detailedIndicatorId, year, countryId])
+  @@index([detailedIndicatorId, year, countryId, delete])
 }
 
 // 世界地图城镇化展示表

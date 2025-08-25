@@ -12,6 +12,7 @@ import {
   Table,
   Tag
 } from 'antd'
+import type { SortOrder } from 'antd/es/table/interface'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type {
@@ -59,9 +60,7 @@ const DataManagement = () => {
   // 使用新的分页数据状态
   const paginatedData = useDataManagementStore(state => state.paginatedData)
   const loading = useDataManagementStore(state => state.paginatedListLoading)
-  const getDataManagementListPaginated = useDataManagementStore(
-    state => state.getDataManagementListPaginated
-  )
+  const getDataManagementList = useDataManagementStore(state => state.getDataManagementList)
   const deleteData = useDataManagementStore(state => state.deleteData)
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -73,6 +72,11 @@ const DataManagement = () => {
   >({})
   // 记录当前展开的年份
   const [activeCollapseKey, setActiveCollapseKey] = useState<string[] | ''>('')
+  // 记录排序状态，避免重新渲染时丢失
+  const [sortState, setSortState] = useState<{
+    field: string | null
+    order: 'asc' | 'desc' | null
+  }>({ field: null, order: null })
   const navigate = useNavigate()
 
   // 统一组装请求参数
@@ -85,12 +89,14 @@ const DataManagement = () => {
       year: Number(year),
       page: pagination.page,
       pageSize: pagination.pageSize
-    }))
+    })),
+    sortField: sortState.field || undefined,
+    sortOrder: sortState.order || undefined
   })
 
   // 首次加载列表
   useEffect(() => {
-    getDataManagementListPaginated({ searchTerm: undefined, yearPaginations: [] })
+    getDataManagementList({ searchTerm: undefined, yearPaginations: [] })
   }, [])
 
   // 初始化年份分页参数
@@ -156,7 +162,7 @@ const DataManagement = () => {
         }
       }
 
-      await getDataManagementListPaginated(buildParams(nextYearParams, searchTerm))
+      await getDataManagementList(buildParams(nextYearParams, searchTerm))
     } else {
       message.error('删除失败')
     }
@@ -192,26 +198,22 @@ const DataManagement = () => {
     const indicatorColumns: TableProps<CountryData>['columns'] = DETAILED_INDICATORS.map(
       indicator => ({
         title: indicator.cnName,
-        dataIndex: 'indicators',
+        dataIndex: indicator.enName, // 这里使用真实指标英文名
         key: indicator.enName,
         width: 150,
-        render: (indicators: CountryData['indicators'] = []) => {
-          const foundIndicator = indicators.find(ind => ind.enName === indicator.enName)
+        render: (_: any, record: CountryData) => {
+          const foundIndicator = record.indicators?.find(ind => ind.enName === indicator.enName)
           const value = foundIndicator?.value
           return value !== null && value !== undefined ? value : ''
         },
-        sorter: (a, b) => {
-          const aIndicator = a.indicators?.find(i => i.enName === indicator.enName)
-          const bIndicator = b.indicators?.find(i => i.enName === indicator.enName)
-          const aValue = aIndicator?.value
-          const bValue = bIndicator?.value
-
-          if (aValue == null && bValue == null) return 0
-          if (aValue == null) return 1
-          if (bValue == null) return -1
-
-          return aValue - bValue
-        }
+        sorter: true,
+        sortOrder: (sortState.field === indicator.enName
+          ? sortState.order === 'asc'
+            ? 'ascend'
+            : sortState.order === 'desc'
+              ? 'descend'
+              : undefined
+          : undefined) as SortOrder | undefined
       })
     )
 
@@ -268,7 +270,7 @@ const DataManagement = () => {
     ]
 
     return [...baseColumns, ...indicatorColumns, ...timeColumns, ...actionColumn]
-  }, [navigate])
+  }, [navigate, sortState])
 
   // 处理分页年份数据的分页变更
   const handleYearPaginationChange = (year: number, page: number, pageSize: number) => {
@@ -277,7 +279,48 @@ const DataManagement = () => {
       [year]: { page, pageSize }
     }
     setYearPaginationParams(next)
-    getDataManagementListPaginated(buildParams(next, searchTerm))
+    getDataManagementList(buildParams(next, searchTerm))
+  }
+
+  // 处理表格排序变化
+  const handleTableChange = (pagination: any, filters: any, sorter: any, extra: any) => {
+    // 仅当是排序动作时才处理，避免分页点击被误判
+    if (extra && extra.action === 'sort') {
+      const orderVal =
+        sorter && sorter.order === 'ascend'
+          ? 'asc'
+          : sorter && sorter.order === 'descend'
+            ? 'desc'
+            : null
+      const fieldVal = orderVal ? (sorter.field as string) : null
+      const newSortState = {
+        field: fieldVal,
+        order: orderVal as 'asc' | 'desc' | null
+      }
+
+      // 重置所有年份的页码为第一页，然后重新获取数据
+      const resetParams: Record<number, { page: number; pageSize: number }> = {}
+      Object.entries(yearPaginationParams).forEach(([year, pagination]) => {
+        resetParams[Number(year)] = { page: 1, pageSize: pagination.pageSize }
+      })
+
+      setYearPaginationParams(resetParams)
+      setSortState(newSortState)
+
+      const requestParams: DataManagementListReqDto = {
+        searchTerm: searchTerm || undefined,
+        yearPaginations: Object.entries(resetParams).map(([year, pagination]) => ({
+          year: Number(year),
+          page: pagination.page,
+          pageSize: pagination.pageSize
+        })),
+        ...(newSortState.field && newSortState.order
+          ? { sortField: newSortState.field, sortOrder: newSortState.order }
+          : {})
+      }
+
+      getDataManagementList(requestParams)
+    }
   }
 
   // Search组件onSearch事件处理
@@ -289,7 +332,9 @@ const DataManagement = () => {
       resetParams[Number(year)] = { page: 1, pageSize: pagination.pageSize }
     })
     setYearPaginationParams(resetParams)
-    getDataManagementListPaginated(buildParams(resetParams, value))
+    // 搜索时清除排序状态
+    setSortState({ field: null, order: null })
+    getDataManagementList(buildParams(resetParams, value))
   }
 
   return (
@@ -324,6 +369,7 @@ const DataManagement = () => {
                 columns={countryTableColumns}
                 dataSource={yearData.data}
                 rowKey="id"
+                onChange={handleTableChange}
                 pagination={{
                   current: yearData.pagination.page,
                   pageSize: yearData.pagination.pageSize,
