@@ -9,10 +9,11 @@ import type {
   CreateIndicatorValuesDto,
   DataManagementCountriesByYearsReqDto,
   DataManagementCountriesByYearsResDto,
-  DataManagementListReqDto,
-  DataManagementListResDto,
+  DataManagementListByYearReqDto,
+  DataManagementListByYearResDto,
   DataManagementYearsResDto,
   ExportDataMultiYearReqDto,
+  PaginatedYearData,
   TopIndicatorItem
 } from 'urbanization-backend/types/dto'
 import { create } from 'zustand'
@@ -26,7 +27,7 @@ import {
   dataManagementDelete,
   dataManagementDetail,
   dataManagementExportMultiYear,
-  dataManagementList,
+  dataManagementListByYear,
   dataManagementYears
 } from '@/services/apis'
 import http from '@/services/base.ts'
@@ -34,22 +35,34 @@ import { ExportFormat } from '@/types'
 import { dayjs } from '@/utils/dayjs'
 
 type DataManagementStore = {
-  paginatedData: DataManagementListResDto | null
-  paginatedListLoading: boolean
+  // 新的按年份懒加载状态
+  years: DataManagementYearsResDto
+  yearsLoading: boolean
+  yearDataMap: Record<number, PaginatedYearData | undefined>
+  yearLoadingMap: Record<number, boolean>
+  yearQueryMap: Record<
+    number,
+    { page: number; pageSize: number; sortField?: string; sortOrder?: 'asc' | 'desc' }
+  >
+  globalSearchTerm: string
+
+  // 导出与详情等其它状态
   detailData: CountryDetailResDto | null
   detailLoading: boolean
   saveLoading: boolean
   exportLoading: boolean
-  // 用于导出页面优化的状态
-  years: DataManagementYearsResDto
-  yearsLoading: boolean
   // 多年份国家数据
   countriesByYears: DataManagementCountriesByYearsResDto
   countriesByYearsLoading: boolean
-  // 统一的获取列表方法（分页）
-  getDataManagementList: (params?: DataManagementListReqDto) => Promise<void>
+
+  // 获取年份列表
   getDataManagementYears: () => Promise<void>
-  // 获取多年份国家数据
+  // 获取单一年份数据（分页/排序）
+  getDataManagementListByYear: (params: DataManagementListByYearReqDto) => Promise<void>
+  // 设置全局搜索并清空已加载数据
+  setGlobalSearchTerm: (term: string) => void
+
+  // 其它既有能力
   getDataManagementCountriesByYears: (params: DataManagementCountriesByYearsReqDto) => Promise<void>
   getDataManagementDetail: (params: CountryDetailReqDto) => Promise<void>
   saveDataManagementDetail: (data: CreateIndicatorValuesDto) => Promise<boolean>
@@ -75,36 +88,26 @@ type DataManagementStore = {
 }
 
 const useDataManagementStore = create<DataManagementStore>(set => ({
-  paginatedData: null,
-  paginatedListLoading: false,
+  // 懒加载所需的列表状态
+  years: [],
+  yearsLoading: false,
+  yearDataMap: {},
+  yearLoadingMap: {},
+  yearQueryMap: {},
+  globalSearchTerm: '',
+
   detailData: null,
   detailLoading: false,
   saveLoading: false,
   exportLoading: false,
-  // 用于导出页面优化的状态
-  years: [],
-  yearsLoading: false,
-  // 多年份国家数据
   countriesByYears: [],
   countriesByYearsLoading: false,
 
-  // 统一的获取数据管理列表（分页）
-  getDataManagementList: async (params?: DataManagementListReqDto) => {
-    set({ paginatedListLoading: true })
-    try {
-      const response = await http.post<DataManagementListResDto>(dataManagementList, params || {})
-      set({ paginatedData: response.data, paginatedListLoading: false })
-    } catch (error) {
-      console.error('获取分页数据失败:', error)
-      set({ paginatedListLoading: false })
-    }
-  },
-
-  // 获取有数据的年份列表
+  // 获取年份列表
   getDataManagementYears: async () => {
     set({ yearsLoading: true })
     try {
-      const res = await http.post(dataManagementYears, {})
+      const res = await http.post<DataManagementYearsResDto>(dataManagementYears, {})
       set({ years: res.data })
     } catch (error) {
       console.error('获取年份列表失败:', error)
@@ -113,7 +116,36 @@ const useDataManagementStore = create<DataManagementStore>(set => ({
     }
   },
 
-  // 根据多个年份获取国家列表
+  // 获取单一年份数据
+  getDataManagementListByYear: async (params: DataManagementListByYearReqDto) => {
+    const { year, page = 1, pageSize = 10, sortField, sortOrder } = params
+    set(state => ({ yearLoadingMap: { ...state.yearLoadingMap, [year]: true } }))
+    try {
+      const res = await http.post<DataManagementListByYearResDto>(dataManagementListByYear, params)
+      set(state => ({
+        yearDataMap: { ...state.yearDataMap, [year]: res.data as PaginatedYearData },
+        yearQueryMap: {
+          ...state.yearQueryMap,
+          [year]: {
+            page,
+            pageSize,
+            ...(sortField ? { sortField } : {}),
+            ...(sortOrder ? { sortOrder } : {})
+          }
+        }
+      }))
+    } catch (error) {
+      console.error('获取年份数据失败:', error)
+    } finally {
+      set(state => ({ yearLoadingMap: { ...state.yearLoadingMap, [year]: false } }))
+    }
+  },
+
+  setGlobalSearchTerm: (term: string) => {
+    set({ globalSearchTerm: term, yearDataMap: {}, yearQueryMap: {} })
+  },
+
+  // 获取多年份国家数据
   getDataManagementCountriesByYears: async (params: DataManagementCountriesByYearsReqDto) => {
     set({ countriesByYearsLoading: true })
     try {

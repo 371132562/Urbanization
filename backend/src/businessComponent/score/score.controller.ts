@@ -6,10 +6,10 @@ import {
   BatchCheckScoreExistingResDto,
   ScoreEvaluationItemDto,
   CreateScoreDto,
-  ScoreListReqDto,
-  ScoreListResDto,
   ScoreDetailReqDto,
   DeleteScoreDto,
+  ScoreListByYearReqDto,
+  ScoreListByYearResDto,
 } from 'types/dto';
 
 @Controller('score')
@@ -17,11 +17,21 @@ export class ScoreController {
   constructor(private readonly scoreService: ScoreService) {}
 
   /**
-   * @description 获取评分数据，支持分页和搜索功能
+   * @description 获取有评分数据的年份列表
    */
-  @Post('list')
-  list(@Body() params?: ScoreListReqDto): Promise<ScoreListResDto> {
-    return this.scoreService.list(params);
+  @Post('years')
+  getYears(): Promise<number[]> {
+    return this.scoreService.getYears();
+  }
+
+  /**
+   * @description 获取指定年份的评分数据（分页、排序、搜索）
+   */
+  @Post('listByYear')
+  listByYear(
+    @Body() params: ScoreListByYearReqDto,
+  ): Promise<ScoreListByYearResDto> {
+    return this.scoreService.listByYear(params);
   }
 
   /**

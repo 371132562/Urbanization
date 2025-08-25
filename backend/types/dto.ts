@@ -73,23 +73,21 @@ export type PaginatedYearData = {
 };
 
 /**
- * 数据管理列表请求参数（支持分页）
+ * 单年份数据管理列表请求参数（支持分页）
  */
-export type DataManagementListReqDto = {
-  searchTerm?: string; // 搜索关键词，用于按国家名称搜索
-  yearPaginations?: {
-    year: number;
-    page?: number; // 默认为1
-    pageSize?: number; // 默认为10
-  }[];
+export type DataManagementListByYearReqDto = {
+  year: number; // 年份
+  page?: number; // 默认为1
+  pageSize?: number; // 默认为10
+  searchTerm?: string; // 搜索关键词
   sortField?: string; // 排序字段名
   sortOrder?: 'asc' | 'desc'; // 排序方向
 };
 
 /**
- * 数据管理列表响应（支持分页）
+ * 单年份数据管理列表响应（支持分页）
  */
-export type DataManagementListResDto = PaginatedYearData[];
+export type DataManagementListByYearResDto = PaginatedYearData;
 
 /**
  * 国家详细指标数据请求参数
@@ -510,25 +508,6 @@ export type ScoreDataItem = {
 };
 
 /**
- * 评分列表请求参数（支持分页和排序）
- */
-export type ScoreListReqDto = {
-  searchTerm?: string; // 搜索关键词，用于按国家名称搜索
-  yearPaginations?: {
-    year: number;
-    page?: number; // 默认为1
-    pageSize?: number; // 默认为10
-  }[];
-  sortField?: string; // 排序字段名
-  sortOrder?: 'asc' | 'desc'; // 排序方向
-};
-
-/**
- * 评分列表响应（支持分页）
- */
-export type ScoreListResDto = PaginatedYearScoreData[];
-
-/**
  * 分页年份评分数据
  */
 export type PaginatedYearScoreData = {
@@ -536,6 +515,23 @@ export type PaginatedYearScoreData = {
   data: ScoreDataItem[];
   pagination: PaginationInfo;
 };
+
+/**
+ * 单年份评分列表请求参数（支持分页和排序）
+ */
+export type ScoreListByYearReqDto = {
+  year: number;
+  page?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
+};
+
+/**
+ * 单年份评分列表响应（支持分页）
+ */
+export type ScoreListByYearResDto = PaginatedYearScoreData;
 
 export interface CountryScoreDataItem {
   year: number;

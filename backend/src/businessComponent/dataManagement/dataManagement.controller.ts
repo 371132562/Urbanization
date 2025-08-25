@@ -15,13 +15,13 @@ import {
   CountryDetailReqDto,
   CountryDetailResDto,
   CreateIndicatorValuesDto,
-  DataManagementListReqDto,
-  DataManagementListResDto,
   CountryYearQueryDto,
   ExportDataMultiYearReqDto,
   DataManagementYearsResDto,
   DataManagementCountriesByYearsReqDto,
   DataManagementCountriesByYearsResDto,
+  DataManagementListByYearReqDto,
+  DataManagementListByYearResDto,
 } from '../../../types/dto';
 
 @Controller('dataManagement')
@@ -30,15 +30,13 @@ export class DataManagementController {
   constructor(private readonly dataManagementService: DataManagementService) {}
 
   /**
-   * 获取数据管理条目（分页接口）
-   * @param {DataManagementListReqDto} params - 分页、搜索、排序参数
-   * @returns {Promise<DataManagementListResDto>}
+   * 获取指定年份的数据管理条目（分页接口）
    */
-  @Post('list')
-  async list(
-    @Body() params: DataManagementListReqDto,
-  ): Promise<DataManagementListResDto> {
-    return await this.dataManagementService.list(params);
+  @Post('listByYear')
+  async listByYear(
+    @Body() params: DataManagementListByYearReqDto,
+  ): Promise<DataManagementListByYearResDto> {
+    return await this.dataManagementService.listByYear(params);
   }
 
   /**
@@ -140,7 +138,6 @@ export class DataManagementController {
     const { buffer, mime, fileName } =
       await this.dataManagementService.exportDataMultiYear(params);
 
-    // 对文件名进行编码，以支持非ASCII字符，并防止"Invalid character"错误
     const encodedFileName = encodeURIComponent(fileName);
     res.setHeader('Content-Type', mime);
     res.setHeader(

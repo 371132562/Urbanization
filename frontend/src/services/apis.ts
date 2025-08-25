@@ -1,5 +1,5 @@
 // 数据管理API
-export const dataManagementList = '/dataManagement/list'
+export const dataManagementListByYear = '/dataManagement/listByYear'
 export const dataManagementYears = '/dataManagement/years'
 export const dataManagementCountriesByYears = '/dataManagement/countriesByYears'
 export const dataManagementDetail = '/dataManagement/detail'
@@ -33,7 +33,6 @@ export const articleGetByPage = '/article/getByPage'
 export const articleGetDetailsByIds = '/article/getDetailsByIds'
 
 // 评分管理API
-export const scoreList = '/score/list'
 export const scoreCreate = '/score/create'
 export const scoreBatchCreate = '/score/batchCreate'
 export const scoreDetail = '/score/detail'
@@ -43,6 +42,8 @@ export const scoreBatchCheckExisting = '/score/batchCheckExisting'
 export const scoreListByCountry = '/score/listByCountry'
 export const scoreEvaluationList = '/score/evaluation/list'
 export const scoreEvaluationCreate = '/score/evaluation/create'
+export const scoreYears = '/score/years'
+export const scoreListByYear = '/score/listByYear'
 
 // 角色管理API
 export const roleListApi = '/role/list'

@@ -7,10 +7,11 @@ import {
   CountryScoreData,
   CreateScoreDto,
   DeleteScoreDto,
+  PaginatedYearScoreData,
   ScoreDetailReqDto,
   ScoreEvaluationItemDto,
-  ScoreListReqDto,
-  ScoreListResDto
+  ScoreListByYearReqDto,
+  ScoreListByYearResDto
 } from 'urbanization-backend/types/dto'
 import { create } from 'zustand'
 
@@ -26,42 +27,51 @@ type ScoreDetail = CreateScoreDto & {
 }
 
 interface ScoreStore {
-  // ==================== 分页评分列表相关状态 ====================
-  paginatedData: ScoreListResDto | null
-  paginatedListLoading: boolean
+  // 年份与按年数据缓存
+  years: number[]
+  yearsLoading: boolean
+  yearDataMap: Record<number, PaginatedYearScoreData | undefined>
+  yearLoadingMap: Record<number, boolean>
+  yearQueryMap: Record<
+    number,
+    { page: number; pageSize: number; sortField?: string; sortOrder?: 'asc' | 'desc' }
+  >
+  globalSearchTerm: string
 
-  // ==================== 按国家分组评分列表相关状态 ====================
+  // 按国家分组评分列表相关状态
   scoreListByCountry: CountryScoreData[]
   scoreListByCountryLoading: boolean
 
-  // ==================== 评分详情相关状态 ====================
+  // 评分详情相关状态
   detailData: ScoreDetail | ScoreFormData | null
   detailLoading: boolean
 
-  // ==================== 评分评价相关状态 ====================
+  // 评分评价相关状态
   evaluations: ScoreEvaluationItemDto[]
   evaluationsLoading: boolean
   evaluationsSaveLoading: boolean
 
-  // ==================== 通用操作状态 ====================
+  // 通用操作状态
   saveLoading: boolean
 
-  // ==================== 分页评分列表相关方法 ====================
-  getScoreListPaginated: (params?: ScoreListReqDto) => Promise<void>
+  // 年份与按年列表
+  getScoreYears: () => Promise<void>
+  getScoreListByYear: (params: ScoreListByYearReqDto) => Promise<void>
+  setGlobalSearchTerm: (term: string) => void
 
-  // ==================== 按国家分组评分列表相关方法 ====================
+  // 按国家分组
   getScoreListByCountry: () => Promise<void>
 
-  // ==================== 评分详情相关方法 ====================
+  // 评分详情
   getScoreDetail: (params: ScoreDetailReqDto) => Promise<void>
   resetDetailData: () => void
   initializeNewData: () => void
 
-  // ==================== 评分评价相关方法 ====================
+  // 评分评价
   getEvaluations: () => Promise<void>
   saveEvaluations: (data: ScoreEvaluationItemDto[]) => Promise<boolean>
 
-  // ==================== 评分数据操作相关方法 ====================
+  // 评分数据操作
   createScore: (data: CreateScoreDto) => Promise<boolean>
   batchCreateScore: (data: BatchCreateScoreDto) => Promise<{
     totalCount: number
@@ -71,7 +81,7 @@ interface ScoreStore {
   }>
   deleteData: (params: DeleteScoreDto) => Promise<boolean>
 
-  // ==================== 评分数据检查相关方法 ====================
+  // 评分数据检查
   checkScoreExistingData: (params: ScoreDetailReqDto) => Promise<CheckExistingDataResDto>
   batchCheckScoreExistingData: (
     data: BatchCheckScoreExistingDto
@@ -79,47 +89,73 @@ interface ScoreStore {
 }
 
 const useScoreStore = create<ScoreStore>()(set => ({
-  // ==================== 分页评分列表相关状态 ====================
-  paginatedData: null,
-  paginatedListLoading: false,
+  // 年份与按年数据缓存
+  years: [],
+  yearsLoading: false,
+  yearDataMap: {},
+  yearLoadingMap: {},
+  yearQueryMap: {},
+  globalSearchTerm: '',
 
-  // ==================== 按国家分组评分列表相关状态 ====================
+  // 按国家分组
   scoreListByCountry: [],
   scoreListByCountryLoading: false,
 
-  // ==================== 评分详情相关状态 ====================
+  // 评分详情
   detailData: null,
   detailLoading: false,
 
-  // ==================== 评分评价相关状态 ====================
+  // 评分评价
   evaluations: [],
   evaluationsLoading: false,
   evaluationsSaveLoading: false,
 
-  // ==================== 通用操作状态 ====================
+  // 通用操作
   saveLoading: false,
 
-  // ==================== 分页评分列表相关方法 ====================
-  /**
-   * 获取分页评分列表数据
-   * @param params 分页和搜索参数
-   */
-  getScoreListPaginated: async (params?: ScoreListReqDto) => {
-    set({ paginatedListLoading: true })
+  // 年份列表
+  getScoreYears: async () => {
+    set({ yearsLoading: true })
     try {
-      const response = await http.post<ScoreListResDto>(apis.scoreList, params || {})
-      set({ paginatedData: response.data, paginatedListLoading: false })
+      const res = await http.post<number[]>(apis.scoreYears, {})
+      set({ years: res.data || [] })
     } catch (error) {
-      console.error('获取分页评分数据失败:', error)
-      set({ paginatedListLoading: false })
+      console.error('获取评分年份失败:', error)
+    } finally {
+      set({ yearsLoading: false })
     }
   },
 
-  // ==================== 按国家分组评分列表相关方法 ====================
-  /**
-   * 获取按国家分组的评分列表数据
-   * 用于综合评价页面的地图展示
-   */
+  // 单一年份列表
+  getScoreListByYear: async (params: ScoreListByYearReqDto) => {
+    const { year, page = 1, pageSize = 10, sortField, sortOrder } = params
+    set(state => ({ yearLoadingMap: { ...state.yearLoadingMap, [year]: true } }))
+    try {
+      const res = await http.post<ScoreListByYearResDto>(apis.scoreListByYear, params)
+      set(state => ({
+        yearDataMap: { ...state.yearDataMap, [year]: res.data },
+        yearQueryMap: {
+          ...state.yearQueryMap,
+          [year]: {
+            page,
+            pageSize,
+            ...(sortField ? { sortField } : {}),
+            ...(sortOrder ? { sortOrder } : {})
+          }
+        }
+      }))
+    } catch (error) {
+      console.error('获取评分年份分页失败:', error)
+    } finally {
+      set(state => ({ yearLoadingMap: { ...state.yearLoadingMap, [year]: false } }))
+    }
+  },
+
+  setGlobalSearchTerm: (term: string) => {
+    set({ globalSearchTerm: term, yearDataMap: {}, yearQueryMap: {} })
+  },
+
+  // 按国家分组
   getScoreListByCountry: async () => {
     set({ scoreListByCountryLoading: true })
     try {

@@ -3,11 +3,7 @@ import { Button, Collapse, Empty, Input, message, Popconfirm, Skeleton, Space, T
 import type { SortOrder } from 'antd/es/table/interface'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import type {
-  PaginatedYearScoreData,
-  ScoreDataItem,
-  ScoreListReqDto
-} from 'urbanization-backend/types/dto'
+import type { PaginatedYearScoreData, ScoreDataItem } from 'urbanization-backend/types/dto'
 
 import { SCORE_DIMENSIONS } from '@/config/dataImport'
 import useScoreStore from '@/stores/scoreStore'
@@ -44,127 +40,78 @@ const ScoreManagementSkeleton = () => (
 )
 
 const ScoreManagement = () => {
-  // 使用新的分页数据状态
-  const paginatedData = useScoreStore(state => state.paginatedData)
-  const loading = useScoreStore(state => state.paginatedListLoading)
-  const getScoreListPaginated = useScoreStore(state => state.getScoreListPaginated)
+  // 年份懒加载相关
+  const years = useScoreStore(state => state.years)
+  const yearsLoading = useScoreStore(state => state.yearsLoading)
+  const yearDataMap = useScoreStore(state => state.yearDataMap)
+  const yearLoadingMap = useScoreStore(state => state.yearLoadingMap)
+  const yearQueryMap = useScoreStore(state => state.yearQueryMap)
+  const getYears = useScoreStore(state => state.getScoreYears)
+  const getListByYear = useScoreStore(state => state.getScoreListByYear)
+  const setGlobalSearchTerm = useScoreStore(state => state.setGlobalSearchTerm)
   const deleteData = useScoreStore(state => state.deleteData)
 
   const [searchTerm, setSearchTerm] = useState('')
-  // 存储每个年份的分页参数
-  const [yearPaginationParams, setYearPaginationParams] = useState<
-    Record<number, { page: number; pageSize: number }>
+  const [yearSortMap, setYearSortMap] = useState<
+    Record<number, { field: string | null; order: 'asc' | 'desc' | null }>
   >({})
-  // 记录当前展开的年份
-  const [activeCollapseKey, setActiveCollapseKey] = useState<string[] | ''>('')
-  // 记录排序状态，避免重新渲染时丢失
-  const [sortState, setSortState] = useState<{
-    field: string | null
-    order: 'asc' | 'desc' | null
-  }>({ field: null, order: null })
+  const [activeCollapseKey, setActiveCollapseKey] = useState<string | ''>('')
   const navigate = useNavigate()
 
-  // 统一组装请求参数
-  const buildParams = (
-    yearParams: Record<number, { page: number; pageSize: number }>,
-    term: string
-  ): ScoreListReqDto => ({
-    searchTerm: term || undefined,
-    yearPaginations: Object.entries(yearParams).map(([year, pagination]) => ({
-      year: Number(year),
-      page: pagination.page,
-      pageSize: pagination.pageSize
-    })),
-    sortField: sortState.field || undefined,
-    sortOrder: sortState.order || undefined
-  })
-
-  // 首次加载列表
+  // 初始化仅获取年份
   useEffect(() => {
-    getScoreListPaginated({ searchTerm: undefined, yearPaginations: [] })
+    getYears()
   }, [])
 
-  // 初始化年份分页参数
+  // 年份变化后默认展开第一年并加载
   useEffect(() => {
-    if (paginatedData && Object.keys(yearPaginationParams).length === 0) {
-      const initialParams: Record<number, { page: number; pageSize: number }> = {}
-      paginatedData.forEach(yearData => {
-        initialParams[yearData.year] = { page: 1, pageSize: 10 }
-      })
-      setYearPaginationParams(initialParams)
+    if (years && years.length > 0) {
+      const firstYear = years[0]
+      setActiveCollapseKey(prev => prev || String(firstYear))
+      if (!yearDataMap[firstYear]) {
+        const q = yearQueryMap[firstYear] || { page: 1, pageSize: 10 }
+        const sort = yearSortMap[firstYear]
+        getListByYear({
+          year: firstYear,
+          page: q.page,
+          pageSize: q.pageSize,
+          ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
+          ...(searchTerm ? { searchTerm } : {})
+        })
+      }
     }
-  }, [paginatedData, yearPaginationParams])
+  }, [years])
 
   const handleDelete = async (record: ScoreDataItem) => {
     const success = await deleteData({ id: record.id })
     if (success) {
       message.success('删除成功')
-
-      // 检查删除后当前页是否还有数据，如果没有则回到前一页
-      const currentYearData = paginatedData?.find(data => data.year === record.year)
-      const currentPagination = yearPaginationParams[record.year]
-
-      if (currentYearData && currentPagination) {
-        const remainingCount = currentYearData.data.length - 1
-        const totalPages = Math.ceil(
-          (currentYearData.pagination.total - 1) / currentPagination.pageSize
-        )
-
-        // 如果当前页删除后没有数据且不是第一页，则回到前一页
-        if (remainingCount === 0 && currentPagination.page > 1) {
-          const newPage = Math.min(currentPagination.page - 1, totalPages)
-          setYearPaginationParams(prev => ({
-            ...prev,
-            [record.year]: {
-              ...prev[record.year],
-              page: newPage
-            }
-          }))
-        }
-      }
-
-      // 重新获取当前分页数据（根据是否调整分页决定使用的新参数）
-      let nextYearParams = yearPaginationParams
-      if (currentYearData && currentPagination) {
-        const remainingCount = currentYearData.data.length - 1
-        const totalPages = Math.ceil(
-          (currentYearData.pagination.total - 1) / currentPagination.pageSize
-        )
-
-        if (remainingCount === 0 && currentPagination.page > 1) {
-          const newPage = Math.min(currentPagination.page - 1, totalPages)
-          nextYearParams = {
-            ...yearPaginationParams,
-            [record.year]: {
-              ...yearPaginationParams[record.year],
-              page: newPage
-            }
-          }
-          setYearPaginationParams(nextYearParams)
-        }
-      }
-
-      await getScoreListPaginated(buildParams(nextYearParams, searchTerm))
+      const y = record.year
+      const q = yearQueryMap[y] || { page: 1, pageSize: 10 }
+      const current = yearDataMap[y]
+      const remainingCount = (current?.data?.length || 0) - 1
+      const totalPages = Math.ceil(((current?.pagination.total || 1) - 1) / (q.pageSize || 10))
+      const nextPage =
+        remainingCount === 0 && (q.page || 1) > 1
+          ? Math.min((q.page || 1) - 1, totalPages)
+          : q.page || 1
+      const sort = yearSortMap[y]
+      getListByYear({
+        year: y,
+        page: nextPage,
+        pageSize: q.pageSize || 10,
+        ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
+        ...(searchTerm ? { searchTerm } : {})
+      })
     } else {
       message.error('删除失败')
     }
   }
 
   const getCountryTableColumns = (year: number) => {
+    const sort = yearSortMap[year]
     const baseColumns = [
-      {
-        title: '国家',
-        dataIndex: 'cnName',
-        key: 'cnName',
-        fixed: 'left' as const,
-        width: 150,
-        render: (_: any, record: ScoreDataItem) => (
-          <div className="flex flex-col">
-            <span className="truncate font-medium">{record.cnName}</span>
-            <span className="truncate text-xs text-gray-500">{record.enName}</span>
-          </div>
-        )
-      }
+      { title: '国家', dataIndex: 'cnName', key: 'cnName', fixed: 'left' as const, width: 150 }
     ]
 
     const scoreColumns = SCORE_DIMENSIONS.map(dim => ({
@@ -174,22 +121,19 @@ const ScoreManagement = () => {
       width: 150,
       render: (_: any, record: ScoreDataItem) => {
         const value = record[dim.enName as keyof ScoreDataItem]
-        if (typeof value === 'number') {
-          return value.toFixed(2)
-        }
-        if (value instanceof Date) {
-          return value.toLocaleDateString()
-        }
+        if (typeof value === 'number') return value.toFixed(2)
+        if (value instanceof Date) return value.toLocaleDateString()
         return String(value || '')
       },
       sorter: true,
-      sortOrder: (sortState.field === dim.enName
-        ? sortState.order === 'asc'
-          ? 'ascend'
-          : sortState.order === 'desc'
-            ? 'descend'
-            : undefined
-        : undefined) as SortOrder | undefined
+      sortOrder:
+        sort?.field === dim.enName
+          ? sort?.order === 'asc'
+            ? 'ascend'
+            : sort?.order === 'desc'
+              ? 'descend'
+              : undefined
+          : (undefined as SortOrder | undefined)
     }))
 
     const actionColumn = {
@@ -203,13 +147,10 @@ const ScoreManagement = () => {
           <Button
             color="primary"
             variant="outlined"
-            onClick={() => {
-              navigate(`/scoreManagement/modify/${record.countryId}/${year}`)
-            }}
+            onClick={() => navigate(`/scoreManagement/modify/${record.countryId}/${year}`)}
           >
             编辑
           </Button>
-
           <Popconfirm
             title="确定删除这条数据吗？"
             onConfirm={() => handleDelete(record)}
@@ -232,69 +173,58 @@ const ScoreManagement = () => {
 
   // 处理分页年份数据的分页变更
   const handleYearPaginationChange = (year: number, page: number, pageSize: number) => {
-    const next = {
-      ...yearPaginationParams,
-      [year]: { page, pageSize }
-    }
-    setYearPaginationParams(next)
-    getScoreListPaginated(buildParams(next, searchTerm))
-  }
-
-  // 处理表格排序变化
-  const handleTableChange = (pagination: any, filters: any, sorter: any, extra: any) => {
-    // 仅处理排序动作，避免分页点击触发重置
-    if (extra && extra.action === 'sort') {
-      const orderVal =
-        sorter && sorter.order === 'ascend'
-          ? 'asc'
-          : sorter && sorter.order === 'descend'
-            ? 'desc'
-            : null
-      const fieldVal = orderVal ? (sorter.field as string) : null
-      const newSortState = {
-        field: fieldVal,
-        order: orderVal as 'asc' | 'desc' | null
-      }
-
-      // 重置所有年份的页码为第一页，然后重新获取数据
-      const resetParams: Record<number, { page: number; pageSize: number }> = {}
-      Object.entries(yearPaginationParams).forEach(([year, pagination]) => {
-        resetParams[Number(year)] = { page: 1, pageSize: pagination.pageSize }
-      })
-
-      setYearPaginationParams(resetParams)
-      setSortState(newSortState)
-
-      const requestParams: ScoreListReqDto = {
-        searchTerm: searchTerm || undefined,
-        yearPaginations: Object.entries(resetParams).map(([year, pagination]) => ({
-          year: Number(year),
-          page: pagination.page,
-          pageSize: pagination.pageSize
-        })),
-        ...(newSortState.field && newSortState.order
-          ? { sortField: newSortState.field, sortOrder: newSortState.order }
-          : {})
-      }
-
-      getScoreListPaginated(requestParams)
-    }
-  }
-
-  // Search组件onSearch事件处理
-  const handleSearch = (value: string) => {
-    setSearchTerm(value)
-    // 搜索时重置所有年份的页码为第一页，避免搜索结果分页错乱
-    const resetParams: Record<number, { page: number; pageSize: number }> = {}
-    Object.entries(yearPaginationParams).forEach(([year, pagination]) => {
-      resetParams[Number(year)] = { page: 1, pageSize: pagination.pageSize }
+    const sort = yearSortMap[year]
+    getListByYear({
+      year,
+      page,
+      pageSize,
+      ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
+      ...(searchTerm ? { searchTerm } : {})
     })
-    setYearPaginationParams(resetParams)
-    // 搜索时清除排序状态
-    setSortState({ field: null, order: null })
-    getScoreListPaginated(buildParams(resetParams, value))
   }
 
+  const handleTableChange =
+    (year: number) => (_pagination: any, _filters: any, sorter: any, extra: any) => {
+      if (extra && extra.action === 'sort') {
+        const orderVal =
+          sorter && sorter.order === 'ascend'
+            ? 'asc'
+            : sorter && sorter.order === 'descend'
+              ? 'desc'
+              : null
+        const fieldVal = orderVal ? (sorter.field as string) : null
+        const newSortState = { field: fieldVal, order: orderVal as 'asc' | 'desc' | null }
+        setYearSortMap(prev => ({ ...prev, [year]: newSortState }))
+        const q = yearQueryMap[year] || { page: 1, pageSize: 10 }
+        getListByYear({
+          year,
+          page: 1,
+          pageSize: q.pageSize,
+          ...(newSortState.field && newSortState.order
+            ? { sortField: newSortState.field, sortOrder: newSortState.order }
+            : {}),
+          ...(searchTerm ? { searchTerm } : {})
+        })
+      }
+    }
+
+  const handleSearch = async (value: string) => {
+    setSearchTerm(value)
+    setGlobalSearchTerm(value)
+    const k = Array.isArray(activeCollapseKey) ? activeCollapseKey[0] : activeCollapseKey
+    const activeYear = Number(k || (years && years.length > 0 ? years[0] : ''))
+    if (activeYear) {
+      const q = yearQueryMap[activeYear] || { page: 1, pageSize: 10 }
+      const sort = yearSortMap[activeYear]
+      getListByYear({
+        year: activeYear,
+        page: q.page,
+        pageSize: q.pageSize,
+        ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
+        ...(value ? { searchTerm: value } : {})
+      })
+    }
+  }
 
   return (
     <div className="w-full max-w-7xl">
@@ -308,39 +238,59 @@ const ScoreManagement = () => {
           style={{ width: 300 }}
         />
       </div>
-      {loading || Object.keys(yearPaginationParams).length === 0 ? (
+      {yearsLoading ? (
         <ScoreManagementSkeleton />
-      ) : paginatedData && paginatedData.length > 0 ? (
+      ) : years && years.length > 0 ? (
         <Collapse
           accordion
-          activeKey={activeCollapseKey || paginatedData[0]?.year.toString()}
+          activeKey={activeCollapseKey}
           onChange={key => {
-            setActiveCollapseKey(key)
+            const k = Array.isArray(key) ? key[0] : key
+            setActiveCollapseKey(k as string)
+            const year = Number(k)
+            if (year && !yearDataMap[year]) {
+              const q = yearQueryMap[year] || { page: 1, pageSize: 10 }
+              const sort = yearSortMap[year]
+              getListByYear({
+                year,
+                page: q.page,
+                pageSize: q.pageSize,
+                ...(sort?.field && sort?.order
+                  ? { sortField: sort.field, sortOrder: sort.order }
+                  : {}),
+                ...(searchTerm ? { searchTerm } : {})
+              })
+            }
           }}
         >
-          {paginatedData.map((yearData: PaginatedYearScoreData) => (
-            <Panel
-              header={<span className="text-base font-semibold">{yearData.year}年</span>}
-              key={yearData.year.toString()}
-            >
-              <Table
-                columns={getCountryTableColumns(yearData.year)}
-                dataSource={yearData.data}
-                rowKey="id"
-                onChange={handleTableChange}
-                pagination={{
-                  current: yearData.pagination.page,
-                  pageSize: yearData.pagination.pageSize,
-                  total: yearData.pagination.total,
-                  showSizeChanger: false,
-                  showQuickJumper: true,
-                  onChange: (page, pageSize) =>
-                    handleYearPaginationChange(yearData.year, page, pageSize || 10)
-                }}
-                scroll={{ x: 'max-content' }}
-              />
-            </Panel>
-          ))}
+          {years.map((year: number) => {
+            const yearData: PaginatedYearScoreData | undefined = yearDataMap[year]
+            const loading = yearLoadingMap[year]
+            return (
+              <Panel
+                header={<span className="text-base font-semibold">{year}年</span>}
+                key={String(year)}
+              >
+                <Table
+                  columns={getCountryTableColumns(year)}
+                  dataSource={yearData?.data || []}
+                  rowKey="id"
+                  onChange={handleTableChange(year)}
+                  pagination={{
+                    current: yearData?.pagination.page || 1,
+                    pageSize: yearData?.pagination.pageSize || 10,
+                    total: yearData?.pagination.total || 0,
+                    showSizeChanger: false,
+                    showQuickJumper: true,
+                    onChange: (page, pageSize) =>
+                      handleYearPaginationChange(year, page, pageSize || 10)
+                  }}
+                  loading={loading}
+                  scroll={{ x: 'max-content' }}
+                />
+              </Panel>
+            )
+          })}
         </Collapse>
       ) : (
         <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 p-8">

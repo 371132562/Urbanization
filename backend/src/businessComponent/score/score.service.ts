@@ -6,8 +6,6 @@ import {
   BatchCheckScoreExistingResDto,
   ScoreEvaluationItemDto,
   CreateScoreDto,
-  ScoreListReqDto,
-  ScoreListResDto,
   PaginatedYearScoreData,
   ScoreDataItem,
   ScoreDetailReqDto,
@@ -15,12 +13,18 @@ import {
   CheckExistingDataResDto,
   CountryScoreData,
   CountryScoreDataItem,
+  ScoreListByYearReqDto,
+  ScoreListByYearResDto,
 } from 'types/dto';
 
 import { BusinessException } from '../../common/exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
 import { Score, Country } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+
+function decimalToNumber(value: Decimal | number): number {
+  return value instanceof Decimal ? value.toNumber() : value;
+}
 
 /**
  * @class ScoreService
@@ -56,254 +60,7 @@ export class ScoreService {
   }
 
   /**
-   * @description 获取评分数据，支持分页和搜索功能。
-   * @param {ScoreListReqDto} params - 分页和搜索参数。
-   * @returns {Promise<ScoreListResDto>} 按年份分组的评分数据，支持分页。
-   */
-  async list(params?: ScoreListReqDto): Promise<ScoreListResDto> {
-    this.logger.log('开始从数据库获取评分数据，支持分页和搜索。');
-
-    // 如果没有提供分页参数，获取所有年份的第一页数据
-    if (!params?.yearPaginations || params.yearPaginations.length === 0) {
-      // 获取所有年份
-      const years = await this.getYears();
-      params = {
-        ...params,
-        yearPaginations: years.map((year) => ({
-          year,
-          page: 1,
-          pageSize: 10,
-        })),
-      };
-    }
-
-    const result: ScoreListResDto = [];
-    const searchTerm = params?.searchTerm;
-
-    // 为每个年份获取分页数据
-    for (const yearPagination of params.yearPaginations!) {
-      const { year, page = 1, pageSize = 10 } = yearPagination;
-
-      // 计算分页参数
-      const skip = (page - 1) * pageSize;
-
-      // 构建查询条件
-      const whereCondition = {
-        year,
-        delete: 0,
-        country: {
-          delete: 0,
-          ...(searchTerm && {
-            OR: [
-              { cnName: { contains: searchTerm } },
-              { enName: { contains: searchTerm } },
-            ],
-          }),
-        },
-      };
-
-      // 获取该年份下的总国家数量
-      const totalCount = await this.prisma.score
-        .groupBy({
-          by: ['countryId'],
-          where: whereCondition,
-          _count: {
-            countryId: true,
-          },
-        })
-        .then((groups) => groups.length);
-
-      // 根据排序字段获取排序后的国家ID列表
-      let countryIdList: string[];
-
-      if (params?.sortField && params?.sortOrder) {
-        // 如果有排序字段，先获取所有数据并排序
-        const allScores = await this.prisma.score.findMany({
-          where: whereCondition,
-          include: {
-            country: true,
-          },
-        });
-
-        // 按排序字段排序
-        const sortedScores = allScores.sort((a, b) => {
-          let aValue: number | null = null;
-          let bValue: number | null = null;
-
-          switch (params.sortField) {
-            case 'totalScore':
-              aValue =
-                a.totalScore instanceof Decimal
-                  ? a.totalScore.toNumber()
-                  : a.totalScore;
-              bValue =
-                b.totalScore instanceof Decimal
-                  ? b.totalScore.toNumber()
-                  : b.totalScore;
-              break;
-            case 'urbanizationProcessDimensionScore':
-              aValue =
-                a.urbanizationProcessDimensionScore instanceof Decimal
-                  ? a.urbanizationProcessDimensionScore.toNumber()
-                  : a.urbanizationProcessDimensionScore;
-              bValue =
-                b.urbanizationProcessDimensionScore instanceof Decimal
-                  ? b.urbanizationProcessDimensionScore.toNumber()
-                  : b.urbanizationProcessDimensionScore;
-              break;
-            case 'humanDynamicsDimensionScore':
-              aValue =
-                a.humanDynamicsDimensionScore instanceof Decimal
-                  ? a.humanDynamicsDimensionScore.toNumber()
-                  : a.humanDynamicsDimensionScore;
-              bValue =
-                b.humanDynamicsDimensionScore instanceof Decimal
-                  ? b.humanDynamicsDimensionScore.toNumber()
-                  : b.humanDynamicsDimensionScore;
-              break;
-            case 'materialDynamicsDimensionScore':
-              aValue =
-                a.materialDynamicsDimensionScore instanceof Decimal
-                  ? a.materialDynamicsDimensionScore.toNumber()
-                  : a.materialDynamicsDimensionScore;
-              bValue =
-                b.materialDynamicsDimensionScore instanceof Decimal
-                  ? b.materialDynamicsDimensionScore.toNumber()
-                  : b.materialDynamicsDimensionScore;
-              break;
-            case 'spatialDynamicsDimensionScore':
-              aValue =
-                a.spatialDynamicsDimensionScore instanceof Decimal
-                  ? a.spatialDynamicsDimensionScore.toNumber()
-                  : a.spatialDynamicsDimensionScore;
-              bValue =
-                b.spatialDynamicsDimensionScore instanceof Decimal
-                  ? b.spatialDynamicsDimensionScore.toNumber()
-                  : b.spatialDynamicsDimensionScore;
-              break;
-            default:
-              // 默认按国家更新时间排序
-              return params.sortOrder === 'asc'
-                ? a.country.updateTime.getTime() -
-                    b.country.updateTime.getTime()
-                : b.country.updateTime.getTime() -
-                    a.country.updateTime.getTime();
-          }
-
-          if (aValue == null && bValue == null) return 0;
-          if (aValue == null) return 1;
-          if (bValue == null) return -1;
-
-          return params.sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-        });
-
-        // 去重并分页
-        const uniqueCountryIds = [
-          ...new Set(sortedScores.map((s) => s.countryId)),
-        ];
-        countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
-      } else {
-        // 没有排序字段时，使用原来的逻辑
-      const allCountryIds = await this.prisma.score.findMany({
-        where: whereCondition,
-        select: {
-          countryId: true,
-        },
-        orderBy: {
-          country: { updateTime: 'desc' },
-        },
-      });
-
-      // 去重并分页
-      const uniqueCountryIds = [
-        ...new Set(
-          allCountryIds.map((item: { countryId: string }) => item.countryId),
-        ),
-      ];
-        countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
-      }
-
-      // 获取这些国家的详细评分数据
-      const scores = await this.prisma.score.findMany({
-        where: {
-          year,
-          countryId: { in: countryIdList },
-          delete: 0,
-          country: { delete: 0 },
-        },
-        include: {
-          country: true,
-        },
-        orderBy: [{ country: { updateTime: 'desc' } }],
-      });
-
-      // 构建国家数据列表
-      const countryDataList: ScoreDataItem[] = countryIdList
-        .map((countryId) => {
-          const score = scores.find((s) => s.countryId === countryId);
-          if (!score) return null;
-
-          return {
-            id: score.id,
-            countryId: score.countryId,
-            cnName: score.country.cnName,
-            enName: score.country.enName,
-            year: score.year,
-            totalScore:
-              score.totalScore instanceof Decimal
-                ? score.totalScore.toNumber()
-                : score.totalScore,
-            urbanizationProcessDimensionScore:
-              score.urbanizationProcessDimensionScore instanceof Decimal
-                ? score.urbanizationProcessDimensionScore.toNumber()
-                : score.urbanizationProcessDimensionScore,
-            humanDynamicsDimensionScore:
-              score.humanDynamicsDimensionScore instanceof Decimal
-                ? score.humanDynamicsDimensionScore.toNumber()
-                : score.humanDynamicsDimensionScore,
-            materialDynamicsDimensionScore:
-              score.materialDynamicsDimensionScore instanceof Decimal
-                ? score.materialDynamicsDimensionScore.toNumber()
-                : score.materialDynamicsDimensionScore,
-            spatialDynamicsDimensionScore:
-              score.spatialDynamicsDimensionScore instanceof Decimal
-                ? score.spatialDynamicsDimensionScore.toNumber()
-                : score.spatialDynamicsDimensionScore,
-            createTime: score.createTime,
-            updateTime: score.updateTime,
-          };
-        })
-        .filter((item): item is ScoreDataItem => item !== null);
-
-      // 构建分页信息
-      const totalPages = Math.ceil(totalCount / pageSize);
-      const pagination = {
-        page,
-        pageSize,
-        total: totalCount,
-        totalPages,
-      };
-
-      // 构建年份数据
-      const yearData: PaginatedYearScoreData = {
-        year,
-        data: countryDataList,
-        pagination,
-      };
-
-      result.push(yearData);
-    }
-
-    // 按年份降序排列结果
-    result.sort((a, b) => b.year - a.year);
-
-    this.logger.log('分页评分数据处理完成');
-    return result;
-  }
-
-  /**
-   * @description 获取所有评分数据，并按国家进行分组。
-   * @returns {Promise<CountryScoreData[]>} 按国家分组的评分数据。
+   * @description 获取所有评分数据，按国家分组
    */
   async listByCountry(): Promise<CountryScoreData[]> {
     this.logger.log(
@@ -383,6 +140,153 @@ export class ScoreService {
     }
 
     this.logger.log('按国家分组的评分数据处理完成，只包含城镇化的国家。');
+    return result;
+  }
+
+  /**
+   * @description 获取指定年份的评分数据（分页、排序、搜索）
+   */
+  async listByYear(
+    params: ScoreListByYearReqDto,
+  ): Promise<ScoreListByYearResDto> {
+    const {
+      year,
+      page = 1,
+      pageSize = 10,
+      searchTerm,
+      sortField,
+      sortOrder,
+    } = params;
+
+    const skip = (page - 1) * pageSize;
+
+    const whereCondition = {
+      year,
+      delete: 0,
+      country: {
+        delete: 0,
+        ...(searchTerm && {
+          OR: [
+            { cnName: { contains: searchTerm } },
+            { enName: { contains: searchTerm } },
+          ],
+        }),
+      },
+    } as const;
+
+    const totalCount = await this.prisma.score
+      .groupBy({
+        by: ['countryId'],
+        where: whereCondition,
+        _count: { countryId: true },
+      })
+      .then((groups) => groups.length);
+
+    let countryIdList: string[] = [];
+    if (sortField && sortOrder) {
+      const allScores = await this.prisma.score.findMany({
+        where: whereCondition,
+        include: { country: true },
+      });
+
+      const sortedScores = allScores.sort((a, b) => {
+        let aValue: number | null = null;
+        let bValue: number | null = null;
+        switch (sortField) {
+          case 'totalScore':
+            aValue = decimalToNumber(a.totalScore);
+            bValue = decimalToNumber(b.totalScore);
+            break;
+          case 'urbanizationProcessDimensionScore':
+            aValue = decimalToNumber(a.urbanizationProcessDimensionScore);
+            bValue = decimalToNumber(b.urbanizationProcessDimensionScore);
+            break;
+          case 'humanDynamicsDimensionScore':
+            aValue = decimalToNumber(a.humanDynamicsDimensionScore);
+            bValue = decimalToNumber(b.humanDynamicsDimensionScore);
+            break;
+          case 'materialDynamicsDimensionScore':
+            aValue = decimalToNumber(a.materialDynamicsDimensionScore);
+            bValue = decimalToNumber(b.materialDynamicsDimensionScore);
+            break;
+          case 'spatialDynamicsDimensionScore':
+            aValue = decimalToNumber(a.spatialDynamicsDimensionScore);
+            bValue = decimalToNumber(b.spatialDynamicsDimensionScore);
+            break;
+          default:
+            return sortOrder === 'asc'
+              ? a.country.updateTime.getTime() - b.country.updateTime.getTime()
+              : b.country.updateTime.getTime() - a.country.updateTime.getTime();
+        }
+        if (aValue == null && bValue == null) return 0;
+        if (aValue == null) return 1;
+        if (bValue == null) return -1;
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      });
+
+      const uniqueCountryIds = [
+        ...new Set(sortedScores.map((s) => s.countryId)),
+      ];
+      countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+    } else {
+      const allCountryIds = await this.prisma.score.findMany({
+        where: whereCondition,
+        select: { countryId: true },
+        orderBy: { country: { updateTime: 'desc' } },
+      });
+      const uniqueCountryIds = [
+        ...new Set(
+          allCountryIds.map((i: { countryId: string }) => i.countryId),
+        ),
+      ];
+      countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+    }
+
+    const scores = await this.prisma.score.findMany({
+      where: {
+        year,
+        countryId: { in: countryIdList },
+        delete: 0,
+        country: { delete: 0 },
+      },
+      include: { country: true },
+      orderBy: [{ country: { updateTime: 'desc' } }],
+    });
+
+    const data: ScoreDataItem[] = countryIdList
+      .map((cid) => {
+        const items = scores.filter((s) => s.countryId === cid);
+        if (items.length === 0) return null;
+        const base = items[0];
+        return {
+          id: base.id,
+          countryId: base.countryId,
+          cnName: base.country.cnName,
+          enName: base.country.enName,
+          year: base.year,
+          totalScore: decimalToNumber(base.totalScore),
+          urbanizationProcessDimensionScore: decimalToNumber(
+            base.urbanizationProcessDimensionScore,
+          ),
+          humanDynamicsDimensionScore: decimalToNumber(
+            base.humanDynamicsDimensionScore,
+          ),
+          materialDynamicsDimensionScore: decimalToNumber(
+            base.materialDynamicsDimensionScore,
+          ),
+          spatialDynamicsDimensionScore: decimalToNumber(
+            base.spatialDynamicsDimensionScore,
+          ),
+          createTime: base.country.createTime,
+          updateTime: base.country.updateTime,
+        } as ScoreDataItem;
+      })
+      .filter(Boolean) as ScoreDataItem[];
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const pagination = { page, pageSize, total: totalCount, totalPages };
+
+    const result: PaginatedYearScoreData = { year, data, pagination };
     return result;
   }
 

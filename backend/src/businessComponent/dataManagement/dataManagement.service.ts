@@ -9,8 +9,6 @@ import {
   CountryDetailReqDto,
   CountryDetailResDto,
   CreateIndicatorValuesDto,
-  DataManagementListReqDto,
-  DataManagementListResDto,
   PaginatedYearData,
   PaginationInfo,
   DetailedIndicatorItem,
@@ -19,9 +17,10 @@ import {
   CountryYearQueryDto,
   ExportDataMultiYearReqDto,
   ExportFormat,
-  IndicatorDataItem,
   DataManagementYearsResDto,
   SimpleCountryData,
+  DataManagementListByYearReqDto,
+  DataManagementListByYearResDto,
 } from '../../../types/dto';
 import { IndicatorValue } from '@prisma/client';
 import * as xlsx from 'xlsx';
@@ -36,295 +35,222 @@ export class DataManagementService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * 获取数据管理条目（支持分页）
-   * @param params 分页参数
-   * @returns 带分页信息的年份数据
+   * 获取指定年份的分页数据（单年份）
    */
-  async list(
-    params: DataManagementListReqDto,
-  ): Promise<DataManagementListResDto> {
-    this.logger.log('获取分页数据管理列表');
+  async listByYear(
+    params: DataManagementListByYearReqDto,
+  ): Promise<DataManagementListByYearResDto> {
+    const {
+      year,
+      page = 1,
+      pageSize = 10,
+      searchTerm,
+      sortField,
+      sortOrder,
+    } = params;
 
-    // 如果没有提供分页参数，获取所有年份的第一页数据
-    if (!params.yearPaginations || params.yearPaginations.length === 0) {
-      // 获取所有年份
-      const years = await this.getYears();
-      params.yearPaginations = years.map((year) => ({
-        year,
-        page: 1,
-        pageSize: 10,
-      }));
-    }
+    // 计算分页
+    const skip = (page - 1) * pageSize;
 
-    const result: DataManagementListResDto = [];
-    const searchTerm = params.searchTerm;
-
-    // 为每个年份获取分页数据
-    for (const yearPagination of params.yearPaginations) {
-      const { year, page = 1, pageSize = 10 } = yearPagination;
-
-      // 计算分页参数
-      const skip = (page - 1) * pageSize;
-
-      // 构建查询条件
-      const whereCondition = {
-        year,
+    // where 条件
+    const whereCondition = {
+      year,
+      delete: 0,
+      country: {
         delete: 0,
-        country: {
-          delete: 0,
-          ...(searchTerm && {
-            OR: [
-              { cnName: { contains: searchTerm } },
-              { enName: { contains: searchTerm } },
-            ],
-          }),
-        },
-        detailedIndicator: { delete: 0 },
-      };
+        ...(searchTerm && {
+          OR: [
+            { cnName: { contains: searchTerm } },
+            { enName: { contains: searchTerm } },
+          ],
+        }),
+      },
+      detailedIndicator: { delete: 0 },
+    } as const;
 
-      // 获取该年份下的总国家数量
-      const countryGroups = await this.prisma.indicatorValue.findMany({
-        where: whereCondition,
-        select: { countryId: true },
-        distinct: ['countryId'],
+    // 总数
+    const countryGroups = await this.prisma.indicatorValue.findMany({
+      where: whereCondition,
+      select: { countryId: true },
+      distinct: ['countryId'],
+    });
+    const totalCount = countryGroups.length;
+
+    // 计算国家ID列表（排序/默认）
+    let countryIdList: string[] = [];
+    if (sortField && sortOrder) {
+      const sortIndicator = await this.prisma.detailedIndicator.findFirst({
+        where: { delete: 0, indicatorEnName: sortField },
+        select: { id: true },
       });
-      const totalCount = countryGroups.length;
 
-      // 根据排序字段获取排序后的国家ID列表
-      let countryIdList: string[];
-
-      if (params?.sortField && params?.sortOrder) {
-        // 优化：仅获取用于排序的指定指标数据，避免加载所有指标以提升性能
-        // 先根据英文名找到对应的三级指标ID
-        const sortIndicator = await this.prisma.detailedIndicator.findFirst({
-          where: { delete: 0, indicatorEnName: params.sortField },
-          select: { id: true },
-        });
-
-        if (!sortIndicator) {
-          // 若未找到对应指标，回退到按更新时间的默认分页逻辑
-          const countryIds = await this.prisma.indicatorValue.findMany({
-            where: whereCondition,
-            select: { countryId: true },
-            distinct: ['countryId'],
-            skip,
-            take: pageSize,
-            orderBy: { updateTime: 'desc' },
-          });
-          countryIdList = countryIds.map((item) => item.countryId);
-        } else {
-          // 获取该年份、该指标下每个国家对应的值（仅取国家ID与数值）
-          const indicatorValuesForSort =
-            await this.prisma.indicatorValue.findMany({
-              where: {
-                ...whereCondition,
-                detailedIndicatorId: sortIndicator.id,
-              },
-              select: {
-                countryId: true,
-                value: true,
-              },
-            });
-
-          // 构建国家到该指标值的映射，仅包含该指标，其他指标不参与排序
-          const countryToValueMap = new Map<string, number | null>();
-          indicatorValuesForSort.forEach((iv) => {
-            let v: number | null = null;
-            if (iv.value !== null) {
-              v =
-                typeof iv.value === 'string'
-                  ? Number(iv.value)
-                  : iv.value.toNumber();
-              if (Number.isNaN(v)) v = null;
-            }
-            countryToValueMap.set(iv.countryId, v);
-          });
-
-          // 使用所有国家ID作为基准（包含该年在其他指标上有数据但该指标缺失的国家）
-          // 这些国家的排序值视为null，排在最后
-          const allCountryIds = countryGroups.map((g) => g.countryId);
-
-          const sortedCountryIds = allCountryIds.sort((a, b) => {
-            const aValue = countryToValueMap.has(a)
-              ? countryToValueMap.get(a)!
-              : null;
-            const bValue = countryToValueMap.has(b)
-              ? countryToValueMap.get(b)!
-              : null;
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1; // null 值排后
-            if (bValue == null) return -1;
-
-            return params.sortOrder === 'asc'
-              ? aValue - bValue
-              : bValue - aValue;
-          });
-
-          // 分页切片
-          countryIdList = sortedCountryIds.slice(skip, skip + pageSize);
-        }
-      } else {
-        // 没有排序字段时，使用原来的逻辑
+      if (!sortIndicator) {
         const countryIds = await this.prisma.indicatorValue.findMany({
           where: whereCondition,
-          select: {
-            countryId: true,
-          },
+          select: { countryId: true },
           distinct: ['countryId'],
           skip,
           take: pageSize,
-          orderBy: {
-            updateTime: 'desc',
-          },
+          orderBy: { updateTime: 'desc' },
+        });
+        countryIdList = countryIds.map((i) => i.countryId);
+      } else {
+        const indicatorValuesForSort =
+          await this.prisma.indicatorValue.findMany({
+            where: { ...whereCondition, detailedIndicatorId: sortIndicator.id },
+            select: { countryId: true, value: true },
+          });
+
+        const countryToValueMap = new Map<string, number | null>();
+        indicatorValuesForSort.forEach((iv) => {
+          let v: number | null = null;
+          if (iv.value !== null) {
+            v =
+              typeof iv.value === 'string'
+                ? Number(iv.value)
+                : iv.value.toNumber();
+            if (Number.isNaN(v)) v = null;
+          }
+          countryToValueMap.set(iv.countryId, v);
         });
 
-        countryIdList = countryIds.map((item) => item.countryId);
-      }
-
-      // 获取这些国家的详细数据
-      const [indicatorValues, allDetailedIndicators] = await Promise.all([
-        this.prisma.indicatorValue.findMany({
-          where: {
-            year,
-            countryId: { in: countryIdList },
-            delete: 0,
-            country: { delete: 0 },
-            detailedIndicator: { delete: 0 },
-          },
-          select: {
-            year: true,
-            value: true,
-            detailedIndicatorId: true,
-            country: {
-              select: {
-                id: true,
-                cnName: true,
-                enName: true,
-                createTime: true,
-                updateTime: true,
-              },
-            },
-            detailedIndicator: {
-              select: {
-                id: true,
-                indicatorCnName: true,
-                indicatorEnName: true,
-              },
-            },
-          },
-          orderBy: [{ country: { updateTime: 'desc' } }],
-        }),
-        this.prisma.detailedIndicator.findMany({
-          where: { delete: 0 },
-          select: {
-            id: true,
-            indicatorCnName: true,
-            indicatorEnName: true,
-          },
-        }),
-      ]);
-
-      // 构建指标映射表
-      const allIndicatorsMap = new Map(
-        allDetailedIndicators.map((i) => [
-          i.id,
-          {
-            cnName: i.indicatorCnName,
-            enName: i.indicatorEnName,
-          },
-        ]),
-      );
-
-      // 处理数据分组
-      const countryDataMap = new Map<
-        string,
-        {
-          country: (typeof indicatorValues)[0]['country'];
-          indicators: Map<string, number | null>;
-        }
-      >();
-
-      indicatorValues.forEach((iv) => {
-        const countryId = iv.country.id;
-
-        if (!countryDataMap.has(countryId)) {
-          countryDataMap.set(countryId, {
-            country: iv.country,
-            indicators: new Map<string, number | null>(),
-          });
-        }
-
-        const processedValue =
-          iv.value !== null
-            ? typeof iv.value === 'string'
-              ? Number(iv.value)
-              : iv.value.toNumber()
+        const allCountryIds = countryGroups.map((g) => g.countryId);
+        const sortedCountryIds = allCountryIds.sort((a, b) => {
+          const aValue = countryToValueMap.has(a)
+            ? countryToValueMap.get(a)!
             : null;
-
-        countryDataMap
-          .get(countryId)!
-          .indicators.set(iv.detailedIndicatorId, processedValue);
+          const bValue = countryToValueMap.has(b)
+            ? countryToValueMap.get(b)!
+            : null;
+          if (aValue == null && bValue == null) return 0;
+          if (aValue == null) return 1;
+          if (bValue == null) return -1;
+          return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+        });
+        countryIdList = sortedCountryIds.slice(skip, skip + pageSize);
+      }
+    } else {
+      const countryIds = await this.prisma.indicatorValue.findMany({
+        where: whereCondition,
+        select: { countryId: true },
+        distinct: ['countryId'],
+        skip,
+        take: pageSize,
+        orderBy: { updateTime: 'desc' },
       });
-
-      // 构建国家数据列表
-      const countryDataList: CountryData[] = countryIdList
-        .map((countryId) => {
-          const countryInfo = countryDataMap.get(countryId);
-          if (!countryInfo) return null;
-
-          const { country, indicators: indicatorMap } = countryInfo;
-
-          const indicators: IndicatorDataItem[] = Array.from(
-            allIndicatorsMap.entries(),
-          ).map(([id, indicatorInfo]) => ({
-            id,
-            cnName: indicatorInfo.cnName,
-            enName: indicatorInfo.enName,
-            value: indicatorMap.get(id) ?? null,
-          }));
-
-          const isComplete = indicators.every(
-            (indicator) => indicator.value !== null,
-          );
-
-          return {
-            id: countryId,
-            cnName: country.cnName,
-            enName: country.enName,
-            year,
-            isComplete,
-            indicators,
-            createTime: country.createTime,
-            updateTime: country.updateTime,
-          } as CountryData;
-        })
-        .filter(Boolean) as CountryData[];
-
-      // 构建分页信息
-      const totalPages = Math.ceil(totalCount / pageSize);
-      const pagination: PaginationInfo = {
-        page,
-        pageSize,
-        total: totalCount,
-        totalPages,
-      };
-
-      // 构建年份数据
-      const yearData: PaginatedYearData = {
-        year,
-        data: countryDataList,
-        pagination,
-      };
-
-      result.push(yearData);
+      countryIdList = countryIds.map((i) => i.countryId);
     }
 
-    // 按年份降序排列结果
-    result.sort((a, b) => b.year - a.year);
+    // 批量获取该页的国家详细数据与所有指标列表
+    const [indicatorValues, allDetailedIndicators] = await Promise.all([
+      this.prisma.indicatorValue.findMany({
+        where: {
+          year,
+          countryId: { in: countryIdList },
+          delete: 0,
+          country: { delete: 0 },
+          detailedIndicator: { delete: 0 },
+        },
+        select: {
+          year: true,
+          value: true,
+          detailedIndicatorId: true,
+          country: {
+            select: {
+              id: true,
+              cnName: true,
+              enName: true,
+              createTime: true,
+              updateTime: true,
+            },
+          },
+          detailedIndicator: {
+            select: { id: true, indicatorCnName: true, indicatorEnName: true },
+          },
+        },
+        orderBy: [{ country: { updateTime: 'desc' } }],
+      }),
+      this.prisma.detailedIndicator.findMany({
+        where: { delete: 0 },
+        select: { id: true, indicatorCnName: true, indicatorEnName: true },
+      }),
+    ]);
 
-    this.logger.log('分页数据处理完成');
-    return result;
+    const allIndicatorsMap = new Map(
+      allDetailedIndicators.map((i) => [
+        i.id,
+        { cnName: i.indicatorCnName, enName: i.indicatorEnName },
+      ]),
+    );
+
+    const countryDataMap = new Map<
+      string,
+      {
+        country: (typeof indicatorValues)[0]['country'];
+        indicators: Map<string, number | null>;
+      }
+    >();
+
+    indicatorValues.forEach((iv) => {
+      const countryId = iv.country.id;
+      if (!countryDataMap.has(countryId)) {
+        countryDataMap.set(countryId, {
+          country: iv.country,
+          indicators: new Map(),
+        });
+      }
+      let processedValue: number | null = null;
+      if (iv.value !== null) {
+        processedValue =
+          typeof iv.value === 'string' ? Number(iv.value) : iv.value.toNumber();
+        if (Number.isNaN(processedValue)) processedValue = null;
+      }
+      countryDataMap
+        .get(countryId)!
+        .indicators.set(iv.detailedIndicatorId, processedValue);
+    });
+
+    const countryDataList: CountryData[] = countryIdList
+      .map((countryId) => {
+        const info = countryDataMap.get(countryId);
+        if (!info) return null;
+        const { country, indicators: indicatorMap } = info;
+        const indicators = Array.from(allIndicatorsMap.entries()).map(
+          ([id, info]) => ({
+            id,
+            cnName: info.cnName,
+            enName: info.enName,
+            value: indicatorMap.get(id) ?? null,
+          }),
+        );
+        const isComplete = indicators.every((i) => i.value !== null);
+        return {
+          id: countryId,
+          cnName: country.cnName,
+          enName: country.enName,
+          year,
+          isComplete,
+          indicators,
+          createTime: country.createTime,
+          updateTime: country.updateTime,
+        } as CountryData;
+      })
+      .filter(Boolean) as CountryData[];
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const pagination: PaginationInfo = {
+      page,
+      pageSize,
+      total: totalCount,
+      totalPages,
+    };
+
+    const yearData: PaginatedYearData = {
+      year,
+      data: countryDataList,
+      pagination,
+    };
+    return yearData;
   }
 
   /**
