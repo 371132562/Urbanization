@@ -9,11 +9,12 @@ import {
   Modal,
   Skeleton,
   Space,
+  Tag,
   theme,
   Tooltip,
   Typography
 } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import type {
   CreateIndicatorValuesDto,
@@ -90,6 +91,21 @@ export const Component = () => {
   const [selectedYear, setSelectedYear] = useState<dayjs.Dayjs | null>(year ? dayjs(year) : null)
   const [selectedCountry, setSelectedCountry] = useState<string | null>(countryId || null)
   const isEdit = !!countryId && !!year
+  // 表单是否已完成初始化（已设置初始值），用于避免进入时的状态闪烁
+  const [formInitialized, setFormInitialized] = useState(false)
+
+  // 实时监听整个表单的值，用于判断数据完整性；0 视为有效值
+  const allFieldValues = Form.useWatch([], form)
+  const isFormComplete = useMemo(() => {
+    const values = allFieldValues || {}
+    // 只要存在 null/undefined/'' 这样的空值则判定为不完整；数值 0 为有效
+    for (const v of Object.values(values)) {
+      if (v === null || v === undefined || v === '') {
+        return false
+      }
+    }
+    return true
+  }, [allFieldValues])
 
   // --- DataManagement Store ---
   const detailData = useDataManagementStore(state => state.detailData)
@@ -112,17 +128,19 @@ export const Component = () => {
   // 组件加载或参数变化时获取详情数据
   useEffect(() => {
     if (isEdit) {
+      // 切换到编辑模式或参数变化时，先标记为未初始化，待详情回填后再标记为已初始化
+      setFormInitialized(false)
       getDataManagementDetail({
         countryId,
         year: parseInt(year!)
       })
     } else {
-      // 新建模式下，使用获取到的指标层级来初始化detailData
+      // 新建模式下，先标记为未初始化，待根据指标层级设置表单后再标记为已初始化
+      setFormInitialized(false)
       if (indicatorHierarchy.length > 0) {
-        // 调用 store action 来初始化数据
         initializeNewData(indicatorHierarchy)
-        // 设置form的初始值
         form.setFieldsValue(initialValuesFromIndicators(indicatorHierarchy))
+        setFormInitialized(true)
       }
     }
 
@@ -148,9 +166,10 @@ export const Component = () => {
   // 详情数据加载后，设置表单值
   useEffect(() => {
     if (isEdit && detailData) {
-      // 设置表单初始值，key为enName
       const initialValues = initialValuesFromIndicators(detailData.indicators)
       form.setFieldsValue(initialValues)
+      // 详情数据回填完成，标记为已初始化，避免进入页面时的提示闪烁
+      setFormInitialized(true)
     }
   }, [detailData, form, isEdit])
 
@@ -381,23 +400,31 @@ export const Component = () => {
             </div>
           </div>
 
-          <Space>
-            <Button onClick={() => navigate('/dataManagement/list')}>返回</Button>
-            <Tooltip
-              title={!isEdit && (!selectedCountry || !selectedYear) ? '请选择国家和年份' : ''}
-            >
-              <span>
-                <Button
-                  type="primary"
-                  onClick={handleSave}
-                  loading={saveLoading}
-                  disabled={isEdit ? false : !selectedCountry || !selectedYear} // 新建模式下，如果没有选择国家和年份，禁用保存按钮
-                >
-                  保存
-                </Button>
-              </span>
-            </Tooltip>
-          </Space>
+          <div className="flex items-center gap-3">
+            {/* 数据完整性提示标签：表单初始化完成后再展示，避免进入页面闪烁 */}
+            {formInitialized && (
+              <Tag color={isFormComplete ? 'success' : 'warning'}>
+                {isFormComplete ? '完整' : '部分缺失'}
+              </Tag>
+            )}
+            <Space>
+              <Button onClick={() => navigate('/dataManagement/list')}>返回</Button>
+              <Tooltip
+                title={!isEdit && (!selectedCountry || !selectedYear) ? '请选择国家和年份' : ''}
+              >
+                <span>
+                  <Button
+                    type="primary"
+                    onClick={handleSave}
+                    loading={saveLoading}
+                    disabled={isEdit ? false : !selectedCountry || !selectedYear}
+                  >
+                    保存
+                  </Button>
+                </span>
+              </Tooltip>
+            </Space>
+          </div>
         </div>
       </div>
 
