@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express'; // 导入 Response
 import { FileInterceptor } from '@nestjs/platform-express'; // 导入 FileInterceptor
-import { multerOptions } from '../utils/file-upload.utils';
+import { multerOptions } from '../../common/upload/multer-config.utils';
 import { UploadService } from './upload.service';
 
 @Controller('upload') // 基础路由 /upload

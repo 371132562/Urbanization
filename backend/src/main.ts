@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/exceptions/allExceptionsFilter';
 import { ValidationPipe } from '@nestjs/common';
-import { WinstonLoggerService } from './utils/logger.service';
+import { WinstonLoggerService } from './common/services/winston-logger.service';
 import { json, urlencoded } from 'express';
 import { UserContextInterceptor } from './common/interceptors/user-context.interceptor';
 

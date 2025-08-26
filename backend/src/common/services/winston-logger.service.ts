@@ -1,7 +1,7 @@
 import { Injectable, LoggerService } from '@nestjs/common';
-import { logger as winstonLogger } from './logger';
-import { RequestContext } from './request-context';
-import { getUserLogger } from './user-logger';
+import { logger as winstonLogger } from '../logging/winston-core.utils';
+import { RequestContext } from '../context/request-context.utils';
+import { getUserLogger } from '../logging/user-logger.utils';
 
 /**
  * 应用级日志服务（WinstonLoggerService）
@@ -23,7 +23,7 @@ export class WinstonLoggerService implements LoggerService {
     const text =
       typeof message === 'string' ? message : JSON.stringify(message);
     return {
-      prefix: `[${userId}] [${userName}] `,
+      prefix: `[编号:${userId}] [用户名:${userName}] `,
       userId: String(userId),
       message: text,
     };

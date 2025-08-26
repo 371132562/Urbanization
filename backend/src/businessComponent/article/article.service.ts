@@ -11,7 +11,7 @@ import {
   ArticleMetaItem,
 } from '../../../types/dto';
 import { ErrorCode } from '../../../types/response';
-import { UploadService } from '../../upload/upload.service';
+import { UploadService } from '../../commonModules/upload/upload.service';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 

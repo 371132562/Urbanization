@@ -5,7 +5,7 @@ import { v4 as uuid } from 'uuid';
 import { Request } from 'express';
 
 /**
- * 文件上传工具（Multer 配置与路径工具）
+ * Multer 文件上传配置工具
  * 用途：集中定义上传目录、存储策略、文件命名、类型过滤与路径拼接
  * 上游：上传 Controller 中使用 @UseInterceptors(FileInterceptor(...)) 时引入 `multerOptions`
  * 下游：物理保存到磁盘目录（由 UPLOAD_DIR 决定），并在业务层使用 `getImagePath` 拼接绝对路径

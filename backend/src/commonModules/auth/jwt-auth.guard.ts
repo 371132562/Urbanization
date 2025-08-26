@@ -4,9 +4,9 @@ import {
   ExecutionContext,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ErrorCode } from '../../types/response';
+import { ErrorCode } from '../../../types/response';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from './public.decorator';
+import { IS_PUBLIC_KEY } from '../../common/auth/public.decorator';
 import { Request } from 'express';
 
 @Injectable()

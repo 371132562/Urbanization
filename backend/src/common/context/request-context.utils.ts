@@ -15,8 +15,8 @@ export type RequestContextStore = {
 };
 
 /**
- * 请求上下文（基于 AsyncLocalStorage）
- * 用途：在一次 HTTP 请求的调用链中传递“上下文数据”（requestId、user等），避免层层传参
+ * 请求上下文管理器（基于 AsyncLocalStorage）
+ * 用途：在一次 HTTP 请求的调用链中传递"上下文数据"（requestId、user等），避免层层传参
  * 上游：在中间件初始化（RequestContextMiddleware），拦截器补充 user（UserContextInterceptor）
  * 下游：日志服务从此处读取用户与 requestId 信息，拼接到日志前缀中
  */

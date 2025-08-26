@@ -1,12 +1,15 @@
 // src/upload/upload.service.ts
 import { Injectable, Logger } from '@nestjs/common'; // 导入 Logger
-import { BusinessException } from '../common/exceptions/businessException';
-import { ErrorCode } from '../../types/response';
-import { getImagePath, UPLOAD_DIR } from '../utils/file-upload.utils'; // 导入 getImagePath 和 UPLOAD_DIR
+import { BusinessException } from '../../common/exceptions/businessException';
+import { ErrorCode } from '../../../types/response';
+import {
+  getImagePath,
+  UPLOAD_DIR,
+} from '../../common/upload/multer-config.utils'; // 导入 getImagePath 和 UPLOAD_DIR
 import { unlink, readFile, readdir } from 'fs/promises'; // 导入 fs/promises 中的 unlink 用于异步删除文件
 import { existsSync } from 'fs'; // 导入 existsSync
 import { createHash } from 'crypto';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { join } from 'path';
 
 // 可插拔的"图片在用收集器"类型定义

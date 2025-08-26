@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import { join } from 'path';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { JwtAuthGuard } from './commonModules/auth/jwt-auth.guard';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { RequestContextMiddleware } from './common/middlewares/request-context.middleware';
 
 //公共模块
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { PrismaModule } from '../prisma/prisma.module';
-import { UploadModule } from './upload/upload.module';
-import { AuthModule } from './auth/auth.module';
+import { UploadModule } from './commonModules/upload/upload.module';
+import { AuthModule } from './commonModules/auth/auth.module';
 import { RoleModule } from './businessComponent/role/role.module';
 import { UserModule } from './businessComponent/user/user.module';
 

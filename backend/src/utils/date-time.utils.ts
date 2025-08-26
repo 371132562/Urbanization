@@ -3,7 +3,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
 /**
- * 时间工具（dayjs 实例配置）
+ * 日期时间处理工具（基于 dayjs）
  * 用途：提供带有默认时区（Asia/Shanghai）的 dayjs 实例与若干常用的年份处理函数
  * 上游：被各业务 Service 用于格式化导出文件名、记录日志时间戳、年份计算等
  * 下游：仅返回基础类型（number/string/Date），不直接产生副作用

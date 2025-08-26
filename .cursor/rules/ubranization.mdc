@@ -59,3 +59,6 @@ rules:
       - 新增错误类型时在ErrorCode中定义
       - 遵循NestJS最佳实践
       - 使用Prisma处理数据库操作
+      - businessModules是业务模块
+      - commonModules是通用模块
+      - common中是通用组件

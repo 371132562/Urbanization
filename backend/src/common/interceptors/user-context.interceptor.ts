@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Request } from 'express';
-import { RequestContext } from '../../utils/request-context';
+import { RequestContext } from '../context/request-context.utils';
 
 /**
  * 用户上下文写入拦截器（UserContextInterceptor）

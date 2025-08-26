@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
-import { RequestContext } from '../../utils/request-context';
+import { RequestContext } from '../context/request-context.utils';
 
 /**
  * 请求上下文初始化中间件（RequestContextMiddleware）
