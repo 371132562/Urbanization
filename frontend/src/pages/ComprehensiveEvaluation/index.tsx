@@ -18,7 +18,6 @@ const ComprehensiveEvaluation: FC = () => {
   const listLoading = useScoreStore(state => state.scoreListByCountryLoading)
 
   const countries = useCountryAndContinentStore(state => state.countries)
-  const getCountries = useCountryAndContinentStore(state => state.getCountries)
 
   const navigate = useNavigate()
 
@@ -36,8 +35,7 @@ const ComprehensiveEvaluation: FC = () => {
   // 组件加载时，异步获取按国家分组的评分数据和所有国家列表
   useEffect(() => {
     getScoreListByCountry()
-    getCountries()
-  }, [getScoreListByCountry, getCountries])
+  }, [])
 
   // 使用useMemo对处理后的数据进行缓存，只有在原始数据变化时才重新计算
   const { mapData, nameMap, valueMap, countryYearsMap, countryEnNameToIdMap } = useMemo(

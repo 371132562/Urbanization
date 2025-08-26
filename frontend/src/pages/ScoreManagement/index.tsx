@@ -111,7 +111,19 @@ const ScoreManagement = () => {
   const getCountryTableColumns = (year: number) => {
     const sort = yearSortMap[year]
     const baseColumns = [
-      { title: '国家', dataIndex: 'cnName', key: 'cnName', fixed: 'left' as const, width: 150 }
+      {
+        title: '国家',
+        dataIndex: 'cnName',
+        key: 'cnName',
+        fixed: 'left' as const,
+        width: 150,
+        render: (_: any, record: ScoreDataItem) => (
+          <div className="flex flex-col">
+            <span className="truncate font-medium">{record.cnName}</span>
+            <span className="truncate text-xs text-gray-500">{record.enName}</span>
+          </div>
+        )
+      }
     ]
 
     const scoreColumns = SCORE_DIMENSIONS.map(dim => ({

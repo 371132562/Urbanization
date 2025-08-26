@@ -4,7 +4,6 @@ import { useNavigate, useParams } from 'react-router'
 import { CreateScoreDto } from 'urbanization-backend/types/dto'
 
 import CountrySelect from '@/components/CountrySelect'
-import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useScoreStore from '@/stores/scoreStore'
 import { dayjs } from '@/utils/dayjs'
 
@@ -45,7 +44,6 @@ export const Component = () => {
   const createScore = useScoreStore(state => state.createScore)
   const resetDetailData = useScoreStore(state => state.resetDetailData)
   const initializeNewData = useScoreStore(state => state.initializeNewData)
-  const getCountries = useCountryAndContinentStore(state => state.getCountries)
 
   // --- Local States for Selections ---
   const [selectedCountry, setSelectedCountry] = useState<string | null>(countryId || null)
@@ -54,7 +52,6 @@ export const Component = () => {
   )
 
   useEffect(() => {
-    getCountries() // Fetch country list for the selector
     if (isEdit) {
       getScoreDetail({
         countryId,
@@ -72,12 +69,8 @@ export const Component = () => {
   useEffect(() => {
     if (detailData) {
       form.setFieldsValue({
-        ...detailData,
-        year: detailData.year ? dayjs(detailData.year) : null
+        ...detailData
       })
-      // Update local state for selections when data loads
-      setSelectedCountry(detailData.countryId || null)
-      setSelectedYear(detailData.year ? dayjs(detailData.year) : null)
     }
   }, [detailData, form])
 
@@ -112,129 +105,130 @@ export const Component = () => {
     }
   }
 
-  if (detailLoading && isEdit) {
-    return <ModifyScoreSkeleton />
-  }
-
   return (
     <div className="w-full max-w-7xl">
-      <div className="mb-4 rounded-lg bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-end justify-between">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="min-w-80">
-              <div className="mb-1 text-sm text-gray-500">国家</div>
-              <CountrySelect
-                value={selectedCountry}
-                onChange={value => {
-                  if (!Array.isArray(value)) {
-                    setSelectedCountry(value)
-                    form.setFieldsValue({ countryId: value })
-                  }
-                }}
-                disabled={isEdit}
-              />
-            </div>
-            <div className="min-w-40">
-              <div className="mb-1 text-sm text-gray-500">年份</div>
-              <DatePicker
-                picker="year"
-                placeholder="请选择年份"
-                value={selectedYear}
-                onChange={date => {
-                  setSelectedYear(date)
-                  form.setFieldsValue({ year: date })
-                }}
-                disabled={isEdit}
-                style={{ width: '100%' }}
-              />
-            </div>
-          </div>
-          <Space>
-            <Button onClick={() => navigate('/scoreManagement/list')}>返回</Button>
-            <Tooltip
-              title={!isEdit && (!selectedCountry || !selectedYear) ? '请先选择国家和年份' : ''}
-            >
-              <span>
-                <Button
-                  type="primary"
-                  onClick={handleSave}
-                  loading={saveLoading}
-                  disabled={!isEdit && (!selectedCountry || !selectedYear)}
+      {detailLoading && isEdit ? (
+        <ModifyScoreSkeleton />
+      ) : (
+        <>
+          <div className="mb-4 rounded-lg bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-end justify-between">
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="min-w-80">
+                  <div className="mb-1 text-sm text-gray-500">国家</div>
+                  <CountrySelect
+                    value={selectedCountry}
+                    onChange={value => {
+                      if (!Array.isArray(value)) {
+                        setSelectedCountry(value)
+                        form.setFieldsValue({ countryId: value })
+                      }
+                    }}
+                    disabled={isEdit}
+                  />
+                </div>
+                <div className="min-w-40">
+                  <div className="mb-1 text-sm text-gray-500">年份</div>
+                  <DatePicker
+                    picker="year"
+                    placeholder="请选择年份"
+                    value={selectedYear}
+                    onChange={date => {
+                      setSelectedYear(date)
+                    }}
+                    disabled={isEdit}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+              <Space>
+                <Button onClick={() => navigate('/scoreManagement/list')}>返回</Button>
+                <Tooltip
+                  title={!isEdit && (!selectedCountry || !selectedYear) ? '请先选择国家和年份' : ''}
                 >
-                  保存
-                </Button>
-              </span>
-            </Tooltip>
-          </Space>
-        </div>
-      </div>
-
-      <Form
-        form={form}
-        layout="vertical"
-        autoComplete="off"
-      >
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-            {/* Form Items */}
-            <Form.Item
-              label="综合评分"
-              name="totalScore"
-              rules={[{ required: true, message: '请输入评分' }]}
-            >
-              <InputNumber
-                style={{ width: '100%' }}
-                placeholder="请输入评分"
-                precision={3}
-              />
-            </Form.Item>
-            <Form.Item
-              label="城镇化进程维度评分"
-              name="urbanizationProcessDimensionScore"
-              rules={[{ required: true, message: '请输入评分' }]}
-            >
-              <InputNumber
-                style={{ width: '100%' }}
-                placeholder="请输入评分"
-                precision={3}
-              />
-            </Form.Item>
-            <Form.Item
-              label="人口迁徙动力维度评分"
-              name="humanDynamicsDimensionScore"
-              rules={[{ required: true, message: '请输入评分' }]}
-            >
-              <InputNumber
-                style={{ width: '100%' }}
-                placeholder="请输入评分"
-                precision={3}
-              />
-            </Form.Item>
-            <Form.Item
-              label="经济发展动力维度评分"
-              name="materialDynamicsDimensionScore"
-              rules={[{ required: true, message: '请输入评分' }]}
-            >
-              <InputNumber
-                style={{ width: '100%' }}
-                placeholder="请输入评分"
-                precision={3}
-              />
-            </Form.Item>
-            <Form.Item
-              label="空间发展动力维度评分"
-              name="spatialDynamicsDimensionScore"
-              rules={[{ required: true, message: '请输入评分' }]}
-            >
-              <InputNumber
-                style={{ width: '100%' }}
-                placeholder="请输入评分"
-                precision={3}
-              />
-            </Form.Item>
+                  <span>
+                    <Button
+                      type="primary"
+                      onClick={handleSave}
+                      loading={saveLoading}
+                      disabled={!isEdit && (!selectedCountry || !selectedYear)}
+                    >
+                      保存
+                    </Button>
+                  </span>
+                </Tooltip>
+              </Space>
+            </div>
           </div>
-        </div>
-      </Form>
+
+          <Form
+            form={form}
+            layout="vertical"
+            autoComplete="off"
+          >
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                {/* Form Items */}
+                <Form.Item
+                  label="综合评分"
+                  name="totalScore"
+                  rules={[{ required: true, message: '请输入评分' }]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    placeholder="请输入评分"
+                    precision={3}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="城镇化进程维度评分"
+                  name="urbanizationProcessDimensionScore"
+                  rules={[{ required: true, message: '请输入评分' }]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    placeholder="请输入评分"
+                    precision={3}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="人口迁徙动力维度评分"
+                  name="humanDynamicsDimensionScore"
+                  rules={[{ required: true, message: '请输入评分' }]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    placeholder="请输入评分"
+                    precision={3}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="经济发展动力维度评分"
+                  name="materialDynamicsDimensionScore"
+                  rules={[{ required: true, message: '请输入评分' }]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    placeholder="请输入评分"
+                    precision={3}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="空间发展动力维度评分"
+                  name="spatialDynamicsDimensionScore"
+                  rules={[{ required: true, message: '请输入评分' }]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    placeholder="请输入评分"
+                    precision={3}
+                  />
+                </Form.Item>
+              </div>
+            </div>
+          </Form>
+        </>
+      )}
     </div>
   )
 }

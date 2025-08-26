@@ -50,7 +50,7 @@ const CountrySelect: React.FC<CountrySelectProps & SelectProps> = ({
       getContinents(true) // 获取大洲数据，并包含国家
       getCountries({ includeContinent: true }) // 获取所有国家数据，包含大洲信息
     }
-  }, [getContinents, getCountries, options])
+  }, [options])
 
   // 按大洲组织国家列表
   const countryOptions = useMemo(() => {

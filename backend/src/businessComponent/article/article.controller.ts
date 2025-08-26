@@ -11,6 +11,7 @@ import {
   ArticleMetaItem,
   ArticleListResponse,
 } from '../../../types/dto';
+import { ArticleType } from '@prisma/client';
 
 @Controller('article')
 export class ArticleController {
@@ -37,6 +38,18 @@ export class ArticleController {
   @Post('update')
   async updateArticle(@Body() updateArticleDto: UpdateArticleDto) {
     return this.articleService.update(updateArticleDto);
+  }
+
+  @Post('createScoreStandard')
+  async createScoreStandard(@Body() createArticleDto: CreateArticleDto) {
+    return this.articleService.create(
+      createArticleDto,
+      ArticleType.SCORE_STANDARD,
+    );
+  }
+  @Post('getScoreStandard')
+  async getScoreStandard(): Promise<ArticleItem> {
+    return this.articleService.getScoreStandard();
   }
 
   @Post('delete')

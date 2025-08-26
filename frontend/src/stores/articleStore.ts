@@ -8,10 +8,12 @@ import { create } from 'zustand'
 
 import {
   articleCreate,
+  articleCreateScoreStandard,
   articleDelete,
   articleDetail,
   articleGetByPage,
   articleGetDetailsByIds,
+  articleGetScoreStandard,
   articleList,
   articleListAll,
   articleUpdate,
@@ -35,6 +37,8 @@ type ArticleStore = {
   orderConfigLoading: boolean
   previewArticles: ArticleItem[]
   previewLoading: boolean
+  scoreStandard: ArticleItem | null
+  scoreStandardLoading: boolean
 
   // 操作
   getArticleList: (page?: number, pageSize?: number, title?: string) => Promise<void>
@@ -48,6 +52,9 @@ type ArticleStore = {
   getArticlesByPage: (page: string) => Promise<void>
   upsertArticleOrder: (page: string, articleIds: string[]) => Promise<boolean>
   getArticleDetailsByIds: (ids: string[]) => Promise<void>
+  getScoreStandard: () => Promise<void>
+  createScoreStandard: (data: CreateArticleDto) => Promise<boolean>
+  updateScoreStandard: (data: UpdateArticleDto) => Promise<boolean>
 }
 
 const useArticleStore = create<ArticleStore>((set, get) => ({
@@ -66,6 +73,8 @@ const useArticleStore = create<ArticleStore>((set, get) => ({
   orderConfigLoading: false,
   previewArticles: [],
   previewLoading: false,
+  scoreStandard: null,
+  scoreStandardLoading: false,
 
   // 获取文章列表
   getArticleList: async (page = 1, pageSize = 10, title) => {
@@ -231,6 +240,52 @@ const useArticleStore = create<ArticleStore>((set, get) => ({
       set({ previewArticles: [] })
     } finally {
       set({ previewLoading: false })
+    }
+  },
+
+  // 获取评价标准
+  getScoreStandard: async () => {
+    set({ scoreStandardLoading: true })
+    try {
+      const response = await http.post(articleGetScoreStandard)
+      if (response && response.data) {
+        set({ scoreStandard: response.data })
+      }
+    } catch (error) {
+      console.error('获取评价标准失败:', error)
+      set({ scoreStandard: null })
+    } finally {
+      set({ scoreStandardLoading: false })
+    }
+  },
+
+  // 创建评价标准
+  createScoreStandard: async (data: CreateArticleDto) => {
+    set({ submitLoading: true })
+    try {
+      await http.post(articleCreateScoreStandard, data)
+      await get().getScoreStandard() // 创建成功后刷新评价标准
+      return true
+    } catch (error) {
+      console.error('创建评价标准失败:', error)
+      return false
+    } finally {
+      set({ submitLoading: false })
+    }
+  },
+
+  // 更新评价标准
+  updateScoreStandard: async (data: UpdateArticleDto) => {
+    set({ submitLoading: true })
+    try {
+      await http.post(articleUpdate, data)
+      await get().getScoreStandard() // 更新成功后刷新评价标准
+      return true
+    } catch (error) {
+      console.error('更新评价标准失败:', error)
+      return false
+    } finally {
+      set({ submitLoading: false })
     }
   }
 }))

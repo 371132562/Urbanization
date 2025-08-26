@@ -174,15 +174,21 @@ model UrbanizationWorldMap {
   @@index([countryId, delete])
 }
 
+enum ArticleType {
+  ARTICLE //普通文章
+  SCORE_STANDARD //配置评价提示的评分标准文章
+}
+
 // 文章管理表
 model Article {
-  id         String   @id @default(uuid()) // 主键ID
+  id         String      @id @default(uuid()) // 主键ID
   title      String // 文章标题
   content    String // 文章内容
-  images     Json // 文章内包含的图片 为图片id组成的数组
-  createTime DateTime @default(now())
-  updateTime DateTime @updatedAt
-  delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
+  images     Json        @default("[]") // 文章内包含的图片 为图片id组成的数组
+  type       ArticleType @default(ARTICLE) // 文章类型
+  createTime DateTime    @default(now())
+  updateTime DateTime    @updatedAt
+  delete     Int         @default(0) // 软删除标记，0表示未删除，1表示已删除
 
   @@index([id, delete])
 }
@@ -191,7 +197,7 @@ model Article {
 model ArticleOrder {
   id         String   @id @default(uuid()) // 主键ID
   page       String // 对应页面key
-  articles   Json //包含的所有文章 为文章id组成的数组
+  articles   Json     @default("[]") //包含的所有文章 为文章id组成的数组
   createTime DateTime @default(now())
   updateTime DateTime @updatedAt
   delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除

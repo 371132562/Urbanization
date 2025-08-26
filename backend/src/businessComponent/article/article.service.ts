@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Article, ArticleOrder } from '@prisma/client';
+import { Article, ArticleOrder, ArticleType } from '@prisma/client';
 import { BusinessException } from 'src/common/exceptions/businessException';
 import {
   CreateArticleDto,
@@ -129,7 +129,10 @@ export class ArticleService {
     return articles.map((article) => this.mapToMetaDto(article));
   }
 
-  async create(createArticleDto: CreateArticleDto): Promise<ArticleItem> {
+  async create(
+    createArticleDto: CreateArticleDto,
+    type?: ArticleType,
+  ): Promise<ArticleItem> {
     const { deletedImages: incomingDeletedImages, ...articleData } =
       createArticleDto;
 
@@ -142,7 +145,10 @@ export class ArticleService {
     (articleData as unknown as { images: string[] }).images = reconciled.images;
 
     const article = await this.prisma.article.create({
-      data: articleData,
+      data: {
+        ...articleData,
+        type: type || ArticleType.ARTICLE,
+      },
     });
 
     // 异步清理不再使用的图片，不阻塞主流程
@@ -372,5 +378,26 @@ export class ArticleService {
       .map((article) => this.mapToDto(article));
 
     return sortedArticles;
+  }
+
+  // 配置评价体系上方的评价标准文章，如果未配置，则返回空对象，前端根据空id判断不初始化并走创建逻辑，否则展示并走更新逻辑
+  async getScoreStandard(): Promise<ArticleItem> {
+    const article = await this.prisma.article.findFirst({
+      where: { type: ArticleType.SCORE_STANDARD, delete: 0 },
+    });
+    return this.mapToDto(
+      article
+        ? article
+        : {
+            id: '',
+            title: '',
+            content: '',
+            images: [],
+            type: ArticleType.SCORE_STANDARD,
+            createTime: new Date(),
+            updateTime: new Date(),
+            delete: 0,
+          },
+    );
   }
 }

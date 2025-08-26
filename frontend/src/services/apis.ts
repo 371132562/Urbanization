@@ -31,6 +31,8 @@ export const articleListAll = '/article/listAll'
 export const articleUpsertOrder = '/article/order'
 export const articleGetByPage = '/article/getByPage'
 export const articleGetDetailsByIds = '/article/getDetailsByIds'
+export const articleCreateScoreStandard = '/article/createScoreStandard'
+export const articleGetScoreStandard = '/article/getScoreStandard'
 
 // 评分管理API
 export const scoreCreate = '/score/create'

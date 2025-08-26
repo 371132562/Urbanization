@@ -11,7 +11,7 @@ import { useAuthStore } from '@/stores/authStore'
 import useCountryAndContinentStore from '@/stores/countryAndContinentStore'
 import useIndicatorStore from '@/stores/indicatorStore'
 
-const { Header, Sider, Content } = Layout
+const { Header, Sider, Content, Footer } = Layout
 
 export const Component: FC = () => {
   const outlet = useOutlet()
@@ -39,7 +39,7 @@ export const Component: FC = () => {
   useEffect(() => {
     getIndicatorHierarchy()
     getCountries()
-  }, [getIndicatorHierarchy, getCountries])
+  }, [])
 
   const handleMenuClick: MenuProps['onClick'] = e => {
     navigate(e.key)
@@ -306,9 +306,9 @@ export const Component: FC = () => {
               )}
             </div>
           </Content>
-          {/* <Footer>
-            <div className="flex w-full justify-center">帮助与支持 如需帮助请联系 1234567890</div>
-          </Footer> */}
+          <Footer className="!pt-0">
+            <div className="flex w-full justify-center">如需帮助请联系 1234567890</div>
+          </Footer>
         </Layout>
       </Layout>
     </Layout>
