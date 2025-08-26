@@ -278,7 +278,9 @@ export const Component: FC = () => {
               style={{
                 height: '100%',
                 overflowY: 'auto',
-                overflowX: 'hidden'
+                overflowX: 'hidden',
+                // 为滚动条预留空间，防止内容宽度变化
+                scrollbarGutter: 'stable'
               }}
             />
           </Sider>
@@ -289,7 +291,13 @@ export const Component: FC = () => {
             {/* <div className="mb-2">
               <Breadcrumb items={breadcrumbItems} />
             </div> */}
-            <div className="box-border flex flex-grow justify-center overflow-y-auto rounded-lg bg-white p-6 shadow-md">
+            <div
+              className="box-border flex flex-grow justify-center overflow-y-auto rounded-lg bg-white p-6 shadow-md"
+              style={{
+                // 为滚动条预留空间，防止内容宽度变化
+                scrollbarGutter: 'stable'
+              }}
+            >
               {/* 路由守卫：无权限跳转403 */}
               {!hasPermission ? (
                 <Forbidden />
