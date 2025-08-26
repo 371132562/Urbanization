@@ -204,10 +204,9 @@ export class ArticleService {
       );
     }
 
-    // 2. 执行软删除
-    const softDeletedArticle = await this.prisma.article.update({
+    // 2. 物理删除
+    const deletedArticle = await this.prisma.article.delete({
       where: { id },
-      data: { delete: 1 },
     });
 
     // 3. 异步清理该文章关联的图片
@@ -219,7 +218,7 @@ export class ArticleService {
       });
     }
 
-    return this.mapToDto(softDeletedArticle);
+    return this.mapToDto(deletedArticle);
   }
 
   /**

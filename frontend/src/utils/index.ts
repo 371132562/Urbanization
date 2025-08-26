@@ -69,7 +69,8 @@ export const buildFullImageUrl = (filename: string): string => {
   )
 }
 
-// 将 HTML 内容中的 <img src> 统一为文件名（用于提交给后端存储）
+// 将 HTML 内容中的 <img src> 统一为文件名
+// 用于提交给后端存储，富文本编辑器内完整路径时才能正常显示，但入库时只需要文件名，所以删除路径后保存
 export const toFilenameContent = (html: string): string => {
   if (!html) return ''
   const parser = new DOMParser()
@@ -82,7 +83,7 @@ export const toFilenameContent = (html: string): string => {
   return doc.body.innerHTML
 }
 
-// 将 HTML 内容中的 <img src> 从文件名扩展为完整路径（用于编辑/预览/展示显示）
+// 将 HTML 内容中的 <img src> 从文件名扩展为完整路径（用于从库中读取时将文件名根据当前环境转换为完整路径）
 export const toFullPathContent = (html: string): string => {
   if (!html) return ''
   const parser = new DOMParser()

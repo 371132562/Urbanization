@@ -9,7 +9,7 @@ import { createHash } from 'crypto';
 import { PrismaService } from 'prisma/prisma.service';
 import { join } from 'path';
 
-// 可插拔的“图片在用收集器”类型定义
+// 可插拔的"图片在用收集器"类型定义
 export type InUseImageCollector = () => Promise<Set<string>>;
 
 @Injectable()
@@ -31,7 +31,7 @@ export class UploadService {
         const content =
           (article as unknown as { content?: string }).content || '';
         if (content.length > 0) {
-          const names = this.extractImageFilenamesFromContent(content);
+          const names = this.parseImageFilenamesFromHtml(content);
           names.forEach((f) => inUse.add(f));
         }
       }
@@ -39,15 +39,7 @@ export class UploadService {
     });
   }
 
-  // 允许其他业务模块注册其“在用图片收集器”
-  registerInUseImageCollector(collector: InUseImageCollector) {
-    this.inUseCollectors.push(collector);
-  }
-
-  private async getFileHash(filePath: string): Promise<string> {
-    const fileBuffer = await readFile(filePath);
-    return createHash('sha256').update(fileBuffer).digest('hex');
-  }
+  // ---------- 核心上传功能 ----------
 
   /**
    * 处理文件上传后的业务逻辑，例如保存文件信息到数据库
@@ -93,6 +85,8 @@ export class UploadService {
       url: file.filename,
     };
   }
+
+  // ---------- 文件删除功能 ----------
 
   /**
    * 根据文件名（UUID）删除服务器上的图片文件和数据库记录
@@ -143,7 +137,30 @@ export class UploadService {
     }
   }
 
-  // ---------- 通用清理逻辑（供多个业务模块复用） ----------
+  /**
+   * 批量删除图片（按文件名）
+   * 使用现有 deleteFile 逐个删除，失败不会中断其他删除
+   */
+  async deleteImages(filenames: string[]): Promise<{
+    deleted: string[];
+    failed: { filename: string; error: string }[];
+  }> {
+    const deleted: string[] = [];
+    const failed: { filename: string; error: string }[] = [];
+    for (const name of filenames) {
+      try {
+        await this.deleteFile(name);
+        deleted.push(name);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        failed.push({ filename: name, error: errorMessage });
+      }
+    }
+    return { deleted, failed };
+  }
+
+  // ---------- 文件清理和孤立文件管理 ----------
 
   /**
    * 清理未被任何业务引用的图片
@@ -174,7 +191,7 @@ export class UploadService {
   }
 
   /**
-   * 列出系统中的“孤立图片”（未被任何业务引用）
+   * 列出系统中的"孤立图片"（未被任何业务引用）
    * 规则：
    * - 物理目录中的图片文件 不在 inUse 集合中
    * - 数据库 image 表中的记录 不在 inUse 集合中
@@ -210,34 +227,11 @@ export class UploadService {
     return Array.from(orphanSet);
   }
 
-  /**
-   * 批量删除图片（按文件名）
-   * 使用现有 deleteFile 逐个删除，失败不会中断其他删除
-   */
-  async deleteImages(filenames: string[]): Promise<{
-    deleted: string[];
-    failed: { filename: string; error: string }[];
-  }> {
-    const deleted: string[] = [];
-    const failed: { filename: string; error: string }[] = [];
-    for (const name of filenames) {
-      try {
-        await this.deleteFile(name);
-        deleted.push(name);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        failed.push({ filename: name, error: errorMessage });
-      }
-    }
-    return { deleted, failed };
-  }
+  // ---------- 图片引用收集器管理 ----------
 
-  /**
-   * 对外公开：从富文本 HTML 内容中解析图片文件名
-   */
-  parseImageFilenamesFromHtml(content: string): string[] {
-    return this.extractImageFilenamesFromContent(content);
+  // 允许其他业务模块注册其"在用图片收集器"
+  registerInUseImageCollector(collector: InUseImageCollector) {
+    this.inUseCollectors.push(collector);
   }
 
   /**
@@ -263,13 +257,20 @@ export class UploadService {
     return inUse;
   }
 
+  // ---------- 工具方法 ----------
+
+  private async getFileHash(filePath: string): Promise<string> {
+    const fileBuffer = await readFile(filePath);
+    return createHash('sha256').update(fileBuffer).digest('hex');
+  }
+
   /**
-   * 从富文本 HTML 内容中提取图片文件名（与文章模块解析保持一致）
+   * 对外公开：从富文本 HTML 内容中解析图片文件名
    * 支持以下 src 形式：
    * - /images/uuid.ext, //host/images/uuid.ext, http(s)://host/images/uuid.ext?x=1
    * - 仅文件名 uuid.ext
    */
-  private extractImageFilenamesFromContent(content: string): string[] {
+  parseImageFilenamesFromHtml(content: string): string[] {
     if (!content) return [];
 
     const result = new Set<string>();
