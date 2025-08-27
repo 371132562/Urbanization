@@ -444,6 +444,8 @@ export type ScoreEvaluationItemDto = {
   minScore: number;
   maxScore: number;
   evaluationText: string;
+  images?: string[]; // 评价体系内包含的图片，为图片id组成的数组
+  deletedImages?: string[]; // 已删除的图片列表
 };
 
 /**

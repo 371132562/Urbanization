@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { UploadService } from '../../commonModules/upload/upload.service';
+import { ImageProcessorUtils } from '../../common/upload';
 import {
   BatchCreateScoreDto,
   BatchCheckScoreExistingDto,
@@ -33,7 +35,10 @@ function decimalToNumber(value: Decimal | number): number {
 @Injectable()
 export class ScoreService {
   private readonly logger = new Logger(ScoreService.name);
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   /**
    * @description 获取所有有评分数据的年份列表
@@ -636,7 +641,7 @@ export class ScoreService {
    * @description 获取所有评分评价规则。
    * @returns {Promise<ScoreEvaluation[]>} 按最小评分升序排列的评价规则列表。
    */
-  findAllEvaluations() {
+  listEvaluation() {
     return this.prisma.scoreEvaluation.findMany({
       orderBy: {
         minScore: 'asc', // 按最小评分升序排序
@@ -649,12 +654,27 @@ export class ScoreService {
    * @param {ScoreEvaluationItemDto[]} data - 新的评分评价规则数组。
    * @returns {Promise<Prisma.BatchPayload>} 创建操作的结果。
    */
-  async createEvaluations(data: ScoreEvaluationItemDto[]) {
+  async createEvaluation(data: ScoreEvaluationItemDto[]) {
     // 1. 先删除所有现有的评价规则
     await this.prisma.scoreEvaluation.deleteMany({});
-    // 2. 批量创建新的评价规则
-    return this.prisma.scoreEvaluation.createMany({
-      data,
+
+    // 2. 使用工具类处理每个评价规则的图片数据
+    const { processedData, allDeletedImages } =
+      ImageProcessorUtils.processEvaluationImages(data);
+
+    // 3. 批量创建新的评价规则
+    const result = await this.prisma.scoreEvaluation.createMany({
+      data: processedData,
     });
+
+    // 4. 异步清理不再使用的图片，不阻塞主流程
+    ImageProcessorUtils.cleanupImagesAsync(
+      this.uploadService,
+      this.logger,
+      allDeletedImages,
+      '后台图片清理',
+    );
+
+    return result;
   }
 }

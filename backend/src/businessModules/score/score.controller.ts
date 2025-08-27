@@ -95,16 +95,16 @@ export class ScoreController {
   /**
    * @description 获取所有评分评价规则
    */
-  @Post('evaluation/list')
-  findAllEvaluations() {
-    return this.scoreService.findAllEvaluations();
+  @Post('listEvaluation')
+  listEvaluation() {
+    return this.scoreService.listEvaluation();
   }
 
   /**
    * @description 批量创建评分评价规则 (会先清空旧数据)
    */
-  @Post('evaluation/create')
-  createEvaluations(@Body() data: ScoreEvaluationItemDto[]) {
-    return this.scoreService.createEvaluations(data);
+  @Post('createEvaluation')
+  createEvaluation(@Body() data: ScoreEvaluationItemDto[]) {
+    return this.scoreService.createEvaluation(data);
   }
 }

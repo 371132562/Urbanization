@@ -12,6 +12,7 @@ import {
 } from '../../../types/dto';
 import { ErrorCode } from '../../../types/response';
 import { UploadService } from '../../commonModules/upload/upload.service';
+import { ImageProcessorUtils } from '../../common/upload';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -136,30 +137,27 @@ export class ArticleService {
     const { deletedImages: incomingDeletedImages, ...articleData } =
       createArticleDto;
 
-    // 保险：根据 content 实际包含的图片，纠正 images / deletedImages
-    const reconciled = this._reconcileImages(
-      (articleData as unknown as { images?: string[] }).images ?? [],
-      incomingDeletedImages ?? [],
-      (articleData as unknown as { content?: string }).content ?? '',
-    );
-    (articleData as unknown as { images: string[] }).images = reconciled.images;
+    // 使用工具类处理图片数据
+    const { processedData, deletedImages } =
+      ImageProcessorUtils.processArticleImages({
+        ...articleData,
+        deletedImages: incomingDeletedImages,
+      });
 
     const article = await this.prisma.article.create({
       data: {
-        ...articleData,
+        ...processedData,
         type: type || ArticleType.ARTICLE,
-      },
+      } as any,
     });
 
     // 异步清理不再使用的图片，不阻塞主流程
-    if (reconciled.deletedImages && reconciled.deletedImages.length > 0) {
-      this.uploadService
-        .cleanupUnusedImages(reconciled.deletedImages)
-        .catch((err) => {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          this.logger.error(`后台图片清理任务失败: ${errorMessage}`);
-        });
-    }
+    ImageProcessorUtils.cleanupImagesAsync(
+      this.uploadService,
+      this.logger,
+      deletedImages,
+      '后台图片清理',
+    );
 
     return this.mapToDto(article);
   }
@@ -171,28 +169,25 @@ export class ArticleService {
       ...data
     } = updateArticleDto;
 
-    // 保险：根据 content 实际包含的图片，纠正 images / deletedImages
-    const reconciled = this._reconcileImages(
-      (data as unknown as { images?: string[] }).images ?? [],
-      incomingDeletedImages ?? [],
-      (data as unknown as { content?: string }).content ?? '',
-    );
-    (data as unknown as { images: string[] }).images = reconciled.images;
+    // 使用工具类处理图片数据
+    const { processedData, deletedImages } =
+      ImageProcessorUtils.processArticleImages({
+        ...data,
+        deletedImages: incomingDeletedImages,
+      });
 
     const article = await this.prisma.article.update({
       where: { id },
-      data,
+      data: processedData,
     });
 
     // 异步清理不再使用的图片，不阻塞主流程
-    if (reconciled.deletedImages && reconciled.deletedImages.length > 0) {
-      this.uploadService
-        .cleanupUnusedImages(reconciled.deletedImages)
-        .catch((err) => {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          this.logger.error(`后台图片清理任务失败: ${errorMessage}`);
-        });
-    }
+    ImageProcessorUtils.cleanupImagesAsync(
+      this.uploadService,
+      this.logger,
+      deletedImages,
+      '后台图片清理',
+    );
 
     return this.mapToDto(article);
   }
@@ -217,12 +212,12 @@ export class ArticleService {
 
     // 3. 异步清理该文章关联的图片
     const imagesToCheck = articleToDelete.images as string[];
-    if (imagesToCheck && imagesToCheck.length > 0) {
-      this.uploadService.cleanupUnusedImages(imagesToCheck).catch((err) => {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        this.logger.error(`后台图片清理任务失败 (文章删除时): ${errorMessage}`);
-      });
-    }
+    ImageProcessorUtils.cleanupImagesAsync(
+      this.uploadService,
+      this.logger,
+      imagesToCheck,
+      '后台图片清理 (文章删除时)',
+    );
 
     return this.mapToDto(deletedArticle);
   }
@@ -232,44 +227,6 @@ export class ArticleService {
    * 仅当图片在所有文章中都未被引用时，才会执行物理删除。
    * @param deletedImages - 包含待删除图片文件名的数组
    */
-
-  /**
-   * 根据 content 中引用情况与前端提交的 images/deletedImages 进行纠正
-   * - 最终 images = 去重(前端 images ∪ content 中的图片)
-   * - 最终 deletedImages = 前端 deletedImages 去除所有仍在 content 或最终 images 中的项
-   */
-  private _reconcileImages(
-    imagesFromDto: string[],
-    deletedImagesFromDto: string[],
-    content: string,
-  ): { images: string[]; deletedImages: string[] } {
-    const contentImages = new Set(
-      this.uploadService.parseImageFilenamesFromHtml(content),
-    );
-
-    // 合并 images（确保不丢）
-    const finalImagesSet = new Set<string>(imagesFromDto);
-    contentImages.forEach((f) => finalImagesSet.add(f));
-
-    // 过滤 deleted（避免误删）
-    const finalDeleted = (deletedImagesFromDto || []).filter(
-      (f) => !contentImages.has(f) && !finalImagesSet.has(f),
-    );
-
-    // 可选日志：如有修正则打点
-    if (finalImagesSet.size !== (imagesFromDto || []).length) {
-      this.logger.log(
-        `纠正 images：由 ${imagesFromDto.length} 调整为 ${finalImagesSet.size}`,
-      );
-    }
-    if (finalDeleted.length !== (deletedImagesFromDto || []).length) {
-      this.logger.log(
-        `纠正 deletedImages：由 ${(deletedImagesFromDto || []).length} 调整为 ${finalDeleted.length}`,
-      );
-    }
-
-    return { images: Array.from(finalImagesSet), deletedImages: finalDeleted };
-  }
 
   async upsertArticleOrder(
     upsertArticleOrderDto: UpsertArticleOrderDto,

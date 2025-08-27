@@ -3,7 +3,9 @@ import { Button, Card, Descriptions, Divider, Skeleton, Typography } from 'antd'
 import { FC, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
+import RichEditor from '@/components/RichEditor'
 import useScoreStore from '@/stores/scoreStore'
+import { toFullPathContent } from '@/utils'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -30,18 +32,17 @@ const ComprehensiveEvaluationDetail: FC = () => {
   }, [countryId, year, getScoreDetail, getEvaluations])
 
   // 根据总分匹配评价文案
-  const evaluationText = useMemo(() => {
+  const matchedEvaluation = useMemo(() => {
     if (
       !detailData ||
       !evaluations ||
       evaluations.length === 0 ||
       detailData.totalScore === undefined
     ) {
-      return '暂无评价'
+      return null
     }
     const score = detailData.totalScore
-    const matchedRule = evaluations.find(rule => score >= rule.minScore && score <= rule.maxScore)
-    return matchedRule ? matchedRule.evaluationText : '未匹配到评价标准'
+    return evaluations.find(rule => score >= rule.minScore && score <= rule.maxScore) || null
   }, [detailData, evaluations])
 
   // 加载状态判断
@@ -107,7 +108,17 @@ const ComprehensiveEvaluationDetail: FC = () => {
             <Divider />
 
             <Title level={4}>综合评价</Title>
-            <Paragraph className="text-base leading-relaxed">{evaluationText}</Paragraph>
+            {matchedEvaluation ? (
+              <RichEditor
+                value={toFullPathContent(matchedEvaluation.evaluationText)}
+                readOnly={true}
+                height="auto"
+              />
+            ) : (
+              <Paragraph className="text-base leading-relaxed text-gray-500">
+                未匹配到评价标准
+              </Paragraph>
+            )}
           </div>
         ) : (
           <div className="py-10 text-center">

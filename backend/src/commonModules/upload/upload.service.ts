@@ -11,6 +11,7 @@ import { existsSync } from 'fs'; // 导入 existsSync
 import { createHash } from 'crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { join } from 'path';
+import { ImageProcessorUtils } from '../../common/upload/image-processor.utils';
 
 // 可插拔的"图片在用收集器"类型定义
 export type InUseImageCollector = () => Promise<Set<string>>;
@@ -23,22 +24,27 @@ export class UploadService {
   constructor(private readonly prisma: PrismaService) {
     // 默认注册：文章模块收集器（images 字段 + content 富文本图片）
     this.registerInUseImageCollector(async () => {
-      const inUse = new Set<string>();
       const articles = await this.prisma.article.findMany({
         where: { delete: 0 },
         select: { images: true, content: true },
       });
-      for (const article of articles) {
-        const images = (article.images as unknown as string[]) || [];
-        images.forEach((f) => inUse.add(f));
-        const content =
-          (article as unknown as { content?: string }).content || '';
-        if (content.length > 0) {
-          const names = this.parseImageFilenamesFromHtml(content);
-          names.forEach((f) => inUse.add(f));
-        }
-      }
-      return inUse;
+      return ImageProcessorUtils.collectImagesFromRecords(
+        articles,
+        'images',
+        'content',
+      );
+    });
+
+    // 注册：评分评价体系模块收集器（images 字段 + evaluationText 富文本图片）
+    this.registerInUseImageCollector(async () => {
+      const scoreEvaluations = await this.prisma.scoreEvaluation.findMany({
+        select: { images: true, evaluationText: true },
+      });
+      return ImageProcessorUtils.collectImagesFromRecords(
+        scoreEvaluations,
+        'images',
+        'evaluationText',
+      );
     });
   }
 
@@ -167,7 +173,9 @@ export class UploadService {
 
   /**
    * 清理未被任何业务引用的图片
-   * 当前支持引用来源：文章模块 Article（images 字段 + content 富文本内的 <img src>）
+   * 当前支持引用来源：
+   * - 文章模块 Article（images 字段 + content 富文本内的 <img src>）
+   * - 评分评价体系模块 ScoreEvaluation（images 字段 + evaluationText 富文本内的 <img src>）
    * 后续可在此扩展其他模块的引用收集
    */
   async cleanupUnusedImages(candidateFilenames: string[]): Promise<void> {
@@ -265,30 +273,5 @@ export class UploadService {
   private async getFileHash(filePath: string): Promise<string> {
     const fileBuffer = await readFile(filePath);
     return createHash('sha256').update(fileBuffer).digest('hex');
-  }
-
-  /**
-   * 对外公开：从富文本 HTML 内容中解析图片文件名
-   * 支持以下 src 形式：
-   * - /images/uuid.ext, //host/images/uuid.ext, http(s)://host/images/uuid.ext?x=1
-   * - 仅文件名 uuid.ext
-   */
-  parseImageFilenamesFromHtml(content: string): string[] {
-    if (!content) return [];
-
-    const result = new Set<string>();
-    const imgSrcRegex = /<img[^*>]*\s+src=["']([^"']+)["'][^>]*>/gi;
-    let match: RegExpExecArray | null;
-    while ((match = imgSrcRegex.exec(content)) !== null) {
-      const rawSrc = match[1];
-      if (!rawSrc) continue;
-      const lastSlashIndex = rawSrc.lastIndexOf('/');
-      const filename =
-        lastSlashIndex >= 0 ? rawSrc.substring(lastSlashIndex + 1) : rawSrc;
-      if (/^[0-9a-zA-Z._-]+\.(?:png|jpe?g|gif|webp|svg)$/.test(filename)) {
-        result.add(filename);
-      }
-    }
-    return Array.from(result);
   }
 }

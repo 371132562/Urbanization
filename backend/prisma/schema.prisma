@@ -223,12 +223,13 @@ model Score {
   @@index([year, countryId, delete])
 }
 
-// 评分评价表 包含多组评分评价
+// 评分评价体系表 包含多组评分评价
 model ScoreEvaluation {
   id             String   @id @default(uuid()) // 主键ID
   minScore       Decimal // 最小评分
   maxScore       Decimal // 最大评分
-  evaluationText String // 评价文案
+  evaluationText String // 评价文案，富文本
+  images         Json     @default("[]") // 评价体系内包含的图片 为图片id组成的数组
   createTime     DateTime @default(now())
   updateTime     DateTime @updatedAt
 }
