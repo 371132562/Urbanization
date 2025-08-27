@@ -722,25 +722,50 @@ export class ScoreService {
    * @returns {Promise<Prisma.BatchPayload>} 创建操作的结果。
    */
   async createEvaluation(data: ScoreEvaluationItemDto[]) {
-    // 1. 先删除所有现有的评价规则
+    // 1. 先收集现有评价规则的所有图片，避免产生孤立图片
+    const existingEvaluations = await this.prisma.scoreEvaluation.findMany({
+      select: { images: true },
+    });
+
+    // 收集所有现有图片
+    const existingImages = existingEvaluations.flatMap(
+      (evaluation) => (evaluation.images as string[]) || [],
+    );
+
+    // 2. 删除所有现有的评价规则
     await this.prisma.scoreEvaluation.deleteMany({});
 
-    // 2. 使用工具类处理每个评价规则的图片数据
+    // 3. 使用工具类处理每个评价规则的图片数据
     const { processedData, allDeletedImages } =
       ImageProcessorUtils.processEvaluationImages(data);
 
-    // 3. 批量创建新的评价规则
+    // 4. 收集新规则中使用的图片
+    const newImages = processedData.flatMap(
+      (item) => (item.images as string[]) || [],
+    );
+
+    // 5. 计算真正需要删除的图片：现有图片中不在新图片中的
+    const imagesToDelete = existingImages.filter(
+      (img) => !newImages.includes(img),
+    );
+
+    // 6. 合并需要删除的图片：孤立图片 + 新规则中标记删除的图片
+    const allImagesToDelete = [...imagesToDelete, ...allDeletedImages];
+
+    // 7. 批量创建新的评价规则
     const result = await this.prisma.scoreEvaluation.createMany({
       data: processedData,
     });
 
-    // 4. 异步清理不再使用的图片，不阻塞主流程
-    ImageProcessorUtils.cleanupImagesAsync(
-      this.uploadService,
-      this.logger,
-      allDeletedImages,
-      '后台图片清理',
-    );
+    // 8. 异步清理不再使用的图片，不阻塞主流程
+    if (allImagesToDelete.length > 0) {
+      ImageProcessorUtils.cleanupImagesAsync(
+        this.uploadService,
+        this.logger,
+        allImagesToDelete,
+        '评价规则更新，图片清理',
+      );
+    }
 
     return result;
   }
