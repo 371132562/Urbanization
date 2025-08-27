@@ -10,15 +10,15 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UploadModule } from './commonModules/upload/upload.module';
 import { AuthModule } from './commonModules/auth/auth.module';
-import { RoleModule } from './businessComponent/role/role.module';
-import { UserModule } from './businessComponent/user/user.module';
 
 //业务模块
-import { DataManagementModule } from './businessComponent/dataManagement/dataManagement.module';
-import { IndicatorModule } from './businessComponent/indicator/indicator.module';
-import { CountryAndContinentModule } from './businessComponent/countryAndContinent/countryAndContinent.module';
-import { ArticleModule } from './businessComponent/article/article.module';
-import { ScoreModule } from './businessComponent/score/score.module';
+import { RoleModule } from './businessModules/role/role.module';
+import { UserModule } from './businessModules/user/user.module';
+import { DataManagementModule } from './businessModules/dataManagement/dataManagement.module';
+import { IndicatorModule } from './businessModules/indicator/indicator.module';
+import { CountryAndContinentModule } from './businessModules/countryAndContinent/countryAndContinent.module';
+import { ArticleModule } from './businessModules/article/article.module';
+import { ScoreModule } from './businessModules/score/score.module';
 
 @Module({
   imports: [
@@ -44,10 +44,10 @@ import { ScoreModule } from './businessComponent/score/score.module';
     PrismaModule,
     UploadModule, // 上传模块
     AuthModule, // 认证模块
-    RoleModule, // 角色管理模块
-    UserModule, // 用户管理模块
 
     //业务模块
+    RoleModule,
+    UserModule,
     DataManagementModule,
     IndicatorModule, // 指标查询模块
     CountryAndContinentModule, // 国家和大洲模块

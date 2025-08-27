@@ -39,7 +39,9 @@ Urbanization/
 │   └── dist/               # 构建输出
 ├── backend/                 # 后端项目
 │   ├── src/
-│   │   ├── businessComponent/  # 业务模块
+│   │   ├── businessModules/  # 业务模块
+│   │   ├── commonModules/    # 公共模块
+│   │   ├── common/           # 公共文件
 │   │   ├── exceptions/         # 异常处理
 │   │   ├── interceptors/       # 拦截器
 │   │   ├── upload/            # 文件上传
