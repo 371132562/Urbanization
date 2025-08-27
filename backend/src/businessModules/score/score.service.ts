@@ -7,10 +7,12 @@ import {
   BatchCheckScoreExistingDto,
   BatchCheckScoreExistingResDto,
   ScoreEvaluationItemDto,
+  ScoreEvaluationResponseDto,
   CreateScoreDto,
   PaginatedYearScoreData,
   ScoreDataItem,
   ScoreDetailReqDto,
+  ScoreDetailResponseDto,
   DeleteScoreDto,
   CheckExistingDataResDto,
   CountryScoreData,
@@ -24,8 +26,34 @@ import { ErrorCode } from '../../../types/response';
 import { Score, Country } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
-function decimalToNumber(value: Decimal | number): number {
-  return value instanceof Decimal ? value.toNumber() : value;
+/**
+ * 将 Prisma Decimal 或其他数值类型转换为 number
+ * 处理 Prisma 在某些情况下将 Decimal 序列化为对象的问题
+ * @param value 要转换的值
+ * @returns 转换后的 number 类型值
+ */
+function decimalToNumber(value: unknown): number {
+  if (value instanceof Decimal) {
+    return value.toNumber();
+  }
+
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string' && !isNaN(Number(value))) {
+    return Number(value);
+  }
+
+  // 处理可能是对象的情况（可能是 Prisma 的序列化问题）
+  if (typeof value === 'object' && value !== null) {
+    const stringValue = String(value);
+    if (!isNaN(Number(stringValue))) {
+      return Number(stringValue);
+    }
+  }
+
+  return 0;
 }
 
 /**
@@ -492,9 +520,9 @@ export class ScoreService {
   /**
    * @description 获取特定国家和年份的评分详情。
    * @param {ScoreDetailReqDto} params - 包含 countryId 和 year。
-   * @returns {Promise<Score>} 评分详情记录。
+   * @returns {Promise<ScoreDetailResponseDto>} 评分详情记录。
    */
-  async detail(params: ScoreDetailReqDto): Promise<Score> {
+  async detail(params: ScoreDetailReqDto): Promise<ScoreDetailResponseDto> {
     const { countryId, year } = params;
     const yearValue = year; // 直接使用数字年份
 
@@ -517,7 +545,35 @@ export class ScoreService {
         `未找到国家 ID ${countryId} 在 ${year} 年的评分记录`,
       );
     }
-    return score;
+
+    // 将 Prisma Decimal 转换为 number 类型
+    return {
+      id: score.id,
+      totalScore: decimalToNumber(score.totalScore),
+      urbanizationProcessDimensionScore: decimalToNumber(
+        score.urbanizationProcessDimensionScore,
+      ),
+      humanDynamicsDimensionScore: decimalToNumber(
+        score.humanDynamicsDimensionScore,
+      ),
+      materialDynamicsDimensionScore: decimalToNumber(
+        score.materialDynamicsDimensionScore,
+      ),
+      spatialDynamicsDimensionScore: decimalToNumber(
+        score.spatialDynamicsDimensionScore,
+      ),
+      year: score.year,
+      countryId: score.countryId,
+      country: {
+        id: score.country.id,
+        cnName: score.country.cnName,
+        enName: score.country.enName,
+        createTime: score.country.createTime,
+        updateTime: score.country.updateTime,
+      },
+      createTime: score.createTime,
+      updateTime: score.updateTime,
+    };
   }
 
   /**
@@ -639,14 +695,25 @@ export class ScoreService {
 
   /**
    * @description 获取所有评分评价规则。
-   * @returns {Promise<ScoreEvaluation[]>} 按最小评分升序排列的评价规则列表。
+   * @returns {Promise<ScoreEvaluationResponseDto[]>} 按最小评分升序排列的评价规则列表。
    */
-  listEvaluation() {
-    return this.prisma.scoreEvaluation.findMany({
+  async listEvaluation(): Promise<ScoreEvaluationResponseDto[]> {
+    const evaluations = await this.prisma.scoreEvaluation.findMany({
       orderBy: {
         minScore: 'asc', // 按最小评分升序排序
       },
     });
+
+    // 将 Prisma Decimal 转换为 number 类型
+    return evaluations.map((evaluation) => ({
+      id: evaluation.id,
+      minScore: decimalToNumber(evaluation.minScore),
+      maxScore: decimalToNumber(evaluation.maxScore),
+      evaluationText: evaluation.evaluationText,
+      images: evaluation.images as string[],
+      createTime: evaluation.createTime,
+      updateTime: evaluation.updateTime,
+    }));
   }
 
   /**

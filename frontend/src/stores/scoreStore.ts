@@ -3,13 +3,14 @@ import {
   BatchCheckScoreExistingResDto,
   BatchCreateScoreDto,
   CheckExistingDataResDto,
-  Country,
   CountryScoreData,
   CreateScoreDto,
   DeleteScoreDto,
   PaginatedYearScoreData,
   ScoreDetailReqDto,
+  ScoreDetailResponseDto,
   ScoreEvaluationItemDto,
+  ScoreEvaluationResponseDto,
   ScoreListByYearReqDto,
   ScoreListByYearResDto
 } from 'urbanization-backend/types/dto'
@@ -22,9 +23,7 @@ import http from '@/services/base'
 type ScoreFormData = Partial<CreateScoreDto>
 
 // 定义一个更完整的详情数据类型
-type ScoreDetail = CreateScoreDto & {
-  country?: Country
-}
+type ScoreDetail = ScoreDetailResponseDto
 
 interface ScoreStore {
   // 年份与按年数据缓存
@@ -47,7 +46,7 @@ interface ScoreStore {
   detailLoading: boolean
 
   // 评分评价相关状态
-  evaluations: ScoreEvaluationItemDto[]
+  evaluations: ScoreEvaluationResponseDto[]
   evaluationsLoading: boolean
   evaluationsSaveLoading: boolean
 
@@ -214,7 +213,7 @@ const useScoreStore = create<ScoreStore>()(set => ({
   getEvaluations: async () => {
     set({ evaluationsLoading: true })
     try {
-      const res = await http.post<ScoreEvaluationItemDto[]>(apis.scoreEvaluationList, {})
+      const res = await http.post<ScoreEvaluationResponseDto[]>(apis.scoreEvaluationList, {})
       set({ evaluations: res.data || [], evaluationsLoading: false })
     } catch (error) {
       console.log(error)

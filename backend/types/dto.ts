@@ -449,6 +449,44 @@ export type ScoreEvaluationItemDto = {
 };
 
 /**
+ * 评分评价规则响应 DTO
+ * 包含从 Prisma Decimal 转换后的 number 类型分数
+ */
+export type ScoreEvaluationResponseDto = {
+  id: string;
+  minScore: number;
+  maxScore: number;
+  evaluationText: string;
+  images: string[];
+  createTime: Date;
+  updateTime: Date;
+};
+
+/**
+ * 评分详情响应 DTO
+ * 包含从 Prisma Decimal 转换后的 number 类型分数
+ */
+export type ScoreDetailResponseDto = {
+  id: string;
+  totalScore: number;
+  urbanizationProcessDimensionScore: number;
+  humanDynamicsDimensionScore: number;
+  materialDynamicsDimensionScore: number;
+  spatialDynamicsDimensionScore: number;
+  year: number;
+  countryId: string;
+  country: {
+    id: string;
+    cnName: string;
+    enName: string;
+    createTime: Date;
+    updateTime: Date;
+  };
+  createTime: Date;
+  updateTime: Date;
+};
+
+/**
  * 得分创建 DTO
  */
 export type CreateScoreDto = {
