@@ -44,9 +44,7 @@ const OrphanImages: FC = () => {
     <div className="w-full max-w-6xl">
       {/* 可展开的说明信息 */}
       <Collapse
-        ghost
-        size="small"
-        className="mb-4"
+        className="!mb-4"
         items={[
           {
             key: '1',

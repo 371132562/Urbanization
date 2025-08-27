@@ -1,4 +1,6 @@
 import { createLogger, format, transports } from 'winston';
+import { existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import 'winston-daily-rotate-file';
 
 /**
@@ -11,6 +13,13 @@ import 'winston-daily-rotate-file';
 const excludeErrorFormat = format((info) =>
   info.level === 'error' ? false : info,
 );
+
+// 确保审计文件目录存在：LOG_DIR/audit
+const baseLogDir = process.env.LOG_DIR || './logs';
+const auditDir = join(baseLogDir, 'audit');
+if (!existsSync(auditDir)) {
+  mkdirSync(auditDir, { recursive: true });
+}
 
 export const logger = createLogger({
   level: 'info',
@@ -63,21 +72,23 @@ export const logger = createLogger({
     // 文件输出（按日滚动）- info 级别（排除 error，独立文件）
     new transports.DailyRotateFile({
       filename: process.env.LOG_DIR + '/application-info-%DATE%.log',
-      datePattern: 'YYYY-MM-DD-HH-mm-ss',
+      datePattern: 'YYYY-MM-DD',
       level: 'info',
-      zippedArchive: true,
-      maxSize: '20m',
-      maxFiles: '7d',
+      zippedArchive: false,
+      maxSize: '100m',
+      maxFiles: '30d',
       format: format.combine(excludeErrorFormat()),
+      auditFile: join(auditDir, 'application-info-audit.json'),
     }),
     // 文件输出（按日滚动）- error 级别（独立文件）
     new transports.DailyRotateFile({
       filename: process.env.LOG_DIR + '/application-error-%DATE%.log',
-      datePattern: 'YYYY-MM-DD-HH-mm-ss',
+      datePattern: 'YYYY-MM-DD',
       level: 'error',
-      zippedArchive: true,
-      maxSize: '20m',
-      maxFiles: '14d',
+      zippedArchive: false,
+      maxSize: '100m',
+      maxFiles: '30d',
+      auditFile: join(auditDir, 'application-error-audit.json'),
     }),
   ],
 });

@@ -23,6 +23,11 @@ export const getUserLogger = (userId: string): Logger => {
   if (!existsSync(userDir)) {
     mkdirSync(userDir, { recursive: true });
   }
+  // 确保用户目录下的审计目录存在：LOG_DIR/users/<userId>/audit
+  const userAuditDir = join(userDir, 'audit');
+  if (!existsSync(userAuditDir)) {
+    mkdirSync(userAuditDir, { recursive: true });
+  }
 
   // 将 info 与 error 拆分为不同文件，避免重复与冲突
   const userLogger = createLogger({
@@ -49,19 +54,21 @@ export const getUserLogger = (userId: string): Logger => {
     transports: [
       new transports.DailyRotateFile({
         filename: join(userDir, 'application-info-%DATE%.log'),
-        datePattern: 'YYYY-MM-DD-HH-mm-ss',
+        datePattern: 'YYYY-MM-DD',
         level: 'info',
-        zippedArchive: true,
-        maxSize: '20m',
-        maxFiles: '7d',
+        zippedArchive: false,
+        maxSize: '100m',
+        maxFiles: '30d',
+        auditFile: join(userAuditDir, 'application-info-audit.json'),
       }),
       new transports.DailyRotateFile({
         filename: join(userDir, 'application-error-%DATE%.log'),
-        datePattern: 'YYYY-MM-DD-HH-mm-ss',
+        datePattern: 'YYYY-MM-DD',
         level: 'error',
-        zippedArchive: true,
-        maxSize: '20m',
-        maxFiles: '14d',
+        zippedArchive: false,
+        maxSize: '100m',
+        maxFiles: '30d',
+        auditFile: join(userAuditDir, 'application-error-audit.json'),
       }),
     ],
   });
