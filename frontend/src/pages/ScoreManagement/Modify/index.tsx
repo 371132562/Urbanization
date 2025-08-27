@@ -30,7 +30,7 @@ const ModifyScoreSkeleton = () => (
   </div>
 )
 
-export const Component = () => {
+const ModifyScorePage = () => {
   const { countryId, year } = useParams<{ countryId?: string; year?: string }>()
   const navigate = useNavigate()
   const [form] = Form.useForm()
@@ -232,3 +232,5 @@ export const Component = () => {
     </div>
   )
 }
+
+export default ModifyScorePage

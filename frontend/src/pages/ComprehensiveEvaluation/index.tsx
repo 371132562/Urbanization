@@ -235,4 +235,4 @@ const ComprehensiveEvaluation: FC = () => {
   )
 }
 
-export const Component = ComprehensiveEvaluation
+export default ComprehensiveEvaluation

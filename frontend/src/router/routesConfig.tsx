@@ -13,38 +13,41 @@ import {
   SettingOutlined,
   TeamOutlined
 } from '@ant-design/icons'
+import React, { lazy } from 'react'
 
-import { Component as ArticleManagement } from '@/pages/ArticleManagement'
-import { Component as ModifyArticle } from '@/pages/ArticleManagement/Modify'
-import { Component as OrderConfig } from '@/pages/ArticleManagement/OrderConfig'
-import { Component as ComprehensiveEvaluation } from '@/pages/ComprehensiveEvaluation'
-import { Component as ComprehensiveEvaluationDetail } from '@/pages/ComprehensiveEvaluation/Detail'
-import { Component as DataManagement } from '@/pages/DataManagement'
-import { Component as ExportData } from '@/pages/DataManagement/Export'
-import { Component as ImportData } from '@/pages/DataManagement/Import'
-import { Component as ModifyData } from '@/pages/DataManagement/Modify'
-import { Component as EvaluationModel } from '@/pages/EvaluationModel'
-import FormulaDetail from '@/pages/EvaluationModel/FormulaDetail'
-import { Component as WeightManagement } from '@/pages/EvaluationModel/WeightManagement'
-import { Component as Home } from '@/pages/Home'
-import { Component as HumanDynamics } from '@/pages/HumanDynamics'
-import { Component as MapEdit } from '@/pages/Map/MapEdit'
-import { Component as UrbanizationRate } from '@/pages/Map/UrbanizationRate'
-import { Component as MaterialDynamics } from '@/pages/MaterialDynamics'
-import RoleManagement from '@/pages/RoleManagement/RoleManagement'
-import { Component as ScoreManagement } from '@/pages/ScoreManagement'
-import Detail from '@/pages/ScoreManagement/Detail'
-import { Component as ScoreEvaluation } from '@/pages/ScoreManagement/Evaluation'
-import Export from '@/pages/ScoreManagement/Export'
-import { Component as ImportScore } from '@/pages/ScoreManagement/Import'
-import { Component as ModifyScore } from '@/pages/ScoreManagement/Modify'
-import { Component as SpatialDynamics } from '@/pages/SpatialDynamics'
-import { Component as SystemMaintenance } from '@/pages/SystemMaintenance'
-import DataList from '@/pages/Transform/dataList'
-import Formula from '@/pages/Transform/Formula'
-import { Component as UrbanizationProcess } from '@/pages/UrbanizationProcess'
-import UserManagement from '@/pages/UserManagement/UserManagement'
 import { RouteItem } from '@/types'
+
+// 使用React.lazy实现懒加载（默认导出）
+const ArticleManagement = lazy(() => import('@/pages/ArticleManagement'))
+const ModifyArticle = lazy(() => import('@/pages/ArticleManagement/Modify'))
+const OrderConfig = lazy(() => import('@/pages/ArticleManagement/OrderConfig'))
+const ComprehensiveEvaluation = lazy(() => import('@/pages/ComprehensiveEvaluation'))
+const ComprehensiveEvaluationDetail = lazy(() => import('@/pages/ComprehensiveEvaluation/Detail'))
+const DataManagement = lazy(() => import('@/pages/DataManagement'))
+const ExportData = lazy(() => import('@/pages/DataManagement/Export'))
+const ImportData = lazy(() => import('@/pages/DataManagement/Import'))
+const ModifyData = lazy(() => import('@/pages/DataManagement/Modify'))
+const EvaluationModel = lazy(() => import('@/pages/EvaluationModel'))
+const FormulaDetail = lazy(() => import('@/pages/EvaluationModel/FormulaDetail'))
+const WeightManagement = lazy(() => import('@/pages/EvaluationModel/WeightManagement'))
+const Home = lazy(() => import('@/pages/Home'))
+const HumanDynamics = lazy(() => import('@/pages/HumanDynamics'))
+const MapEdit = lazy(() => import('@/pages/Map/MapEdit'))
+const UrbanizationRate = lazy(() => import('@/pages/Map/UrbanizationRate'))
+const MaterialDynamics = lazy(() => import('@/pages/MaterialDynamics'))
+const ScoreManagement = lazy(() => import('@/pages/ScoreManagement'))
+const Detail = lazy(() => import('@/pages/ScoreManagement/Detail'))
+const ScoreEvaluation = lazy(() => import('@/pages/ScoreManagement/Evaluation'))
+const Export = lazy(() => import('@/pages/ScoreManagement/Export'))
+const ImportScore = lazy(() => import('@/pages/ScoreManagement/Import'))
+const ModifyScore = lazy(() => import('@/pages/ScoreManagement/Modify'))
+const SpatialDynamics = lazy(() => import('@/pages/SpatialDynamics'))
+const RoleManagement = lazy(() => import('@/pages/System/RoleManagement/RoleManagement'))
+const SystemMaintenance = lazy(() => import('@/pages/System/SystemMaintenance'))
+const UserManagement = lazy(() => import('@/pages/System/UserManagement/UserManagement'))
+const DataList = lazy(() => import('@/pages/Transform/dataList'))
+const Formula = lazy(() => import('@/pages/Transform/Formula'))
+const UrbanizationProcess = lazy(() => import('@/pages/UrbanizationProcess'))
 
 // 顶部导航菜单配置
 export const topRoutes: RouteItem[] = [

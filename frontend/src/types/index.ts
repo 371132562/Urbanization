@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { LazyExoticComponent, ReactNode } from 'react'
 
 /**
  * 路由项类型定义
@@ -7,7 +7,7 @@ export type RouteItem = {
   path: string
   title: string
   icon?: ReactNode
-  component?: React.ComponentType
+  component?: React.ComponentType | LazyExoticComponent<React.ComponentType>
   hideInMenu?: boolean
   hideInBreadcrumb?: boolean
   children?: RouteItem[]

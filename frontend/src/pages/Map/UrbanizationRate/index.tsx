@@ -97,4 +97,4 @@ const UrbanizationRate: FC = () => {
   )
 }
 
-export const Component = UrbanizationRate
+export default UrbanizationRate

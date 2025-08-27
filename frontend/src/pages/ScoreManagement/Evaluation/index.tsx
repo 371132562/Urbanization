@@ -216,4 +216,4 @@ const ScoreEvaluationPage = () => {
   )
 }
 
-export const Component = ScoreEvaluationPage
+export default ScoreEvaluationPage

@@ -357,4 +357,4 @@ const EvaluationModel: FC = () => {
   )
 }
 
-export const Component = EvaluationModel
+export default EvaluationModel

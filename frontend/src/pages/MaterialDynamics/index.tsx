@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router'
 import ArticleDisplay from '@/components/ArticleDisplay'
 import useArticleStore from '@/stores/articleStore'
 
-export const Component = () => {
+const Component = () => {
   const navigate = useNavigate()
   const getArticlesByPage = useArticleStore(state => state.getArticlesByPage)
   const pageArticles = useArticleStore(state => state.pageArticles)
@@ -55,3 +55,5 @@ export const Component = () => {
     </div>
   )
 }
+
+export default Component

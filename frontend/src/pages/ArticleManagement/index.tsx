@@ -111,4 +111,4 @@ const ArticleManagement: React.FC = () => {
   )
 }
 
-export const Component = ArticleManagement
+export default ArticleManagement

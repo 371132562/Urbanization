@@ -83,7 +83,7 @@ const ModifyPageSkeleton = () => (
   </div>
 )
 
-export const Component = () => {
+const DataManagementModifyPage = () => {
   const { token } = theme.useToken()
   const { countryId, year } = useParams<{ countryId?: string; year?: string }>()
   const navigate = useNavigate()
@@ -443,3 +443,5 @@ export const Component = () => {
     </div>
   )
 }
+
+export default DataManagementModifyPage

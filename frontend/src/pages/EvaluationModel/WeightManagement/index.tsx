@@ -24,7 +24,7 @@ type IndicatorItem = TopIndicatorItem | SecondaryIndicatorItem | DetailedIndicat
  * 权重管理页面
  * 整体UI和UE参考数据管理编辑页面
  */
-export const Component: React.FC = () => {
+const Component: React.FC = () => {
   // 根据用户偏好，不使用解构赋值，逐个获取store中的状态和方法
   const indicatorHierarchy = useIndicatorStore(state => state.indicatorHierarchy)
   const loading = useIndicatorStore(state => state.loading)
@@ -285,3 +285,5 @@ export const Component: React.FC = () => {
     </Card>
   )
 }
+
+export default Component

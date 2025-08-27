@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import { createBrowserRouter, Navigate, RouteObject } from 'react-router'
 
 import ErrorPage from '@/components/Error'
 import { Component as Layout } from '@/components/Layout'
+import LoadingFallback from '@/components/LoadingFallback'
 import LoginPage from '@/pages/Login'
 import { RouteItem } from '@/types'
 
@@ -17,7 +19,11 @@ const generateRoutes = (): RouteObject[] => {
       if (route.component) {
         result.push({
           path: route.path,
-          element: <route.component />
+          element: (
+            <Suspense fallback={<LoadingFallback />}>
+              <route.component />
+            </Suspense>
+          )
         })
       }
 

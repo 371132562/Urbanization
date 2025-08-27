@@ -217,4 +217,4 @@ const DataExport = () => {
   )
 }
 
-export const Component = DataExport
+export default DataExport

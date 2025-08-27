@@ -226,4 +226,4 @@ const ArticleModify: FC = () => {
   )
 }
 
-export const Component = ArticleModify
+export default ArticleModify

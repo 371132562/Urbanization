@@ -387,4 +387,4 @@ const DataManagement = () => {
   )
 }
 
-export const Component = DataManagement
+export default DataManagement

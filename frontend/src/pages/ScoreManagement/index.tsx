@@ -313,4 +313,4 @@ const ScoreManagement = () => {
   )
 }
 
-export const Component = ScoreManagement
+export default ScoreManagement

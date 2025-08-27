@@ -151,4 +151,4 @@ const OrphanImages: FC = () => {
   )
 }
 
-export const Component = OrphanImages
+export default OrphanImages

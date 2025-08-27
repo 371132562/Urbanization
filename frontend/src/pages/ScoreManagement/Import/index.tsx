@@ -444,4 +444,4 @@ const ScoreImportPage = () => {
   )
 }
 
-export const Component = ScoreImportPage
+export default ScoreImportPage

@@ -2,9 +2,9 @@ import { KeyOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag } from 'antd'
 import React, { useEffect, useState } from 'react'
 
-import { useRoleStore } from '../../stores/roleStore'
-import { useUserStore } from '../../stores/userStore'
-import { UserListItemDto } from '../../types'
+import { useRoleStore } from '../../../stores/roleStore'
+import { useUserStore } from '../../../stores/userStore'
+import { UserListItemDto } from '../../../types'
 
 const UserManagement: React.FC = () => {
   const userList = useUserStore(s => s.userList)

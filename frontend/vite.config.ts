@@ -31,28 +31,60 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: id => {
+            // 优先按三方依赖拆分，避免业务块过大
             if (id.includes('node_modules')) {
-              if (id.includes('antd')) {
-                return 'vendor_antd'
-              }
-              if (id.includes('react') || id.includes('react-dom')) {
-                return 'vendor_react'
-              }
-              if (id.includes('echarts')) {
-                return 'vendor_echarts'
-              }
-              if (id.includes('@ant-design')) {
-                return 'vendor_ant-design'
-              }
+              if (id.includes('react-router')) return 'vendor_router'
+              if (id.includes('history')) return 'vendor_history'
+              if (id.includes('react') || id.includes('react-dom')) return 'vendor_react'
+              if (id.includes('antd')) return 'vendor_antd'
+              if (id.includes('@ant-design')) return 'vendor_ant_design'
+              if (id.match(/\/(rc-[^/]+)\//)) return 'vendor_rc'
+              if (id.includes('echarts')) return 'vendor_echarts'
+              if (id.includes('zustand')) return 'vendor_zustand'
+              if (id.includes('axios')) return 'vendor_axios'
+              // 兜底第三方依赖
               return 'vendor'
             }
-            if (id.includes('src/stores')) {
-              return 'stores'
+
+            // 系统管理相关组件单独打包
+            if (id.includes('System/UserManagement')) {
+              return 'system-user-management'
             }
-            if (id.includes('src/services')) {
-              return 'services'
+            if (id.includes('System/RoleManagement')) {
+              return 'system-role-management'
             }
-          }
+            if (id.includes('System/SystemMaintenance')) {
+              return 'system-maintenance'
+            }
+            // 数据管理相关组件
+            if (id.includes('DataManagement')) {
+              return 'data-management'
+            }
+            // 评分管理相关组件
+            if (id.includes('ScoreManagement')) {
+              return 'score-management'
+            }
+            // 文章管理相关组件
+            if (id.includes('ArticleManagement')) {
+              return 'article-management'
+            }
+            // 评估模型相关组件
+            if (id.includes('EvaluationModel')) {
+              return 'evaluation-model'
+            }
+            // 地图相关组件
+            if (id.includes('Map/')) {
+              return 'map-components'
+            }
+            // 其他页面组件
+            if (id.includes('pages/') && !id.includes('System/')) {
+              return 'other-pages'
+            }
+          },
+          // 更友好的阈值提示，避免误报，同时指导优化
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash][extname]'
         }
       }
     }

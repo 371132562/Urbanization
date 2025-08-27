@@ -313,4 +313,4 @@ const OrderConfig = () => {
   )
 }
 
-export const Component = OrderConfig
+export default OrderConfig

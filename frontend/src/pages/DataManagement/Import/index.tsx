@@ -578,4 +578,4 @@ const DataImportPage = () => {
   )
 }
 
-export const Component = DataImportPage
+export default DataImportPage

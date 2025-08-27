@@ -194,4 +194,4 @@ const MapEdit: FC = () => {
   )
 }
 
-export const Component = MapEdit
+export default MapEdit

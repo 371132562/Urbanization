@@ -1,7 +1,7 @@
 import { Card } from 'antd'
 import { FC } from 'react'
 
-import { Component as OrphanImages } from './OrphanImages'
+import OrphanImages from './OrphanImages'
 
 // 系统维护总览页：内嵌各运维功能组件，统一页面承载
 const SystemMaintenance: FC = () => {
@@ -19,4 +19,4 @@ const SystemMaintenance: FC = () => {
   )
 }
 
-export const Component = SystemMaintenance
+export default SystemMaintenance
