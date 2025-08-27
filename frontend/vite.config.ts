@@ -56,30 +56,51 @@ export default defineConfig(({ mode }) => {
             if (id.includes('System/SystemMaintenance')) {
               return 'system-maintenance'
             }
-            // 数据管理相关组件
+            // 数据管理相关组件（更细颗粒度）
             if (id.includes('DataManagement')) {
+              if (id.includes('DataManagement/Import')) return 'data-management-import'
+              if (id.includes('DataManagement/Export')) return 'data-management-export'
+              if (id.includes('DataManagement/Modify')) return 'data-management-modify'
               return 'data-management'
             }
-            // 评分管理相关组件
+            // 评分管理相关组件（更细颗粒度）
             if (id.includes('ScoreManagement')) {
+              if (id.includes('ScoreManagement/Import')) return 'score-management-import'
+              if (id.includes('ScoreManagement/Export')) return 'score-management-export'
+              if (id.includes('ScoreManagement/Modify')) return 'score-management-modify'
+              if (id.includes('ScoreManagement/Detail')) return 'score-management-detail'
+              if (id.includes('ScoreManagement/Evaluation')) return 'score-management-evaluation'
               return 'score-management'
             }
-            // 文章管理相关组件
+            // 文章管理相关组件（更细颗粒度）
             if (id.includes('ArticleManagement')) {
+              if (id.includes('ArticleManagement/Modify')) return 'article-management-modify'
+              if (id.includes('ArticleManagement/OrderConfig')) return 'article-management-order'
               return 'article-management'
             }
-            // 评估模型相关组件
+            // 评估模型相关组件（更细颗粒度）
             if (id.includes('EvaluationModel')) {
+              if (id.includes('EvaluationModel/WeightManagement')) return 'evaluation-model-weight'
+              if (id.includes('EvaluationModel/FormulaDetail')) {
+                return 'evaluation-model-formula-detail'
+              }
               return 'evaluation-model'
             }
-            // 地图相关组件
+            // 地图相关组件（更细颗粒度）
             if (id.includes('Map/')) {
+              if (id.includes('Map/UrbanizationRate')) return 'map-urbanization-rate'
+              if (id.includes('Map/MapEdit')) return 'map-edit'
               return 'map-components'
             }
-            // 其他页面组件
-            if (id.includes('pages/') && !id.includes('System/')) {
-              return 'other-pages'
-            }
+            // 变换相关页面
+            if (id.includes('Transform/Formula')) return 'transform-formula'
+            if (id.includes('Transform/dataList')) return 'transform-data-list'
+            // 顶部菜单的其他页面
+            if (id.includes('pages/Home')) return 'home'
+            if (id.includes('pages/HumanDynamics')) return 'human-dynamics'
+            if (id.includes('pages/MaterialDynamics')) return 'material-dynamics'
+            if (id.includes('pages/SpatialDynamics')) return 'spatial-dynamics'
+            if (id.includes('pages/UrbanizationProcess')) return 'urbanization-process'
           },
           // 更友好的阈值提示，避免误报，同时指导优化
           chunkFileNames: 'assets/[name]-[hash].js',
