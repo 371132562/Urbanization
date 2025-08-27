@@ -73,107 +73,100 @@ export class ScoreService {
    * @returns {Promise<number[]>} 年份数组
    */
   async getYears(): Promise<number[]> {
-    const years = await this.prisma.score.findMany({
-      where: {
-        delete: 0,
-        country: {
-          delete: 0,
-        },
-      },
-      select: {
-        year: true,
-      },
-      distinct: ['year'],
-      orderBy: {
-        year: 'desc',
-      },
-    });
+    this.logger.log('[开始] 获取评分数据年份列表');
 
-    return years.map((item) => item.year);
+    try {
+      const years = await this.prisma.score.findMany({
+        where: {
+          delete: 0,
+          country: {
+            delete: 0,
+          },
+        },
+        select: {
+          year: true,
+        },
+        distinct: ['year'],
+        orderBy: {
+          year: 'desc',
+        },
+      });
+
+      this.logger.log(
+        `[成功] 获取评分数据年份列表 - 共 ${years.length} 个年份`,
+      );
+      return years.map((item) => item.year);
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取评分数据年份列表 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
    * @description 获取所有评分数据，按国家分组
    */
   async listByCountry(): Promise<CountryScoreData[]> {
-    this.logger.log(
-      '开始从数据库获取所有评分数据，并按国家分组，只返回城镇化的国家。',
-    );
+    this.logger.log('[开始] 获取评分数据并按国家分组');
 
-    // 1. 从数据库查询所有未被软删除的评分记录，只包含城镇化为"是"的国家
-    //    - 包含关联的国家信息
-    //    - 按国家中文名升序, 年份降序排序
-    const scores = await this.prisma.score.findMany({
-      where: {
-        delete: 0, // 过滤未被删除的记录
-        country: {
-          delete: 0, // 确保关联的国家也未被删除
-          urbanizationWorldMap: {
-            some: {
-              urbanization: true, // 只包含城镇化为"是"的国家
-              delete: 0,
-            },
-          },
-        },
-      },
-      include: {
-        country: true, // 包含关联的国家实体
-      },
-      orderBy: [
-        {
+    try {
+      // 获取所有评分数据
+      const scores = await this.prisma.score.findMany({
+        where: {
+          delete: 0,
           country: {
-            cnName: 'asc',
+            delete: 0,
           },
         },
-        {
-          year: 'desc',
+        include: {
+          country: true,
         },
-      ],
-    });
+        orderBy: [{ country: { cnName: 'asc' } }, { year: 'desc' }],
+      });
 
-    // 如果查询结果为空，直接返回空数组
-    if (!scores || scores.length === 0) {
-      this.logger.log('未找到任何城镇化国家的评分数据，返回空数组。');
-      return [];
-    }
-
-    // 2. 使用 Map 按国家对数据进行分组
-    //    - Key: countryId (string)
-    //    - Value: 当个国家的所有评分记录数组 (Score with Country)
-    const groupedByCountry = new Map<
-      string,
-      (Score & { country: Country })[]
-    >();
-    for (const score of scores) {
-      const countryId = score.countryId;
-      // 如果 Map 中尚不存在该国家的键，则初始化一个空数组
-      if (!groupedByCountry.has(countryId)) {
-        groupedByCountry.set(countryId, []);
+      if (!scores || scores.length === 0) {
+        this.logger.log('未找到任何城镇化国家的评分数据，返回空数组。');
+        return [];
       }
-      // 将当前记录添加到对应国家的数组中
-      groupedByCountry.get(countryId)!.push(score);
-    }
 
-    // 3. 将分组后的 Map 转换为 DTO 所需的数组结构
-    const result: CountryScoreData[] = [];
-    for (const [, countryScores] of groupedByCountry.entries()) {
-      const firstScore = countryScores[0]; // All scores in this group have the same country info
-      const countryData: CountryScoreData = {
-        countryId: firstScore.countryId,
-        cnName: firstScore.country.cnName,
-        enName: firstScore.country.enName,
-        // 遍历该国家的所有评分记录，并将其映射为 DTO 格式
-        data: countryScores.map((score): CountryScoreDataItem => {
+      // 按国家分组
+      const countryMap = new Map<string, CountryScoreDataItem[]>();
+      scores.forEach((score) => {
+        const countryId = score.countryId;
+        if (!countryMap.has(countryId)) {
+          countryMap.set(countryId, []);
+        }
+        countryMap.get(countryId)!.push({
+          year: score.year,
+        });
+      });
+
+      // 转换为最终格式
+      const result: CountryScoreData[] = Array.from(countryMap.entries()).map(
+        ([countryId, scoreItems]) => {
+          const country = scores.find(
+            (s) => s.countryId === countryId,
+          )!.country;
           return {
-            year: score.year,
+            countryId,
+            cnName: country.cnName,
+            enName: country.enName,
+            data: scoreItems.sort((a, b) => b.year - a.year),
           };
-        }),
-      };
-      result.push(countryData);
-    }
+        },
+      );
 
-    this.logger.log('按国家分组的评分数据处理完成，只包含城镇化的国家。');
-    return result;
+      this.logger.log('按国家分组的评分数据处理完成，只包含城镇化的国家。');
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取评分数据并按国家分组 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**

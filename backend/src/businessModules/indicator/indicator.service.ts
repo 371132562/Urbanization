@@ -21,7 +21,7 @@ export class IndicatorService {
    * @returns {Promise<IndicatorHierarchyResDto>} 指标层级结构列表
    */
   async getIndicatorsHierarchy(): Promise<IndicatorHierarchyResDto> {
-    this.logger.log('Fetching indicator hierarchy');
+    this.logger.log('[开始] 获取指标层级结构');
 
     try {
       const topIndicators = await this.prisma.topIndicator.findMany({
@@ -42,6 +42,9 @@ export class IndicatorService {
       });
 
       if (!topIndicators || topIndicators.length === 0) {
+        this.logger.warn(
+          '[验证失败] 获取指标层级结构 - 未找到任何指标层级数据',
+        );
         throw new BusinessException(
           ErrorCode.RESOURCE_NOT_FOUND,
           '未找到任何指标层级数据',
@@ -70,15 +73,17 @@ export class IndicatorService {
         })),
       }));
 
+      this.logger.log(
+        `[成功] 获取指标层级结构 - 共 ${topIndicators.length} 个一级指标`,
+      );
       return result;
     } catch (error) {
       if (error instanceof BusinessException) {
         throw error;
       }
-      const err = error as ErrorWithMessage;
       this.logger.error(
-        `Failed to fetch indicator hierarchy: ${err.message}`,
-        err.stack,
+        `[失败] 获取指标层级结构 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
@@ -91,7 +96,7 @@ export class IndicatorService {
    */
   async updateWeights(params: UpdateWeightsDto): Promise<{ success: boolean }> {
     const { weights } = params;
-    this.logger.log(`准备批量更新 ${weights.length} 个指标的权重`);
+    this.logger.log(`[开始] 批量更新指标权重 - 共 ${weights.length} 个指标`);
 
     const updatePromises = weights.map((item) => {
       const { id, level, weight } = item;
@@ -120,11 +125,13 @@ export class IndicatorService {
     try {
       // 使用事务一次性执行所有更新操作
       await this.prisma.$transaction(updatePromises.filter((p) => p !== null));
-      this.logger.log(`成功批量更新 ${weights.length} 个指标的权重`);
+      this.logger.log(`[成功] 批量更新指标权重 - 共 ${weights.length} 个指标`);
       return { success: true };
     } catch (error) {
-      const err = error as ErrorWithMessage;
-      this.logger.error(`批量更新指标权重失败: ${err.message}`, err.stack);
+      this.logger.error(
+        `[失败] 批量更新指标权重 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw new BusinessException(ErrorCode.SYSTEM_ERROR, '批量更新权重失败');
     }
   }

@@ -374,6 +374,7 @@ export type ArticleItem = {
   title: string;
   content: string;
   images: string[]; // 文章内包含的图片 为图片id组成的数组
+  type: string; // 文章类型
   createTime: Date;
   updateTime: Date;
 };

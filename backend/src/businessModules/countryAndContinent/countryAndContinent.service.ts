@@ -31,13 +31,13 @@ export class CountryAndContinentService {
     params: QueryContinentReqDto,
   ): Promise<ContinentListResDto> {
     const { includeCountries = false } = params;
-    this.logger.log(`获取大洲信息，includeCountries=${includeCountries}`);
+    this.logger.log(`[开始] 获取大洲信息 - 包含国家: ${includeCountries}`);
 
     try {
       // 根据是否包含国家执行不同查询
       if (includeCountries) {
         // 包含国家的查询
-        return await this.prisma.continent.findMany({
+        const result = await this.prisma.continent.findMany({
           where: { delete: 0 },
           include: {
             country: {
@@ -47,13 +47,23 @@ export class CountryAndContinentService {
             },
           },
         });
+        this.logger.log(
+          `[成功] 获取大洲信息 - 共 ${result.length} 个大洲，包含国家信息`,
+        );
+        return result;
       } else {
         // 不包含国家的查询
-        return await this.prisma.continent.findMany({ where: { delete: 0 } });
+        const result = await this.prisma.continent.findMany({
+          where: { delete: 0 },
+        });
+        this.logger.log(`[成功] 获取大洲信息 - 共 ${result.length} 个大洲`);
+        return result;
       }
     } catch (error) {
-      const err = error as ErrorWithMessage;
-      this.logger.error(`获取大洲信息失败: ${err.message}`, err.stack);
+      this.logger.error(
+        `[失败] 获取大洲信息 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -66,7 +76,7 @@ export class CountryAndContinentService {
   async getCountries(params: QueryCountryReqDto): Promise<CountryListResDto> {
     const { includeContinent = false, continentId } = params;
     this.logger.log(
-      `获取国家信息，includeContinent=${includeContinent}, continentId=${continentId || '所有'}`,
+      `[开始] 获取国家信息 - 包含大洲: ${includeContinent}, 大洲ID: ${continentId || '所有'}`,
     );
 
     try {
@@ -76,21 +86,29 @@ export class CountryAndContinentService {
       // 根据是否包含大洲信息执行不同查询
       if (includeContinent) {
         // 包含大洲信息的查询
-        return await this.prisma.country.findMany({
+        const result = await this.prisma.country.findMany({
           where,
           include: {
             continent: true,
           },
         });
+        this.logger.log(
+          `[成功] 获取国家信息 - 共 ${result.length} 个国家，包含大洲信息`,
+        );
+        return result;
       } else {
         // 不包含大洲信息的查询
-        return await this.prisma.country.findMany({
+        const result = await this.prisma.country.findMany({
           where,
         });
+        this.logger.log(`[成功] 获取国家信息 - 共 ${result.length} 个国家`);
+        return result;
       }
     } catch (error) {
-      const err = error as ErrorWithMessage;
-      this.logger.error(`获取国家信息失败: ${err.message}`, err.stack);
+      this.logger.error(
+        `[失败] 获取国家信息 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -100,7 +118,7 @@ export class CountryAndContinentService {
    * @returns {Promise<UrbanizationWorldMapDataDto>} 世界地图城镇化数据列表
    */
   async getUrbanizationWorldMapData(): Promise<UrbanizationWorldMapDataDto> {
-    this.logger.log('获取所有世界地图城镇化数据');
+    this.logger.log('[开始] 获取世界地图城镇化数据');
 
     try {
       const data = await this.prisma.urbanizationWorldMap.findMany({
@@ -128,21 +146,24 @@ export class CountryAndContinentService {
       });
 
       if (!data || data.length === 0) {
+        this.logger.warn('[验证失败] 获取世界地图城镇化数据 - 未找到任何数据');
         throw new BusinessException(
           ErrorCode.RESOURCE_NOT_FOUND,
           '未找到世界地图城镇化数据',
         );
       }
 
+      this.logger.log(
+        `[成功] 获取世界地图城镇化数据 - 共 ${data.length} 条记录`,
+      );
       return data;
     } catch (error) {
       if (error instanceof BusinessException) {
         throw error;
       }
-      const err = error as ErrorWithMessage;
       this.logger.error(
-        `获取世界地图城镇化数据失败: ${err.message}`,
-        err.stack,
+        `[失败] 获取世界地图城镇化数据 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
@@ -156,7 +177,9 @@ export class CountryAndContinentService {
   async batchUpdateUrbanization(
     updates: UrbanizationUpdateDto[],
   ): Promise<{ count: number }> {
-    this.logger.log(`开始批量更新 ${updates.length} 个国家的城镇化状态`);
+    this.logger.log(
+      `[开始] 批量更新国家城镇化状态 - 共 ${updates.length} 个国家`,
+    );
 
     try {
       const updatePromises = updates.map((item) =>
@@ -177,18 +200,22 @@ export class CountryAndContinentService {
         0,
       );
 
-      this.logger.log(`成功更新了 ${totalAffected} 条记录`);
+      this.logger.log(
+        `[成功] 批量更新国家城镇化状态 - 成功更新 ${totalAffected} 条记录`,
+      );
 
       if (totalAffected !== updates.length) {
         this.logger.warn(
-          `请求更新 ${updates.length} 个国家，但只找到了 ${totalAffected} 个匹配的记录`,
+          `[警告] 批量更新国家城镇化状态 - 请求更新 ${updates.length} 个国家，但只找到了 ${totalAffected} 个匹配的记录`,
         );
       }
 
       return { count: totalAffected };
     } catch (error) {
-      const err = error as ErrorWithMessage;
-      this.logger.error(`批量更新城镇化状态失败: ${err.message}`, err.stack);
+      this.logger.error(
+        `[失败] 批量更新国家城镇化状态 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       // 在生产环境中，可能需要更具体的错误处理，而不是直接抛出原始错误
       throw new BusinessException(ErrorCode.SYSTEM_ERROR, '批量更新操作失败');
     }
