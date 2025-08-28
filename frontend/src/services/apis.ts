@@ -46,6 +46,8 @@ export const scoreEvaluationList = '/score/listEvaluation'
 export const scoreEvaluationCreate = '/score/createEvaluation'
 export const scoreYears = '/score/years'
 export const scoreListByYear = '/score/listByYear'
+export const scoreCountriesByYears = '/score/countriesByYears'
+export const scoreExportMultiYear = '/score/exportMultiYear'
 
 // 角色管理API
 export const roleListApi = '/role/list'

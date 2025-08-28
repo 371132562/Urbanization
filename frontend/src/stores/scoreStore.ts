@@ -1,3 +1,9 @@
+import type {
+  DataManagementCountriesByYearsReqDto,
+  DataManagementCountriesByYearsResDto,
+  ExportDataMultiYearReqDto,
+  ExportFormat
+} from 'urbanization-backend/types/dto'
 import {
   BatchCheckScoreExistingDto,
   BatchCheckScoreExistingResDto,
@@ -53,10 +59,24 @@ interface ScoreStore {
   // 通用操作状态
   saveLoading: boolean
 
+  // 导出与多年份国家
+  countriesByYears: DataManagementCountriesByYearsResDto
+  countriesByYearsLoading: boolean
+  exportLoading: boolean
+
   // 年份与按年列表
   getScoreYears: () => Promise<void>
   getScoreListByYear: (params: ScoreListByYearReqDto) => Promise<void>
   setGlobalSearchTerm: (term: string) => void
+
+  // 多年份国家
+  getScoreCountriesByYears: (params: DataManagementCountriesByYearsReqDto) => Promise<void>
+
+  // 导出
+  exportScoreMultiYear: (
+    selectedCountryYearValues: string[],
+    format: ExportFormat
+  ) => Promise<boolean>
 
   // 按国家分组
   getScoreListByCountry: () => Promise<void>
@@ -111,6 +131,9 @@ const useScoreStore = create<ScoreStore>()(set => ({
 
   // 通用操作
   saveLoading: false,
+  countriesByYears: [],
+  countriesByYearsLoading: false,
+  exportLoading: false,
 
   // 年份列表
   getScoreYears: async () => {
@@ -152,6 +175,72 @@ const useScoreStore = create<ScoreStore>()(set => ({
 
   setGlobalSearchTerm: (term: string) => {
     set({ globalSearchTerm: term, yearDataMap: {}, yearQueryMap: {} })
+  },
+
+  // 获取多年份国家
+  getScoreCountriesByYears: async (params: DataManagementCountriesByYearsReqDto) => {
+    set({ countriesByYearsLoading: true })
+    try {
+      const res = await http.post<DataManagementCountriesByYearsResDto>(
+        apis.scoreCountriesByYears,
+        params
+      )
+      set({ countriesByYears: res.data })
+    } catch (error) {
+      console.error('获取评分多年份国家失败:', error)
+    } finally {
+      set({ countriesByYearsLoading: false })
+    }
+  },
+
+  // 导出评分多年份
+  exportScoreMultiYear: async (selectedCountryYearValues: string[], format: ExportFormat) => {
+    set({ exportLoading: true })
+    try {
+      const yearMap = new Map<number, Set<string>>()
+      selectedCountryYearValues.forEach(v => {
+        const [countryId, yearStr] = v.split(':')
+        const year = parseInt(yearStr)
+        if (!yearMap.has(year)) yearMap.set(year, new Set())
+        yearMap.get(year)!.add(countryId)
+      })
+      const yearCountryPairs: Array<{ year: number; countryIds: string[] }> = []
+      yearMap.forEach((countryIds, year) => {
+        yearCountryPairs.push({ year, countryIds: Array.from(countryIds) })
+      })
+      if (yearCountryPairs.length === 0) throw new Error('没有有效年份国家')
+
+      const params: ExportDataMultiYearReqDto = { yearCountryPairs, format }
+      const response = await http.post(apis.scoreExportMultiYear, params, { responseType: 'blob' })
+
+      // 解析文件名
+      const cd = response.headers['content-disposition']
+      let fileName = '评分数据.xlsx'
+      if (cd) {
+        const star = cd.match(/filename\*=UTF-8''([^;]+)/i)
+        if (star?.[1]) fileName = decodeURIComponent(star[1])
+        else {
+          const basic = cd.match(/filename="?([^";]+)"?/)
+          if (basic?.[1]) fileName = decodeURIComponent(basic[1])
+        }
+      }
+
+      const url = window.URL.createObjectURL(response.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.setAttribute('download', fileName)
+      document.body.appendChild(a)
+      a.click()
+      a.parentNode?.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      set({ exportLoading: false })
+      return true
+    } catch (e) {
+      console.error('评分导出失败:', e)
+      set({ exportLoading: false })
+      return false
+    }
   },
 
   // 按国家分组

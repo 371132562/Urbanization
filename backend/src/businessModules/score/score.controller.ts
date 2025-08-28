@@ -1,4 +1,5 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Res, StreamableFile } from '@nestjs/common';
+import type { Response } from 'express';
 import { ScoreService } from './score.service';
 import {
   BatchCreateScoreDto,
@@ -10,6 +11,9 @@ import {
   DeleteScoreDto,
   ScoreListByYearReqDto,
   ScoreListByYearResDto,
+  DataManagementCountriesByYearsReqDto,
+  DataManagementCountriesByYearsResDto,
+  ExportDataMultiYearReqDto,
 } from 'types/dto';
 
 @Controller('score')
@@ -106,5 +110,34 @@ export class ScoreController {
   @Post('createEvaluation')
   createEvaluation(@Body() data: ScoreEvaluationItemDto[]) {
     return this.scoreService.createEvaluation(data);
+  }
+
+  /**
+   * @description 根据多个年份获取该年份下存在评分数据的国家列表
+   */
+  @Post('countriesByYears')
+  getCountriesByYears(
+    @Body() params: DataManagementCountriesByYearsReqDto,
+  ): Promise<DataManagementCountriesByYearsResDto> {
+    return this.scoreService.getCountriesByYears(params);
+  }
+
+  /**
+   * @description 导出多个年份和多个国家的评分数据
+   */
+  @Post('exportMultiYear')
+  async exportMultiYear(
+    @Body() params: ExportDataMultiYearReqDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { buffer, mime, fileName } =
+      await this.scoreService.exportDataMultiYear(params);
+    const encoded = encodeURIComponent(fileName);
+    res.setHeader('Content-Type', mime);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encoded}`,
+    );
+    return new StreamableFile(buffer);
   }
 }

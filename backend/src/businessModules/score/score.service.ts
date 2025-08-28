@@ -19,11 +19,15 @@ import {
   CountryScoreDataItem,
   ScoreListByYearReqDto,
   ScoreListByYearResDto,
+  DataManagementCountriesByYearsReqDto,
+  DataManagementCountriesByYearsResDto,
+  ExportDataMultiYearReqDto,
+  ExportFormat,
 } from 'types/dto';
-
+import * as xlsx from 'xlsx';
 import { BusinessException } from '../../common/exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
-import { Score, Country } from '@prisma/client';
+import { Score } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 /**
@@ -761,5 +765,170 @@ export class ScoreService {
     }
 
     return result;
+  }
+
+  /**
+   * @description 根据多个年份获取该年份下存在评分数据的国家列表
+   */
+  async getCountriesByYears(
+    params: DataManagementCountriesByYearsReqDto,
+  ): Promise<DataManagementCountriesByYearsResDto> {
+    const result: DataManagementCountriesByYearsResDto = [];
+    for (const year of params.years) {
+      const countries = await this.prisma.score.findMany({
+        where: {
+          year,
+          delete: 0,
+          country: { delete: 0 },
+        },
+        select: {
+          country: {
+            select: { id: true, cnName: true, enName: true },
+          },
+        },
+        distinct: ['countryId'],
+        orderBy: { country: { cnName: 'asc' } },
+      });
+      result.push({
+        year,
+        countries: countries.map((c) => ({
+          id: c.country.id,
+          cnName: c.country.cnName,
+          enName: c.country.enName,
+        })),
+      });
+    }
+    return result;
+  }
+
+  /**
+   * @description 导出多个年份和多个国家的评分数据
+   */
+  async exportDataMultiYear(
+    params: ExportDataMultiYearReqDto,
+  ): Promise<{ buffer: Buffer; mime: string; fileName: string }> {
+    const { yearCountryPairs, format } = params;
+    // 拿到涉及国家
+    const allCountryIds = yearCountryPairs.flatMap((p) => p.countryIds);
+    const uniqueCountryIds = [...new Set(allCountryIds)];
+    const countries = await this.prisma.country.findMany({
+      where: { id: { in: uniqueCountryIds }, delete: 0 },
+    });
+    const countryMap = new Map(countries.map((c) => [c.id, c]));
+
+    // 取出对应年份国家的评分记录
+    const orConds = yearCountryPairs.flatMap((p) =>
+      p.countryIds.map((cid) => ({ year: p.year, countryId: cid })),
+    );
+    const scores = await this.prisma.score.findMany({
+      where: { OR: orConds, delete: 0 },
+    });
+    // 按 key(year-countryId) 建索引
+    const keyToScore = new Map<string, (typeof scores)[0]>();
+    scores.forEach((s) => keyToScore.set(`${s.year}-${s.countryId}`, s));
+
+    // 生成格式
+    if (format === ExportFormat.JSON) {
+      const json: { [key: string]: any[] } = {};
+      yearCountryPairs.forEach(({ year, countryIds }) => {
+        const rows: any[] = [];
+        countryIds.forEach((cid) => {
+          const country = countryMap.get(cid);
+          if (!country) return;
+          const s = keyToScore.get(`${year}-${cid}`);
+          rows.push({
+            国家: country.cnName,
+            综合评分: s ? decimalToNumber(s.totalScore) : null,
+            城镇化进程: s
+              ? decimalToNumber(s.urbanizationProcessDimensionScore)
+              : null,
+            人口迁徙动力: s
+              ? decimalToNumber(s.humanDynamicsDimensionScore)
+              : null,
+            经济发展动力: s
+              ? decimalToNumber(s.materialDynamicsDimensionScore)
+              : null,
+            空间发展动力: s
+              ? decimalToNumber(s.spatialDynamicsDimensionScore)
+              : null,
+          });
+        });
+        json[`${year}年`] = rows;
+      });
+      const buffer = Buffer.from(JSON.stringify(json, null, 2));
+      const mime = 'application/json';
+      const fileName = `多年份评分数据_${new Date()
+        .toISOString()
+        .replace(/[:T-Z.]/g, '_')}.json`;
+      return { buffer, mime, fileName };
+    }
+
+    // 表头（统一）
+    const header = [
+      '国家',
+      '综合评分',
+      '城镇化进程',
+      '人口迁徙动力',
+      '经济发展动力',
+      '空间发展动力',
+    ];
+
+    // 使用 xlsx 生成 CSV/XLSX
+    if (format === ExportFormat.CSV) {
+      // CSV 仅导出第一个年份
+      const first = yearCountryPairs[0];
+      const rows: (string | number | null)[][] = [];
+      first.countryIds.forEach((cid) => {
+        const country = countryMap.get(cid);
+        if (!country) return;
+        const s = keyToScore.get(`${first.year}-${cid}`);
+        rows.push([
+          country.cnName,
+          s ? decimalToNumber(s.totalScore) : null,
+          s ? decimalToNumber(s.urbanizationProcessDimensionScore) : null,
+          s ? decimalToNumber(s.humanDynamicsDimensionScore) : null,
+          s ? decimalToNumber(s.materialDynamicsDimensionScore) : null,
+          s ? decimalToNumber(s.spatialDynamicsDimensionScore) : null,
+        ]);
+      });
+      const ws = xlsx.utils.aoa_to_sheet([header, ...rows]);
+      const csv = xlsx.utils.sheet_to_csv(ws);
+      const bom = Buffer.from([0xef, 0xbb, 0xbf]);
+      const buffer = Buffer.concat([bom, Buffer.from(csv)]);
+      const mime = 'text/csv;charset=utf-8;';
+      const fileName = `${first.year}_评分数据_${new Date()
+        .toISOString()
+        .replace(/[:T-Z.]/g, '_')}.csv`;
+      return { buffer, mime, fileName };
+    }
+
+    // XLSX: 为每个年份一个 sheet
+    const wb = xlsx.utils.book_new();
+    yearCountryPairs.forEach(({ year, countryIds }) => {
+      const rows: (string | number | null)[][] = [];
+      countryIds.forEach((cid) => {
+        const country = countryMap.get(cid);
+        if (!country) return;
+        const s = keyToScore.get(`${year}-${cid}`);
+        rows.push([
+          country.cnName,
+          s ? decimalToNumber(s.totalScore) : null,
+          s ? decimalToNumber(s.urbanizationProcessDimensionScore) : null,
+          s ? decimalToNumber(s.humanDynamicsDimensionScore) : null,
+          s ? decimalToNumber(s.materialDynamicsDimensionScore) : null,
+          s ? decimalToNumber(s.spatialDynamicsDimensionScore) : null,
+        ]);
+      });
+      const ws = xlsx.utils.aoa_to_sheet([header, ...rows]);
+      xlsx.utils.book_append_sheet(wb, ws, `${year}年`);
+    });
+    const buffer = xlsx.write(wb, {
+      type: 'buffer',
+      bookType: 'xlsx',
+    }) as Buffer;
+    const mime =
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const fileName = `评分数据_${new Date().toISOString().replace(/[:T-Z.]/g, '_')}.xlsx`;
+    return { buffer, mime, fileName };
   }
 }
