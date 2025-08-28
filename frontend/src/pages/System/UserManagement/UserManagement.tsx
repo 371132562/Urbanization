@@ -212,12 +212,13 @@ const UserManagement: React.FC = () => {
               allowClear
               placeholder="请选择角色"
             >
+              {/* 下拉项：若为超级管理员，显示与表格一致的红色标签样式 */}
               {roleList.map(r => (
                 <Select.Option
                   value={r.id}
                   key={r.id}
                 >
-                  {r.name}
+                  {r.name === 'admin' ? <Tag color="red">超级管理员</Tag> : r.name}
                 </Select.Option>
               ))}
             </Select>

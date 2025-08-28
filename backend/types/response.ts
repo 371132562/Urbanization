@@ -33,6 +33,7 @@ export enum ErrorCode {
   // 系统内部错误 (5xxxx)
   SYSTEM_ERROR = 50000, // 通用系统内部错误
   UNKNOWN_ERROR = 50001, // 未知错误
+  THROTTLE_ERROR = 50002, // 请求过于频繁，请稍后再试
 }
 
 export type ResponseBody<T = any> = {

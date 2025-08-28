@@ -785,3 +785,120 @@ export type ResetUserPasswordDto = {
   id: string;
   newPassword: string;
 };
+
+/*
+ * ==================== 系统日志模块 ====================
+ * 系统日志模块提供系统级别和用户级别的日志查看功能
+ * 支持按级别过滤、关键词搜索、分页显示等特性
+ */
+
+/**
+ * 日志级别枚举
+ * - 'info': 信息级别日志
+ * - 'error': 错误级别日志
+ * - 'all': 所有级别日志（用于查询时不过滤级别）
+ */
+export type LogLevel = 'info' | 'error' | 'all';
+
+/**
+ * 日志文件级别枚举
+ * - 'info': 信息级别日志文件
+ * - 'error': 错误级别日志文件
+ * 注意：文件系统中不存在'all'级别，因为每个文件都是具体的级别
+ */
+export type LogFileLevel = 'info' | 'error';
+
+/**
+ * 系统日志文件列表请求参数
+ * 用于获取系统级别的日志文件列表
+ */
+export type SystemLogFilesReqDto = {
+  /** 日志级别过滤，可选值：'info' | 'error' | 'all'，默认为 'all' */
+  level?: LogLevel;
+};
+
+/**
+ * 系统日志文件信息
+ * 描述单个日志文件的基本信息
+ */
+export type SystemLogFileItem = {
+  /** 日志文件名，格式：application-{level}-{date}.log */
+  filename: string;
+  /** 日志文件日期，格式：YYYY-MM-DD */
+  date: string;
+  /** 日志级别，只能是 'info' 或 'error' */
+  level: LogFileLevel;
+  /** 文件大小，单位：字节 */
+  size: number;
+};
+
+/**
+ * 系统日志文件列表响应
+ * 返回符合条件的日志文件列表
+ */
+export type SystemLogFilesResDto = {
+  /** 日志文件列表 */
+  files: SystemLogFileItem[];
+};
+
+/**
+ * 用户日志文件列表请求参数
+ * 用于获取特定用户的日志文件列表
+ */
+export type UserLogFilesReqDto = {
+  /** 用户ID，必填，用于定位用户日志目录 */
+  userId: string;
+};
+
+/**
+ * 用户搜索结果项
+ * 描述单个用户的基本信息
+ */
+export type UserSearchItemDto = {
+  /** 用户ID，用于后续的日志查询 */
+  userId: string;
+  /** 用户名称，用于显示 */
+  name: string;
+};
+
+/**
+ * 用户搜索结果响应
+ * 返回符合条件的用户列表
+ */
+export type UserSearchResDto = {
+  /** 用户列表 */
+  list: UserSearchItemDto[];
+};
+
+/**
+ * 读取日志请求参数（通用）
+ * 用于读取系统日志或用户日志文件内容
+ */
+export type ReadLogReqDto = {
+  /** 日志文件名，服务端会进行白名单校验，确保安全性 */
+  filename: string;
+};
+
+/**
+ * 读取用户日志请求参数
+ * 继承自ReadLogReqDto，增加用户ID字段
+ */
+export type ReadUserLogReqDto = ReadLogReqDto & {
+  /** 用户ID，用于定位用户日志目录 */
+  userId: string;
+};
+
+/**
+ * 日志行内容项
+ * 描述单行日志的详细信息
+ */
+export type LogLineItem = {
+  /** 时间戳，格式：YYYY-MM-DD HH:mm:ss */
+  ts: string;
+  /** 日志级别，如：'info', 'error' */
+  level: string;
+  /** 日志消息内容 */
+  message: string;
+  /** 原始日志行内容，包含完整信息 */
+  raw: string;
+};

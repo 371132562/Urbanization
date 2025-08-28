@@ -41,7 +41,7 @@ export const logger = createLogger({
         message,
         timestamp,
       }: {
-        level: string;
+        level;
         message: string;
         timestamp: string;
       }) => {
@@ -75,7 +75,7 @@ export const logger = createLogger({
       datePattern: 'YYYY-MM-DD',
       level: 'info',
       zippedArchive: false,
-      maxSize: '100m',
+      maxSize: '30m',
       maxFiles: '30d',
       format: format.combine(excludeErrorFormat()),
       auditFile: join(auditDir, 'application-info-audit.json'),
@@ -86,7 +86,7 @@ export const logger = createLogger({
       datePattern: 'YYYY-MM-DD',
       level: 'error',
       zippedArchive: false,
-      maxSize: '100m',
+      maxSize: '30m',
       maxFiles: '30d',
       auditFile: join(auditDir, 'application-error-audit.json'),
     }),

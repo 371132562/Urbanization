@@ -64,16 +64,26 @@ import type {
   // 认证相关
   LoginDto,
   LoginResponseDto,
+  // 系统日志相关DTO
+  LogLevel,
+  LogLineItem,
+  ReadLogReqDto,
+  ReadUserLogReqDto,
   ResetUserPasswordDto,
   RoleListItemDto,
   RoleListResDto,
+  SystemLogFilesReqDto,
+  SystemLogFilesResDto,
   TokenPayloadDto,
   UpdateRoleDto,
   UpdateUserDto,
   // 用户管理相关DTO
   UserListItemDto,
   UserListResDto,
-  UserProfileDto
+  UserLogFilesReqDto,
+  UserProfileDto,
+  UserSearchReqDto,
+  UserSearchResDto
 } from 'urbanization-backend/types/dto'
 // 认证相关DTO
 export type { LoginDto, LoginResponseDto, TokenPayloadDto, UserProfileDto }
@@ -94,4 +104,16 @@ export type {
   UpdateUserDto,
   UserListItemDto,
   UserListResDto
+}
+// 系统日志相关DTO
+export type {
+  LogLevel,
+  LogLineItem,
+  ReadLogReqDto,
+  ReadUserLogReqDto,
+  SystemLogFilesReqDto,
+  SystemLogFilesResDto,
+  UserLogFilesReqDto,
+  UserSearchReqDto,
+  UserSearchResDto
 }

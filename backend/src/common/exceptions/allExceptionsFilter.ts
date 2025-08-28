@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { BusinessException } from './businessException';
 import { ErrorCode } from '../../../types/response';
@@ -40,6 +41,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       code = exceptionResponse.code || ErrorCode.BUSINESS_FAILED;
       msg = exceptionResponse.message || '业务处理失败';
       data = (exception as Error).message || '业务处理失败';
+    } else if (exception instanceof ThrottlerException) {
+      // 限流异常处理
+      code = ErrorCode.THROTTLE_ERROR;
+      msg = '请求过于频繁，请稍后再试';
+      data = '接口限流保护，请降低请求频率';
     } else if (exception instanceof HttpException) {
       // 处理 HttpException，但所有响应都是 200 状态码（统一由下游包装）
       const exceptionResponse = exception.getResponse() as {

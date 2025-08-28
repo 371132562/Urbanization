@@ -1,5 +1,17 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { Button, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag } from 'antd'
+import {
+  Alert,
+  Button,
+  Form,
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Spin,
+  Table,
+  Tag
+} from 'antd'
 import React, { useEffect, useState } from 'react'
 
 import { getMenuOptionsForRoleEdit } from '../../../router/routesConfig'
@@ -80,7 +92,7 @@ const RoleManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: RoleListItemDto) => (
+      render: (_: unknown, record: RoleListItemDto) => (
         <Space>
           <Button
             size="small"
@@ -178,6 +190,14 @@ const RoleManagement: React.FC = () => {
         onCancel={() => setAssignModalOpen(false)}
         destroyOnHidden
       >
+        {/* 说明提示：系统管理菜单为超级管理员默认权限，不允许分配 */}
+        <Alert
+          message="提示"
+          description="系统管理 菜单为超级管理员默认权限，不支持分配。"
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+        />
         <Form
           form={assignForm}
           layout="vertical"

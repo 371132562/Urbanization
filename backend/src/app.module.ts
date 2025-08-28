@@ -19,6 +19,7 @@ import { IndicatorModule } from './businessModules/indicator/indicator.module';
 import { CountryAndContinentModule } from './businessModules/countryAndContinent/countryAndContinent.module';
 import { ArticleModule } from './businessModules/article/article.module';
 import { ScoreModule } from './businessModules/score/score.module';
+import { SystemLogsModule } from './commonModules/systemLogs/systemLogs.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ScoreModule } from './businessModules/score/score.module';
     CountryAndContinentModule, // 国家和大洲模块
     ArticleModule, // 文章管理模块
     ScoreModule, // 评分评价模块
+    SystemLogsModule, // 系统日志模块
   ],
   controllers: [],
   providers: [

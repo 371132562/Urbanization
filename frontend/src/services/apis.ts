@@ -68,3 +68,10 @@ export const userResetPasswordApi = '/user/resetPassword'
 // 系统维护（图片）API
 export const listOrphanImagesApi = '/upload/maintenance/listOrphans'
 export const deleteOrphanImagesApi = '/upload/maintenance/deleteOrphans'
+
+// 系统日志API
+export const systemLogsListFiles = '/system/logs/files'
+export const systemLogsRead = '/system/logs/read'
+export const systemUserLogsListFiles = '/system/logs/user/files'
+export const systemUserLogsRead = '/system/logs/user/read'
+export const systemUserLogsSearch = '/system/logs/user/search'

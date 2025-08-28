@@ -45,6 +45,7 @@ const SpatialDynamics = lazy(() => import('@/pages/SpatialDynamics'))
 const RoleManagement = lazy(() => import('@/pages/System/RoleManagement/RoleManagement'))
 const SystemMaintenance = lazy(() => import('@/pages/System/SystemMaintenance'))
 const UserManagement = lazy(() => import('@/pages/System/UserManagement/UserManagement'))
+const SystemLogs = lazy(() => import('@/pages/System/SystemLogs'))
 const DataList = lazy(() => import('@/pages/Transform/dataList'))
 const Formula = lazy(() => import('@/pages/Transform/Formula'))
 const UrbanizationProcess = lazy(() => import('@/pages/UrbanizationProcess'))
@@ -270,6 +271,11 @@ export const sideRoutes: RouteItem[] = [
         path: '/system/roleManagement',
         title: '角色管理',
         component: RoleManagement
+      },
+      {
+        path: '/system/logs',
+        title: '系统日志',
+        component: SystemLogs
       },
       {
         path: '/system/maintenance',
