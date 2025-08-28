@@ -2,7 +2,12 @@ import type {
   DataManagementCountriesByYearsReqDto,
   DataManagementCountriesByYearsResDto,
   ExportDataMultiYearReqDto,
-  ExportFormat
+  ExportFormat,
+  ScoreEvaluationDetailEditResDto,
+  ScoreEvaluationDetailGetReqDto,
+  ScoreEvaluationDetailListByYearReqDto,
+  ScoreEvaluationDetailListByYearResDto,
+  UpsertScoreEvaluationDetailDto
 } from 'urbanization-backend/types/dto'
 import {
   BatchCheckScoreExistingDto,
@@ -64,6 +69,15 @@ interface ScoreStore {
   countriesByYearsLoading: boolean
   exportLoading: boolean
 
+  // 评价详情（自定义文案）列表状态
+  evaluationDetailYearDataMap: Record<number, ScoreEvaluationDetailListByYearResDto | undefined>
+  evaluationDetailYearLoadingMap: Record<number, boolean>
+  evaluationDetailYearQueryMap: Record<number, { page: number; pageSize: number }>
+  evaluationDetailSearchTerm: string
+  // 评价详情编辑
+  evaluationDetailEdit: ScoreEvaluationDetailEditResDto | null
+  evaluationDetailEditLoading: boolean
+
   // 年份与按年列表
   getScoreYears: () => Promise<void>
   getScoreListByYear: (params: ScoreListByYearReqDto) => Promise<void>
@@ -85,6 +99,12 @@ interface ScoreStore {
   getScoreDetail: (params: ScoreDetailReqDto) => Promise<void>
   resetDetailData: () => void
   initializeNewData: () => void
+
+  // 评价详情（自定义文案）列表
+  setEvaluationDetailSearchTerm: (term: string) => void
+  getEvaluationDetailListByYear: (params: ScoreEvaluationDetailListByYearReqDto) => Promise<void>
+  getEvaluationDetail: (params: ScoreEvaluationDetailGetReqDto) => Promise<void>
+  upsertEvaluationDetail: (dto: UpsertScoreEvaluationDetailDto) => Promise<boolean>
 
   // 评分评价
   getEvaluations: () => Promise<void>
@@ -134,6 +154,14 @@ const useScoreStore = create<ScoreStore>()(set => ({
   countriesByYears: [],
   countriesByYearsLoading: false,
   exportLoading: false,
+
+  // 评价详情（自定义文案）列表状态
+  evaluationDetailYearDataMap: {},
+  evaluationDetailYearLoadingMap: {},
+  evaluationDetailYearQueryMap: {},
+  evaluationDetailSearchTerm: '',
+  evaluationDetailEdit: null,
+  evaluationDetailEditLoading: false,
 
   // 年份列表
   getScoreYears: async () => {
@@ -293,6 +321,74 @@ const useScoreStore = create<ScoreStore>()(set => ({
         spatialDynamicsDimensionScore: undefined
       }
     })
+  },
+
+  // ==================== 评价详情（自定义文案）列表 ====================
+  setEvaluationDetailSearchTerm: (term: string) => {
+    set({
+      evaluationDetailSearchTerm: term,
+      evaluationDetailYearDataMap: {},
+      evaluationDetailYearQueryMap: {}
+    })
+  },
+  getEvaluationDetailListByYear: async (params: ScoreEvaluationDetailListByYearReqDto) => {
+    const { year, page = 1, pageSize = 10 } = params
+    set(state => ({
+      evaluationDetailYearLoadingMap: {
+        ...state.evaluationDetailYearLoadingMap,
+        [year]: true
+      }
+    }))
+    try {
+      const res = await http.post<ScoreEvaluationDetailListByYearResDto>(
+        apis.scoreListEvaluationDetailByYear,
+        params
+      )
+      set(state => ({
+        evaluationDetailYearDataMap: {
+          ...state.evaluationDetailYearDataMap,
+          [year]: res.data
+        },
+        evaluationDetailYearQueryMap: {
+          ...state.evaluationDetailYearQueryMap,
+          [year]: { page, pageSize }
+        }
+      }))
+    } catch (error) {
+      console.error('获取评价详情（自定义文案）年份分页失败:', error)
+      set(state => ({
+        evaluationDetailYearDataMap: { ...state.evaluationDetailYearDataMap, [year]: undefined }
+      }))
+    } finally {
+      set(state => ({
+        evaluationDetailYearLoadingMap: {
+          ...state.evaluationDetailYearLoadingMap,
+          [year]: false
+        }
+      }))
+    }
+  },
+  getEvaluationDetail: async (params: ScoreEvaluationDetailGetReqDto) => {
+    set({ evaluationDetailEditLoading: true })
+    try {
+      const res = await http.post<ScoreEvaluationDetailEditResDto | null>(
+        apis.scoreEvaluationDetailGet,
+        params
+      )
+      set({ evaluationDetailEdit: res.data || null, evaluationDetailEditLoading: false })
+    } catch (error) {
+      console.error('获取评价详情编辑数据失败:', error)
+      set({ evaluationDetailEditLoading: false, evaluationDetailEdit: null })
+    }
+  },
+  upsertEvaluationDetail: async (dto: UpsertScoreEvaluationDetailDto) => {
+    try {
+      await http.post(apis.scoreEvaluationDetailUpsert, dto)
+      return true
+    } catch (error) {
+      console.error('保存评价详情失败:', error)
+      return false
+    }
   },
 
   // ==================== 评分评价相关方法 ====================

@@ -450,6 +450,74 @@ export type ScoreEvaluationItemDto = {
 };
 
 /**
+ * 评价详情（自定义文案）列表项：用于“评价详情管理”列表页
+ * 与“评分详情（ScoreDetail）”不同，此处仅包含综合评分、匹配到的评价规则文案，以及是否存在自定义详情
+ */
+export type ScoreEvaluationDetailListItemDto = {
+  id: string; // score表主键ID
+  countryId: string;
+  cnName: string;
+  enName: string;
+  year: number;
+  totalScore: number;
+  matchedText: string; // 根据评价体系匹配到的文案
+  hasCustomDetail: boolean; // 是否存在自定义评价详情
+  createTime: Date;
+  updateTime: Date;
+};
+
+/**
+ * 单年份评价详情（自定义文案）列表请求参数（支持分页和搜索，不需要排序）
+ */
+export type ScoreEvaluationDetailListByYearReqDto = {
+  year: number;
+  page?: number;
+  pageSize?: number;
+  searchTerm?: string; // 国家中英文名搜索
+};
+
+/**
+ * 单年份评价详情（自定义文案）列表响应（支持分页）
+ */
+export type ScoreEvaluationDetailListByYearResDto = {
+  year: number;
+  data: ScoreEvaluationDetailListItemDto[];
+  pagination: PaginationInfo;
+};
+
+/**
+ * 评价详情（自定义文案）编辑获取请求
+ */
+export type ScoreEvaluationDetailGetReqDto = {
+  year: number;
+  countryId: string;
+};
+
+/**
+ * 评价详情（自定义文案）编辑数据
+ */
+export type ScoreEvaluationDetailEditResDto = {
+  id?: string;
+  year: number;
+  countryId: string;
+  text: string;
+  images: string[];
+  createTime?: Date;
+  updateTime?: Date;
+};
+
+/**
+ * 评价详情（自定义文案）保存/更新 DTO
+ */
+export type UpsertScoreEvaluationDetailDto = {
+  year: number;
+  countryId: string;
+  text: string;
+  images: string[];
+  deletedImages: string[];
+};
+
+/**
  * 评分评价规则响应 DTO
  * 包含从 Prisma Decimal 转换后的 number 类型分数
  */

@@ -68,17 +68,18 @@ model Continent {
 
 // 国家字典表
 model Country {
-  id                   String                 @id @default(uuid()) // 主键ID（UUID）
-  cnName               String                 @unique // 国家中文名
-  enName               String                 @unique // 国家英文名
-  continentId          String // 外键，关联到大洲ID
-  continent            Continent              @relation(fields: [continentId], references: [id]) // 所属大洲
-  urbanizationWorldMap UrbanizationWorldMap[] // 关联到世界地图城镇化数据
-  indicatorValues      IndicatorValue[] // 关联到指标数值表
-  createTime           DateTime               @default(now())
-  updateTime           DateTime               @updatedAt
-  delete               Int                    @default(0) // 软删除标记，0表示未删除，1表示已删除
-  Score                Score[]
+  id                    String                  @id @default(uuid()) // 主键ID（UUID）
+  cnName                String                  @unique // 国家中文名
+  enName                String                  @unique // 国家英文名
+  continentId           String // 外键，关联到大洲ID
+  continent             Continent               @relation(fields: [continentId], references: [id]) // 所属大洲
+  urbanizationWorldMap  UrbanizationWorldMap[] // 关联到世界地图城镇化数据
+  indicatorValues       IndicatorValue[] // 关联到指标数值表
+  createTime            DateTime                @default(now())
+  updateTime            DateTime                @updatedAt
+  delete                Int                     @default(0) // 软删除标记，0表示未删除，1表示已删除
+  Score                 Score[]
+  ScoreEvaluationDetail ScoreEvaluationDetail[]
 
   @@index([id])
   @@index([cnName, delete])
@@ -232,6 +233,22 @@ model ScoreEvaluation {
   images         Json     @default("[]") // 评价体系内包含的图片 为图片id组成的数组
   createTime     DateTime @default(now())
   updateTime     DateTime @updatedAt
+}
+
+// 评价详情表，一条数据代表某一个年份中某一个国家的不包含评价体系表评价的额外的评价文案，一个年份一个国家只会有一条记录，用富文本形式存储
+model ScoreEvaluationDetail {
+  id         String   @id @default(uuid()) // 主键ID
+  year       Int // 年份
+  countryId  String // 国家ID
+  country    Country  @relation(fields: [countryId], references: [id]) // 所属国家
+  text       String // 评价文案，富文本
+  images     Json     @default("[]") // 评价体系内包含的图片 为图片id组成的数组
+  createTime DateTime @default(now())
+  updateTime DateTime @updatedAt
+  delete     Int      @default(0) // 软删除标记，0表示未删除，1表示已删除
+
+  @@index([year, countryId])
+  @@index([year, countryId, delete])
 }
 
 // 上传的图片

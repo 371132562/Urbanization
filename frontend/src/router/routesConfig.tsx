@@ -37,6 +37,7 @@ const UrbanizationRate = lazy(() => import('@/pages/Map/UrbanizationRate'))
 const MaterialDynamics = lazy(() => import('@/pages/MaterialDynamics'))
 const ScoreManagement = lazy(() => import('@/pages/ScoreManagement'))
 const Detail = lazy(() => import('@/pages/ScoreManagement/Detail'))
+const DetailModify = lazy(() => import('@/pages/ScoreManagement/Detail/Modify'))
 const ScoreEvaluation = lazy(() => import('@/pages/ScoreManagement/Evaluation'))
 const Export = lazy(() => import('@/pages/ScoreManagement/Export'))
 const ImportScore = lazy(() => import('@/pages/ScoreManagement/Import'))
@@ -218,6 +219,12 @@ export const sideRoutes: RouteItem[] = [
         path: '/scoreManagement/detail',
         title: '评价详情',
         component: Detail
+      },
+      {
+        path: '/scoreManagement/detail/modify/:countryId/:year',
+        title: '评价详情编辑',
+        component: DetailModify,
+        hideInMenu: true
       },
       {
         path: '/scoreManagement/modify/:countryId/:year',

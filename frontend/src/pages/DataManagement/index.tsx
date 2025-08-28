@@ -81,22 +81,20 @@ const DataManagement = () => {
     if (years && years.length > 0) {
       const firstYear = years[0]
       setActiveCollapseKey(prev => prev || String(firstYear))
-      // 如果第一年尚未加载，则加载
-      if (!yearDataMap[firstYear]) {
-        const q = yearQueryMap[firstYear] || { page: 1, pageSize: 10 }
-        getListByYear({
-          year: firstYear,
-          page: q.page,
-          pageSize: q.pageSize,
-          ...(yearSortMap[firstYear]?.field && yearSortMap[firstYear]?.order
-            ? {
-                sortField: yearSortMap[firstYear]!.field!,
-                sortOrder: yearSortMap[firstYear]!.order!
-              }
-            : {}),
-          ...(searchTerm ? { searchTerm } : {})
-        })
-      }
+      // 返回列表页时强制按当前查询参数刷新第一页，避免显示过时缓存
+      const q = yearQueryMap[firstYear] || { page: 1, pageSize: 10 }
+      getListByYear({
+        year: firstYear,
+        page: q.page,
+        pageSize: q.pageSize,
+        ...(yearSortMap[firstYear]?.field && yearSortMap[firstYear]?.order
+          ? {
+              sortField: yearSortMap[firstYear]!.field!,
+              sortOrder: yearSortMap[firstYear]!.order!
+            }
+          : {}),
+        ...(searchTerm ? { searchTerm } : {})
+      })
     }
   }, [years])
 

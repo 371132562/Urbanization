@@ -11,6 +11,11 @@ import {
   DeleteScoreDto,
   ScoreListByYearReqDto,
   ScoreListByYearResDto,
+  ScoreEvaluationDetailListByYearReqDto,
+  ScoreEvaluationDetailListByYearResDto,
+  ScoreEvaluationDetailGetReqDto,
+  ScoreEvaluationDetailEditResDto,
+  UpsertScoreEvaluationDetailDto,
   DataManagementCountriesByYearsReqDto,
   DataManagementCountriesByYearsResDto,
   ExportDataMultiYearReqDto,
@@ -36,6 +41,37 @@ export class ScoreController {
     @Body() params: ScoreListByYearReqDto,
   ): Promise<ScoreListByYearResDto> {
     return this.scoreService.listByYear(params);
+  }
+
+  /**
+   * @description 评价详情（自定义文案）列表：用于“评价详情管理”模块
+   * 与“评分详情（ScoreDetail）”不同，此接口仅返回综合分、匹配的评价规则文案和是否有自定义详情的标记
+   */
+  @Post('listEvaluationDetailByYear')
+  listEvaluationDetailByYear(
+    @Body() params: ScoreEvaluationDetailListByYearReqDto,
+  ): Promise<ScoreEvaluationDetailListByYearResDto> {
+    return this.scoreService.listEvaluationDetailByYear(params);
+  }
+
+  /**
+   * @description 获取评价详情（自定义文案）编辑数据
+   */
+  @Post('getEvaluationDetail')
+  getEvaluationDetail(
+    @Body() params: ScoreEvaluationDetailGetReqDto,
+  ): Promise<ScoreEvaluationDetailEditResDto | null> {
+    return this.scoreService.getEvaluationDetail(params);
+  }
+
+  /**
+   * @description 保存/更新评价详情（自定义文案）
+   */
+  @Post('upsertEvaluationDetail')
+  upsertEvaluationDetail(
+    @Body() dto: UpsertScoreEvaluationDetailDto,
+  ): Promise<ScoreEvaluationDetailEditResDto> {
+    return this.scoreService.upsertEvaluationDetail(dto);
   }
 
   /**

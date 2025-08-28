@@ -1,5 +1,5 @@
 import { ArrowLeftOutlined } from '@ant-design/icons'
-import { Button, Card, Descriptions, Divider, Skeleton, Typography } from 'antd'
+import { Button, Card, Descriptions, Divider, Skeleton, Space, Typography } from 'antd'
 import { FC, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
@@ -20,16 +20,21 @@ const ComprehensiveEvaluationDetail: FC = () => {
     detailLoading,
     evaluations,
     getEvaluations,
-    evaluationsLoading
+    evaluationsLoading,
+    evaluationDetailEdit,
+    evaluationDetailEditLoading,
+    getEvaluationDetail
   } = useScoreStore()
 
   // 组件加载时，获取评分详情和评价规则
   useEffect(() => {
     if (countryId && year) {
-      getScoreDetail({ countryId, year: parseInt(year) })
+      const y = parseInt(year)
+      getScoreDetail({ countryId, year: y })
+      getEvaluationDetail({ countryId, year: y })
     }
     getEvaluations()
-  }, [countryId, year, getScoreDetail, getEvaluations])
+  }, [countryId, year, getScoreDetail, getEvaluations, getEvaluationDetail])
 
   // 根据总分匹配评价文案
   const matchedEvaluation = useMemo(() => {
@@ -46,7 +51,7 @@ const ComprehensiveEvaluationDetail: FC = () => {
   }, [detailData, evaluations])
 
   // 加载状态判断
-  const isLoading = detailLoading || evaluationsLoading
+  const isLoading = detailLoading || evaluationsLoading || evaluationDetailEditLoading
 
   return (
     <div className="w-full max-w-xl">
@@ -116,9 +121,20 @@ const ComprehensiveEvaluationDetail: FC = () => {
               />
             ) : (
               <Paragraph className="text-base leading-relaxed text-gray-500">
-                未匹配到评价标准
+                未匹配到评价体系
               </Paragraph>
             )}
+
+            {/* 评价详情（自定义文案） */}
+            {evaluationDetailEdit && evaluationDetailEdit.text ? (
+              <Space className="mt-4">
+                <RichEditor
+                  value={toFullPathContent(evaluationDetailEdit.text)}
+                  readOnly
+                  height="auto"
+                />
+              </Space>
+            ) : null}
           </div>
         ) : (
           <div className="py-10 text-center">

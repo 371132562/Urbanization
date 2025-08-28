@@ -19,6 +19,12 @@ import {
   CountryScoreDataItem,
   ScoreListByYearReqDto,
   ScoreListByYearResDto,
+  ScoreEvaluationDetailListItemDto,
+  ScoreEvaluationDetailListByYearReqDto,
+  ScoreEvaluationDetailListByYearResDto,
+  ScoreEvaluationDetailGetReqDto,
+  ScoreEvaluationDetailEditResDto,
+  UpsertScoreEvaluationDetailDto,
   DataManagementCountriesByYearsReqDto,
   DataManagementCountriesByYearsResDto,
   ExportDataMultiYearReqDto,
@@ -51,9 +57,13 @@ function decimalToNumber(value: unknown): number {
 
   // 处理可能是对象的情况（可能是 Prisma 的序列化问题）
   if (typeof value === 'object' && value !== null) {
-    const stringValue = String(value);
-    if (!isNaN(Number(stringValue))) {
-      return Number(stringValue);
+    const maybeValueOf = (value as { valueOf?: () => unknown }).valueOf;
+    if (typeof maybeValueOf === 'function') {
+      const primitive: unknown = maybeValueOf.call(value);
+      if (typeof primitive === 'number') return primitive;
+      if (typeof primitive === 'string' && !isNaN(Number(primitive))) {
+        return Number(primitive);
+      }
     }
   }
 
@@ -318,6 +328,198 @@ export class ScoreService {
 
     const result: PaginatedYearScoreData = { year, data, pagination };
     return result;
+  }
+
+  /**
+   * @description 评价详情（自定义文案）列表：
+   * 仅返回综合分、评价规则匹配文案、是否存在自定义详情的标记。
+   * 注意：与“评分详情（ScoreDetail）”不同；此处不返回四个维度得分，仅用于自定义评价详情管理列表。
+   * 不需要排序，支持搜索与分页。分页逻辑基于唯一国家分页，与评分管理列表一致。
+   */
+  async listEvaluationDetailByYear(
+    params: ScoreEvaluationDetailListByYearReqDto,
+  ): Promise<ScoreEvaluationDetailListByYearResDto> {
+    const { year, page = 1, pageSize = 10, searchTerm } = params;
+
+    const skip = (page - 1) * pageSize;
+
+    const whereCondition = {
+      year,
+      delete: 0,
+      country: {
+        delete: 0,
+        ...(searchTerm && {
+          OR: [
+            { cnName: { contains: searchTerm } },
+            { enName: { contains: searchTerm } },
+          ],
+        }),
+      },
+    } as const;
+
+    // 统计该年份国家数量（去重）
+    const totalCount = await this.prisma.score
+      .groupBy({
+        by: ['countryId'],
+        where: whereCondition,
+        _count: { countryId: true },
+      })
+      .then((groups) => groups.length);
+
+    // 取出去重后的国家ID并分页
+    const allCountryIds = await this.prisma.score.findMany({
+      where: whereCondition,
+      select: { countryId: true },
+      orderBy: { country: { updateTime: 'desc' } },
+    });
+    const uniqueCountryIds = [
+      ...new Set(allCountryIds.map((i: { countryId: string }) => i.countryId)),
+    ];
+    const countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+
+    // 查询分页后的评分记录
+    const scores = await this.prisma.score.findMany({
+      where: {
+        year,
+        countryId: { in: countryIdList },
+        delete: 0,
+        country: { delete: 0 },
+      },
+      include: { country: true },
+      orderBy: [{ country: { updateTime: 'desc' } }],
+    });
+
+    // 读取评价体系规则，用于匹配文案
+    const evaluations = await this.prisma.scoreEvaluation.findMany({
+      orderBy: { minScore: 'asc' },
+    });
+
+    const matchText = (scoreNum: number): string => {
+      for (const e of evaluations) {
+        const min = decimalToNumber(e.minScore);
+        const max = decimalToNumber(e.maxScore);
+        if (scoreNum >= min && scoreNum <= max) return e.evaluationText;
+      }
+      return '';
+    };
+
+    // 查询自定义详情存在性
+    const details = await this.prisma.scoreEvaluationDetail.findMany({
+      where: { year, countryId: { in: countryIdList }, delete: 0 },
+      select: { countryId: true },
+    });
+    const hasDetailSet = new Set(details.map((d) => d.countryId));
+
+    const data: ScoreEvaluationDetailListItemDto[] = countryIdList.reduce<
+      ScoreEvaluationDetailListItemDto[]
+    >((acc, cid) => {
+      const item = scores.find((s) => s.countryId === cid);
+      if (!item) return acc;
+      const totalScore = decimalToNumber(item.totalScore);
+      acc.push({
+        id: item.id,
+        countryId: item.countryId,
+        cnName: item.country.cnName,
+        enName: item.country.enName,
+        year: item.year,
+        totalScore,
+        matchedText: matchText(totalScore),
+        hasCustomDetail: hasDetailSet.has(item.countryId),
+        createTime: item.country.createTime,
+        updateTime: item.country.updateTime,
+      });
+      return acc;
+    }, []);
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const pagination = { page, pageSize, total: totalCount, totalPages };
+
+    return { year, data, pagination };
+  }
+
+  /**
+   * @description 获取评价详情（自定义文案）编辑数据
+   */
+  async getEvaluationDetail(
+    params: ScoreEvaluationDetailGetReqDto,
+  ): Promise<ScoreEvaluationDetailEditResDto | null> {
+    const { year, countryId } = params;
+    const record = await this.prisma.scoreEvaluationDetail.findFirst({
+      where: { year, countryId, delete: 0 },
+    });
+    if (!record) return null;
+    return {
+      id: record.id,
+      year: record.year,
+      countryId: record.countryId,
+      text: (record as unknown as { text?: string }).text ?? '',
+      images: (record.images as string[]) || [],
+      createTime: record.createTime,
+      updateTime: record.updateTime,
+    };
+  }
+
+  /**
+   * @description 保存/更新评价详情（自定义文案）
+   * - 纠正 images/deletedImages，避免误删
+   * - 更新后异步清理删除的图片
+   */
+  async upsertEvaluationDetail(
+    dto: UpsertScoreEvaluationDetailDto,
+  ): Promise<ScoreEvaluationDetailEditResDto> {
+    const { year, countryId, text } = dto;
+    const cleanedImages = ImageProcessorUtils.cleanImageFilenames(
+      dto.images || [],
+    );
+    const cleanedDeleted = ImageProcessorUtils.cleanImageFilenames(
+      dto.deletedImages || [],
+    );
+
+    const reconciled = ImageProcessorUtils.reconcileImages(
+      cleanedImages,
+      cleanedDeleted,
+      text,
+    );
+
+    const existing = await this.prisma.scoreEvaluationDetail.findFirst({
+      where: { year, countryId, delete: 0 },
+    });
+
+    const dataToSave = {
+      text,
+      images: reconciled.images,
+    } as const;
+
+    const saved = existing
+      ? await this.prisma.scoreEvaluationDetail.update({
+          where: { id: existing.id },
+          data: dataToSave,
+        })
+      : await this.prisma.scoreEvaluationDetail.create({
+          data: {
+            year,
+            country: { connect: { id: countryId } },
+            ...dataToSave,
+          },
+        });
+
+    // 异步清理图片
+    ImageProcessorUtils.cleanupImagesAsync(
+      this.uploadService,
+      this.logger,
+      reconciled.deletedImages,
+      '评价详情更新，图片清理',
+    );
+
+    return {
+      id: saved.id,
+      year: saved.year,
+      countryId: saved.countryId,
+      text: (saved as unknown as { text?: string }).text ?? '',
+      images: (saved.images as string[]) || [],
+      createTime: saved.createTime,
+      updateTime: saved.updateTime,
+    };
   }
 
   /**

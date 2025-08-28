@@ -68,17 +68,16 @@ const ScoreManagement = () => {
     if (years && years.length > 0) {
       const firstYear = years[0]
       setActiveCollapseKey(prev => prev || String(firstYear))
-      if (!yearDataMap[firstYear]) {
-        const q = yearQueryMap[firstYear] || { page: 1, pageSize: 10 }
-        const sort = yearSortMap[firstYear]
-        getListByYear({
-          year: firstYear,
-          page: q.page,
-          pageSize: q.pageSize,
-          ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
-          ...(searchTerm ? { searchTerm } : {})
-        })
-      }
+      // 返回列表页时强制刷新，避免显示缓存
+      const q = yearQueryMap[firstYear] || { page: 1, pageSize: 10 }
+      const sort = yearSortMap[firstYear]
+      getListByYear({
+        year: firstYear,
+        page: q.page,
+        pageSize: q.pageSize,
+        ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
+        ...(searchTerm ? { searchTerm } : {})
+      })
     }
   }, [years])
 
