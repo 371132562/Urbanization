@@ -33,7 +33,10 @@ const ScoreEvaluationPage = () => {
         ...evaluation,
         evaluationText: toFullPathContent(evaluation.evaluationText)
       }))
-      form.setFieldsValue({ evaluations: processedEvaluations })
+      // 使用 setTimeout 确保 RichEditor 组件完全挂载后再设置表单数据
+      setTimeout(() => {
+        form.setFieldsValue({ evaluations: processedEvaluations })
+      }, 0)
     }
   }, [evaluations])
 
@@ -191,7 +194,7 @@ const ScoreEvaluationPage = () => {
                         }
                       }}
                       placeholder="请输入对该评分区间的详细评价..."
-                      height="200px"
+                      height="310px"
                       initialImages={evaluations?.[name]?.images || []}
                     />
                   </Form.Item>

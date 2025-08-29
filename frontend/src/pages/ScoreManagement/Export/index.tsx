@@ -91,20 +91,12 @@ const Export = () => {
 
   return (
     <div className="w-full max-w-2xl">
-      <div className="mb-4 flex items-center">
-        <Title
-          level={4}
-          className="!mb-0"
-        >
-          评分导出
-        </Title>
-      </div>
       <div className="rounded-lg bg-white p-8 shadow-sm">
         <Form
           form={form}
           layout="vertical"
           onFinish={handleExport}
-          initialValues={{ format: 'xlsx' as ExportFormat.XLSX }}
+          initialValues={{ format: ExportFormat.XLSX }}
         >
           <Form.Item
             name="year"

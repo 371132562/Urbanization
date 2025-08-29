@@ -7,6 +7,7 @@ import type { PaginatedYearScoreData, ScoreDataItem } from 'urbanization-backend
 
 import { SCORE_DIMENSIONS } from '@/config/dataImport'
 import useScoreStore from '@/stores/scoreStore'
+import { refreshActiveYearData, refreshYearData } from '@/utils'
 
 const { Panel } = Collapse
 const { Search } = Input
@@ -195,7 +196,7 @@ const ScoreManagement = () => {
   }
 
   const handleTableChange =
-    (year: number) => (_pagination: any, _filters: any, sorter: any, extra: any) => {
+    (year: number) => async (_pagination: any, _filters: any, sorter: any, extra: any) => {
       if (extra && extra.action === 'sort') {
         const orderVal =
           sorter && sorter.order === 'ascend'
@@ -206,15 +207,12 @@ const ScoreManagement = () => {
         const fieldVal = orderVal ? (sorter.field as string) : null
         const newSortState = { field: fieldVal, order: orderVal as 'asc' | 'desc' | null }
         setYearSortMap(prev => ({ ...prev, [year]: newSortState }))
-        const q = yearQueryMap[year] || { page: 1, pageSize: 10 }
-        getListByYear({
+        await refreshYearData({
           year,
-          page: 1,
-          pageSize: q.pageSize,
-          ...(newSortState.field && newSortState.order
-            ? { sortField: newSortState.field, sortOrder: newSortState.order }
-            : {}),
-          ...(searchTerm ? { searchTerm } : {})
+          yearQueryMap,
+          searchTerm,
+          getListByYear,
+          yearSortMap: { [year]: newSortState }
         })
       }
     }
@@ -222,19 +220,14 @@ const ScoreManagement = () => {
   const handleSearch = async (value: string) => {
     setSearchTerm(value)
     setGlobalSearchTerm(value)
-    const k = Array.isArray(activeCollapseKey) ? activeCollapseKey[0] : activeCollapseKey
-    const activeYear = Number(k || (years && years.length > 0 ? years[0] : ''))
-    if (activeYear) {
-      const q = yearQueryMap[activeYear] || { page: 1, pageSize: 10 }
-      const sort = yearSortMap[activeYear]
-      getListByYear({
-        year: activeYear,
-        page: q.page,
-        pageSize: q.pageSize,
-        ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
-        ...(value ? { searchTerm: value } : {})
-      })
-    }
+    await refreshActiveYearData({
+      activeCollapseKey,
+      years,
+      yearQueryMap,
+      searchTerm: value,
+      getListByYear,
+      yearSortMap
+    })
   }
 
   return (

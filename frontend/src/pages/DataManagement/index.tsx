@@ -19,6 +19,7 @@ import type { CountryData, PaginatedYearData } from 'urbanization-backend/types/
 
 import { DETAILED_INDICATORS } from '@/config/dataImport'
 import useDataManagementStore from '@/stores/dataManagementStore'
+import { refreshActiveYearData, refreshYearData } from '@/utils'
 import { dayjs } from '@/utils/dayjs'
 
 const { Panel } = Collapse
@@ -242,7 +243,7 @@ const DataManagement = () => {
 
   // 处理排序变化（仅对触发排序的年份生效）
   const handleTableChange =
-    (year: number) => (_pagination: any, _filters: any, sorter: any, extra: any) => {
+    (year: number) => async (_pagination: any, _filters: any, sorter: any, extra: any) => {
       if (extra && extra.action === 'sort') {
         const orderVal =
           sorter && sorter.order === 'ascend'
@@ -253,15 +254,12 @@ const DataManagement = () => {
         const fieldVal = orderVal ? (sorter.field as string) : null
         const newSortState = { field: fieldVal, order: orderVal as 'asc' | 'desc' | null }
         setYearSortMap(prev => ({ ...prev, [year]: newSortState }))
-        const q = yearQueryMap[year] || { page: 1, pageSize: 10 }
-        getListByYear({
+        await refreshYearData({
           year,
-          page: 1,
-          pageSize: q.pageSize,
-          ...(newSortState.field && newSortState.order
-            ? { sortField: newSortState.field, sortOrder: newSortState.order }
-            : {}),
-          ...(searchTerm ? { searchTerm } : {})
+          yearQueryMap,
+          searchTerm,
+          getListByYear,
+          yearSortMap: { [year]: newSortState }
         })
       }
     }
@@ -270,19 +268,14 @@ const DataManagement = () => {
   const handleSearch = async (value: string) => {
     setSearchTerm(value)
     setGlobalSearchTerm(value)
-    const k = Array.isArray(activeCollapseKey) ? activeCollapseKey[0] : activeCollapseKey
-    const activeYear = Number(k || (years && years.length > 0 ? years[0] : ''))
-    if (activeYear) {
-      const q = yearQueryMap[activeYear] || { page: 1, pageSize: 10 }
-      const sort = yearSortMap[activeYear]
-      getListByYear({
-        year: activeYear,
-        page: q.page,
-        pageSize: q.pageSize,
-        ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
-        ...(value ? { searchTerm: value } : {})
-      })
-    }
+    await refreshActiveYearData({
+      activeCollapseKey,
+      years,
+      yearQueryMap,
+      searchTerm: value,
+      getListByYear,
+      yearSortMap
+    })
   }
 
   // 渲染每个年份的列，需要把当前年份的排序状态传入以计算列头sortOrder

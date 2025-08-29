@@ -518,6 +518,14 @@ export type UpsertScoreEvaluationDetailDto = {
 };
 
 /**
+ * 删除评价详情 DTO
+ */
+export type DeleteScoreEvaluationDetailDto = {
+  year: number;
+  countryId: string;
+};
+
+/**
  * 评分评价规则响应 DTO
  * 包含从 Prisma Decimal 转换后的 number 类型分数
  */

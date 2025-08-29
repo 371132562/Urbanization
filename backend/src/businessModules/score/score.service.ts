@@ -29,6 +29,7 @@ import {
   DataManagementCountriesByYearsResDto,
   ExportDataMultiYearReqDto,
   ExportFormat,
+  DeleteScoreEvaluationDetailDto,
 } from 'types/dto';
 import * as xlsx from 'xlsx';
 import { BusinessException } from '../../common/exceptions/businessException';
@@ -523,6 +524,63 @@ export class ScoreService {
   }
 
   /**
+   * @description 删除评价详情（自定义文案）
+   * - 物理删除评价详情记录
+   * - 异步清理该评价详情关联的图片
+   */
+  async deleteEvaluationDetail(
+    dto: DeleteScoreEvaluationDetailDto,
+  ): Promise<void> {
+    const { year, countryId } = dto;
+    this.logger.log(
+      `[开始] 删除评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
+    );
+
+    try {
+      // 1. 查找要删除的评价详情，以获取其图片列表
+      const detailToDelete = await this.prisma.scoreEvaluationDetail.findFirst({
+        where: { year, countryId, delete: 0 },
+      });
+
+      if (!detailToDelete) {
+        this.logger.warn(
+          `[验证失败] 删除评价详情 - 年份: ${year}, 国家ID: ${countryId} 不存在或已被删除`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `评价详情不存在或已被删除`,
+        );
+      }
+
+      // 2. 物理删除
+      const deletedDetail = await this.prisma.scoreEvaluationDetail.delete({
+        where: { id: detailToDelete.id },
+      });
+
+      // 3. 异步清理该评价详情关联的图片
+      ImageProcessorUtils.cleanupImagesAsync(
+        this.uploadService,
+        this.logger,
+        deletedDetail.images as string[],
+        '删除评价详情后的图片清理',
+      );
+
+      this.logger.log(
+        `[成功] 删除评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
+      );
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      this.logger.error(
+        `[失败] 删除评价详情 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * @description 创建或更新一个评分记录。如果给定国家和年份的记录已存在，则更新它；否则，创建新记录。
    * @param {CreateScoreDto} data - 创建或更新评分所需的数据。
    * @returns {Promise<Score>} 创建或更新后的评分记录。
@@ -868,28 +926,83 @@ export class ScoreService {
   }
 
   /**
-   * @description 删除一个评分记录（软删除）。
+   * @description 删除一个评分记录（物理删除）。
+   * - 物理删除评分记录
+   * - 连带删除相关的评分详情（自定义文案）
+   * - 异步清理评分详情关联的图片
    * @param {DeleteScoreDto} params - 包含要删除的记录的 ID。
-   * @returns {Promise<Score>} 已更新的评分记录（标记为已删除）。
+   * @returns {Promise<Score>} 已删除的评分记录。
    */
   async delete(params: DeleteScoreDto): Promise<Score> {
     const { id } = params;
-    // 1. 检查记录是否存在
-    const score = await this.prisma.score.findFirst({
-      where: { id, delete: 0 },
-    });
-    if (!score) {
-      throw new BusinessException(
-        ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到 ID 为 ${id} 的评分记录`,
-      );
-    }
+    this.logger.log(`[开始] 删除评分记录 - 评分ID: ${id}`);
 
-    // 2. 执行软删除操作（将 delete 字段更新为 1）
-    return this.prisma.score.update({
-      where: { id },
-      data: { delete: 1 },
-    });
+    try {
+      // 1. 查找要删除的评分记录，以获取其年份和国家ID
+      const scoreToDelete = await this.prisma.score.findFirst({
+        where: { id, delete: 0 },
+      });
+
+      if (!scoreToDelete) {
+        this.logger.warn(
+          `[验证失败] 删除评分记录 - 评分ID ${id} 不存在或已被删除`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `评分记录不存在或已被删除`,
+        );
+      }
+
+      // 2. 查找并删除相关的评分详情（自定义文案）
+      const relatedDetail = await this.prisma.scoreEvaluationDetail.findFirst({
+        where: {
+          year: scoreToDelete.year,
+          countryId: scoreToDelete.countryId,
+          delete: 0,
+        },
+      });
+
+      let deletedDetailImages: string[] = [];
+      if (relatedDetail) {
+        // 物理删除评分详情
+        const deletedDetail = await this.prisma.scoreEvaluationDetail.delete({
+          where: { id: relatedDetail.id },
+        });
+        deletedDetailImages = (deletedDetail.images as string[]) || [];
+        this.logger.log(
+          `[关联删除] 删除评分详情 - 年份: ${scoreToDelete.year}, 国家ID: ${scoreToDelete.countryId}`,
+        );
+      }
+
+      // 3. 物理删除评分记录
+      const deletedScore = await this.prisma.score.delete({
+        where: { id },
+      });
+
+      // 4. 异步清理评分详情关联的图片（如果存在）
+      if (deletedDetailImages.length > 0) {
+        ImageProcessorUtils.cleanupImagesAsync(
+          this.uploadService,
+          this.logger,
+          deletedDetailImages,
+          '删除评分记录后的关联评分详情图片清理',
+        );
+      }
+
+      this.logger.log(
+        `[成功] 删除评分记录 - 评分ID: ${id}, 年份: ${deletedScore.year}, 国家ID: ${deletedScore.countryId}`,
+      );
+      return deletedScore;
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      this.logger.error(
+        `[失败] 删除评分记录 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**

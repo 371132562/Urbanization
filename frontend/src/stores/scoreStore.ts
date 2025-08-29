@@ -1,29 +1,28 @@
 import type {
-  DataManagementCountriesByYearsReqDto,
-  DataManagementCountriesByYearsResDto,
-  ExportDataMultiYearReqDto,
-  ExportFormat,
-  ScoreEvaluationDetailEditResDto,
-  ScoreEvaluationDetailGetReqDto,
-  ScoreEvaluationDetailListByYearReqDto,
-  ScoreEvaluationDetailListByYearResDto,
-  UpsertScoreEvaluationDetailDto
-} from 'urbanization-backend/types/dto'
-import {
   BatchCheckScoreExistingDto,
   BatchCheckScoreExistingResDto,
   BatchCreateScoreDto,
   CheckExistingDataResDto,
   CountryScoreData,
   CreateScoreDto,
+  DataManagementCountriesByYearsReqDto,
+  DataManagementCountriesByYearsResDto,
   DeleteScoreDto,
+  DeleteScoreEvaluationDetailDto,
+  ExportDataMultiYearReqDto,
+  ExportFormat,
   PaginatedYearScoreData,
   ScoreDetailReqDto,
   ScoreDetailResponseDto,
+  ScoreEvaluationDetailEditResDto,
+  ScoreEvaluationDetailGetReqDto,
+  ScoreEvaluationDetailListByYearReqDto,
+  ScoreEvaluationDetailListByYearResDto,
   ScoreEvaluationItemDto,
   ScoreEvaluationResponseDto,
   ScoreListByYearReqDto,
-  ScoreListByYearResDto
+  ScoreListByYearResDto,
+  UpsertScoreEvaluationDetailDto
 } from 'urbanization-backend/types/dto'
 import { create } from 'zustand'
 
@@ -105,6 +104,7 @@ interface ScoreStore {
   getEvaluationDetailListByYear: (params: ScoreEvaluationDetailListByYearReqDto) => Promise<void>
   getEvaluationDetail: (params: ScoreEvaluationDetailGetReqDto) => Promise<void>
   upsertEvaluationDetail: (dto: UpsertScoreEvaluationDetailDto) => Promise<boolean>
+  deleteEvaluationDetail: (dto: DeleteScoreEvaluationDetailDto) => Promise<boolean>
 
   // 评分评价
   getEvaluations: () => Promise<void>
@@ -387,6 +387,15 @@ const useScoreStore = create<ScoreStore>()(set => ({
       return true
     } catch (error) {
       console.error('保存评价详情失败:', error)
+      return false
+    }
+  },
+  deleteEvaluationDetail: async (dto: DeleteScoreEvaluationDetailDto) => {
+    try {
+      await http.post(apis.scoreEvaluationDetailDelete, dto)
+      return true
+    } catch (error) {
+      console.error('删除评价详情失败:', error)
       return false
     }
   },

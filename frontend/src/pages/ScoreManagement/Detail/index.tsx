@@ -1,4 +1,16 @@
-import { Button, Collapse, Empty, Input, Modal, Skeleton, Space, Table, Typography } from 'antd'
+import {
+  Button,
+  Collapse,
+  Empty,
+  Input,
+  message,
+  Modal,
+  Popconfirm,
+  Skeleton,
+  Space,
+  Table,
+  Typography
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -6,7 +18,7 @@ import type { ScoreEvaluationDetailListItemDto } from 'urbanization-backend/type
 
 import RichEditor from '@/components/RichEditor'
 import useScoreStore from '@/stores/scoreStore'
-import { toFullPathContent } from '@/utils'
+import { refreshActiveYearData, refreshYearData, toFullPathContent } from '@/utils'
 
 const { Panel } = Collapse
 const { Text } = Typography
@@ -59,6 +71,7 @@ const ScoreEvaluationDetailListPage = () => {
   const getEvaluationDetail = useScoreStore(state => state.getEvaluationDetail)
   const evaluationDetailEdit = useScoreStore(state => state.evaluationDetailEdit)
   const evaluationDetailEditLoading = useScoreStore(state => state.evaluationDetailEditLoading)
+  const deleteEvaluationDetail = useScoreStore(state => state.deleteEvaluationDetail)
 
   const [activeCollapseKey, setActiveCollapseKey] = useState<string | ''>('')
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -122,11 +135,11 @@ const ScoreEvaluationDetailListPage = () => {
               查看
             </Button>
           ) : (
-            <Button disabled>未匹配到评价体系</Button>
+            <Button disabled>未匹配到评价文案</Button>
           )
       },
       {
-        title: '评价详情文案',
+        title: '评价详情文案（可自行配置）',
         dataIndex: 'hasCustomDetail',
         key: 'hasCustomDetail',
         render: (_: unknown, record) =>
@@ -153,13 +166,48 @@ const ScoreEvaluationDetailListPage = () => {
         render: (_: unknown, record) => (
           <Space>
             <Button
-              type="primary"
+              color="primary"
+              variant="outlined"
               onClick={() =>
                 navigate(`/scoreManagement/detail/modify/${record.countryId}/${record.year}`)
               }
             >
-              配置评价详情
+              配置
             </Button>
+            {record.hasCustomDetail && (
+              <Popconfirm
+                title="确定要删除吗？"
+                description={`删除 ${record.cnName}（${record.year}年）的自定义评价详情文案。`}
+                onConfirm={async () => {
+                  const success = await deleteEvaluationDetail({
+                    year: record.year,
+                    countryId: record.countryId
+                  })
+                  if (success) {
+                    message.success('删除成功！')
+                    await refreshActiveYearData({
+                      activeCollapseKey,
+                      years,
+                      yearQueryMap,
+                      searchTerm,
+                      getListByYear
+                    })
+                  } else {
+                    message.error('删除失败，请重试')
+                  }
+                }}
+                onCancel={() => {}}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button
+                  color="danger"
+                  variant="outlined"
+                >
+                  删除
+                </Button>
+              </Popconfirm>
+            )}
           </Space>
         )
       }
@@ -172,17 +220,13 @@ const ScoreEvaluationDetailListPage = () => {
   const handleSearch = (value: string) => {
     setSearchTerm(value)
     setEvaluationDetailSearchTerm(value)
-    const k = Array.isArray(activeCollapseKey) ? activeCollapseKey[0] : activeCollapseKey
-    const activeYear = Number(k || (years && years.length > 0 ? years[0] : ''))
-    if (activeYear) {
-      const q = yearQueryMap[activeYear] || { page: 1, pageSize: 10 }
-      getListByYear({
-        year: activeYear,
-        page: q.page,
-        pageSize: q.pageSize,
-        ...(value ? { searchTerm: value } : {})
-      })
-    }
+    refreshActiveYearData({
+      activeCollapseKey,
+      years,
+      yearQueryMap,
+      searchTerm: value,
+      getListByYear
+    })
   }
 
   const onChangePage = (year: number, page: number, pageSize?: number) => {
@@ -212,12 +256,11 @@ const ScoreEvaluationDetailListPage = () => {
             setActiveCollapseKey(k as string)
             const year = Number(k)
             if (year && !yearDataMap[year]) {
-              const q = yearQueryMap[year] || { page: 1, pageSize: 10 }
-              getListByYear({
+              refreshYearData({
                 year,
-                page: q.page,
-                pageSize: q.pageSize,
-                ...(searchTerm ? { searchTerm } : {})
+                yearQueryMap,
+                searchTerm,
+                getListByYear
               })
             }
           }}

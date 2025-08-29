@@ -1,6 +1,6 @@
 import { DownOutlined, UpOutlined } from '@ant-design/icons'
 import { Button, message, Modal, Skeleton, Space } from 'antd'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import RichEditor, { type RichEditorRef } from '@/components/RichEditor'
 import useArticleStore from '@/stores/articleStore'
@@ -10,10 +10,15 @@ import { toFilenameContent, toFullPathContent } from '@/utils'
 const ScoreStandard = () => {
   // 评价标准相关
   const scoreStandard = useArticleStore(state => state.scoreStandard)
+  const getScoreStandard = useArticleStore(state => state.getScoreStandard)
   const scoreStandardLoading = useArticleStore(state => state.scoreStandardLoading)
   const submitLoading = useArticleStore(state => state.submitLoading)
   const createScoreStandard = useArticleStore(state => state.createScoreStandard)
   const updateScoreStandard = useArticleStore(state => state.updateScoreStandard)
+
+  useEffect(() => {
+    getScoreStandard()
+  }, [])
 
   // 评价标准编辑相关状态
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
@@ -102,7 +107,8 @@ const ScoreStandard = () => {
               {isScoreStandardExpanded ? '收起' : '展开'}
             </Button>
             <Button
-              type="primary"
+              color="primary"
+              variant="outlined"
               onClick={handleEditScoreStandard}
               loading={submitLoading}
             >

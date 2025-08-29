@@ -19,6 +19,7 @@ import {
   DataManagementCountriesByYearsReqDto,
   DataManagementCountriesByYearsResDto,
   ExportDataMultiYearReqDto,
+  DeleteScoreEvaluationDetailDto,
 } from 'types/dto';
 
 @Controller('score')
@@ -72,6 +73,16 @@ export class ScoreController {
     @Body() dto: UpsertScoreEvaluationDetailDto,
   ): Promise<ScoreEvaluationDetailEditResDto> {
     return this.scoreService.upsertEvaluationDetail(dto);
+  }
+
+  /**
+   * @description 删除评价详情（自定义文案）
+   */
+  @Post('deleteEvaluationDetail')
+  deleteEvaluationDetail(
+    @Body() dto: DeleteScoreEvaluationDetailDto,
+  ): Promise<void> {
+    return this.scoreService.deleteEvaluationDetail(dto);
   }
 
   /**

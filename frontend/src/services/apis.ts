@@ -49,6 +49,7 @@ export const scoreListByYear = '/score/listByYear'
 export const scoreListEvaluationDetailByYear = '/score/listEvaluationDetailByYear'
 export const scoreEvaluationDetailGet = '/score/getEvaluationDetail'
 export const scoreEvaluationDetailUpsert = '/score/upsertEvaluationDetail'
+export const scoreEvaluationDetailDelete = '/score/deleteEvaluationDetail'
 export const scoreCountriesByYears = '/score/countriesByYears'
 export const scoreExportMultiYear = '/score/exportMultiYear'
 

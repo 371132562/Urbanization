@@ -97,3 +97,65 @@ export const toFullPathContent = (html: string): string => {
   })
   return doc.body.innerHTML
 }
+
+/**
+ * 刷新当前活跃年份的数据
+ * 用于评分管理、数据管理、评价详情等列表页面的数据刷新
+ */
+export const refreshActiveYearData = async ({
+  activeCollapseKey,
+  years,
+  yearQueryMap,
+  searchTerm,
+  getListByYear,
+  yearSortMap
+}: {
+  activeCollapseKey: string | string[]
+  years: number[]
+  yearQueryMap: Record<number, { page: number; pageSize: number }>
+  searchTerm: string
+  getListByYear: (params: any) => Promise<void>
+  yearSortMap?: Record<number, { field: string | null; order: 'asc' | 'desc' | null }>
+}) => {
+  const k = Array.isArray(activeCollapseKey) ? activeCollapseKey[0] : activeCollapseKey
+  const activeYear = Number(k || (years && years.length > 0 ? years[0] : ''))
+  if (activeYear) {
+    const q = yearQueryMap[activeYear] || { page: 1, pageSize: 10 }
+    const sort = yearSortMap?.[activeYear]
+    await getListByYear({
+      year: activeYear,
+      page: q.page,
+      pageSize: q.pageSize,
+      ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
+      ...(searchTerm ? { searchTerm } : {})
+    })
+  }
+}
+
+/**
+ * 刷新指定年份的数据
+ * 用于年份切换时的数据加载
+ */
+export const refreshYearData = async ({
+  year,
+  yearQueryMap,
+  searchTerm,
+  getListByYear,
+  yearSortMap
+}: {
+  year: number
+  yearQueryMap: Record<number, { page: number; pageSize: number }>
+  searchTerm: string
+  getListByYear: (params: any) => Promise<void>
+  yearSortMap?: Record<number, { field: string | null; order: 'asc' | 'desc' | null }>
+}) => {
+  const q = yearQueryMap[year] || { page: 1, pageSize: 10 }
+  const sort = yearSortMap?.[year]
+  await getListByYear({
+    year,
+    page: q.page,
+    pageSize: q.pageSize,
+    ...(sort?.field && sort?.order ? { sortField: sort.field, sortOrder: sort.order } : {}),
+    ...(searchTerm ? { searchTerm } : {})
+  })
+}
