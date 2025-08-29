@@ -1,14 +1,4 @@
-import {
-  ApartmentOutlined,
-  BankOutlined,
-  CompassOutlined,
-  EnvironmentOutlined,
-  FlagOutlined,
-  GlobalOutlined,
-  HomeOutlined,
-  LockOutlined,
-  UserOutlined
-} from '@ant-design/icons'
+import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { Button, Form, Input, notification } from 'antd'
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -43,63 +33,63 @@ const LoginPage: React.FC = () => {
       {/* 背景渐变 */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-blue-800 to-cyan-700" />
 
-      {/* 浮动装饰元素（改为城市/建筑/国家/地图相关的ICON动画） */}
+      {/* 浮动装饰元素 */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* 地图定位 - 漂浮 */}
-        <div className="left-140 absolute top-20 text-white/60">
-          <EnvironmentOutlined
-            className="icon-deco animate-icon-float"
-            style={{ fontSize: 40, animationDuration: '6s' }}
-          />
-        </div>
+        {/* 线条形式动画 */}
+        <div
+          className="animate-slide-horizontal absolute left-16 top-16 h-1 w-32 bg-white/10"
+          style={{ animationDuration: '8s' }}
+        />
+        <div
+          className="animate-wave-vertical absolute right-24 top-80 h-24 w-1 bg-cyan-300/15"
+          style={{ animationDuration: '6s' }}
+        />
+        <div
+          className="bg-blue-300/12 animate-glow-pulse absolute bottom-32 left-1/4 h-0.5 w-20 rotate-45"
+          style={{ animationDuration: '5s' }}
+        />
 
-        {/* 地球 - 缓慢旋转 */}
-        <div className="absolute right-20 top-24 text-cyan-200/70">
-          <GlobalOutlined
-            className="icon-deco animate-icon-rotate"
-            style={{ fontSize: 46, animationDuration: '18s' }}
-          />
-        </div>
+        {/* 圆形式动画 */}
+        <div
+          className="bg-white/8 animate-scale-bounce absolute right-32 top-24 h-16 w-16 rounded-full"
+          style={{ animationDuration: '8s' }}
+        />
+        <div
+          className="animate-orbit absolute bottom-48 left-32 h-12 w-12 rounded-full bg-cyan-200/10"
+          style={{ animationDuration: '12s' }}
+        />
+        <div
+          className="animate-breathe absolute right-1/3 top-2/3 h-8 w-8 rounded-full bg-blue-200/15"
+          style={{ animationDuration: '4s' }}
+        />
 
-        {/* 政府大楼 - 上下轻摆 */}
-        <div className="absolute bottom-40 left-1/4 text-white/50">
-          <BankOutlined
-            className="icon-deco animate-icon-bob"
-            style={{ fontSize: 44, animationDuration: '7s' }}
-          />
-        </div>
+        {/* 三角形式动画 */}
+        <div
+          className="left-1/5 border-b-12 animate-wobble-spin absolute top-48 h-0 w-0 border-l-8 border-r-8 border-b-white/10 border-l-transparent border-r-transparent"
+          style={{ animationDuration: '15s' }}
+        />
+        <div
+          className="border-l-6 border-r-6 border-b-10 border-b-cyan-300/12 animate-pendulum absolute bottom-16 right-48 h-0 w-0 border-l-transparent border-r-transparent"
+          style={{ animationDuration: '9s' }}
+        />
+        <div
+          className="right-2/5 border-b-blue-400/8 animate-flip-fade absolute top-12 h-0 w-0 border-b-8 border-l-4 border-r-4 border-l-transparent border-r-transparent"
+          style={{ animationDuration: '6s' }}
+        />
 
-        {/* 住宅 - 轻微缩放脉动 */}
-        <div className="absolute bottom-24 right-1/4 text-cyan-300/60">
-          <HomeOutlined
-            className="icon-deco animate-icon-pulse"
-            style={{ fontSize: 42, animationDuration: '8s' }}
-          />
-        </div>
-
-        {/* 国旗 - 左右摆动 */}
-        <div className="absolute right-44 top-80 text-white/55">
-          <FlagOutlined
-            className="icon-deco animate-icon-sway"
-            style={{ fontSize: 38, animationDuration: '9s' }}
-          />
-        </div>
-
-        {/* 指南针 - 旋转漂移 */}
-        <div className="absolute left-32 top-1/2 text-blue-200/70">
-          <CompassOutlined
-            className="icon-deco animate-icon-rotate drift-slow"
-            style={{ fontSize: 40, animationDuration: '16s' }}
-          />
-        </div>
-
-        {/* 公寓 - 轻微漂移 */}
-        <div className="absolute left-1/2 top-1/3 text-white/60">
-          <ApartmentOutlined
-            className="icon-deco animate-icon-float drift"
-            style={{ fontSize: 42, animationDuration: '10s' }}
-          />
-        </div>
+        {/* 圆环形式动画 */}
+        <div
+          className="left-2/5 border-white/12 animate-ellipse-rotate absolute top-40 h-20 w-20 rounded-full border-2"
+          style={{ animationDuration: '12s' }}
+        />
+        <div
+          className="right-1/5 animate-pulse-scale absolute bottom-40 h-16 w-16 rounded-full border-2 border-cyan-300/15"
+          style={{ animationDuration: '10s' }}
+        />
+        <div
+          className="animate-spiral absolute left-3/4 top-1/3 h-12 w-12 rounded-full border border-blue-200/10"
+          style={{ animationDuration: '14s' }}
+        />
       </div>
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-8">
@@ -209,55 +199,6 @@ const LoginPage: React.FC = () => {
 
       {/* 自定义CSS动画样式 */}
       <style>{`
-        /* ICON通用装饰样式 */
-        .icon-deco {
-          filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
-        }
-
-        /* ICON动画 */
-        @keyframes icon-float {
-          0% { transform: translateY(0px); opacity: 0.85; }
-          50% { transform: translateY(-16px); opacity: 1; }
-          100% { transform: translateY(0px); opacity: 0.85; }
-        }
-
-        @keyframes icon-rotate {
-          0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.05); }
-          100% { transform: rotate(360deg) scale(1); }
-        }
-
-        @keyframes icon-bob {
-          0%, 100% { transform: translateY(0) rotate(-2deg); }
-          50% { transform: translateY(-10px) rotate(2deg); }
-        }
-
-        @keyframes icon-pulse {
-          0%, 100% { transform: scale(1); opacity: 0.8; }
-          50% { transform: scale(1.15); opacity: 1; }
-        }
-
-        @keyframes icon-sway {
-          0%, 100% { transform: rotate(-8deg) translateX(0px); }
-          50% { transform: rotate(8deg) translateX(6px); }
-        }
-
-        @keyframes drift {
-          0% { transform: translateX(0) translateY(0); }
-          25% { transform: translateX(12px) translateY(-8px); }
-          50% { transform: translateX(0) translateY(-14px); }
-          75% { transform: translateX(-10px) translateY(-8px); }
-          100% { transform: translateX(0) translateY(0); }
-        }
-
-        .animate-icon-float { animation: icon-float 6s ease-in-out infinite; }
-        .animate-icon-rotate { animation: icon-rotate 18s linear infinite; }
-        .animate-icon-bob { animation: icon-bob 7s ease-in-out infinite; }
-        .animate-icon-pulse { animation: icon-pulse 8s ease-in-out infinite; }
-        .animate-icon-sway { animation: icon-sway 9s ease-in-out infinite; }
-        .drift { animation: drift 10s ease-in-out infinite; }
-        .drift-slow { animation: drift 14s ease-in-out infinite; }
-
         @keyframes slide-horizontal {
           0% {
             transform: translateX(-100px) scaleX(0.5);
