@@ -66,12 +66,12 @@ export class ImageProcessorUtils {
     // 可选日志：如有修正则打点
     if (finalImagesSet.size !== (imagesFromDto || []).length) {
       this.logger.log(
-        `纠正 images：由 ${imagesFromDto.length} 调整为 ${finalImagesSet.size}`,
+        `[统计] 纠正图片数据 - images由 ${imagesFromDto.length} 调整为 ${finalImagesSet.size}`,
       );
     }
     if (finalDeleted.length !== (deletedImagesFromDto || []).length) {
       this.logger.log(
-        `纠正 deletedImages：由 ${(deletedImagesFromDto || []).length} 调整为 ${finalDeleted.length}`,
+        `[统计] 纠正图片数据 - deletedImages由 ${(deletedImagesFromDto || []).length} 调整为 ${finalDeleted.length}`,
       );
     }
 
@@ -194,7 +194,7 @@ export class ImageProcessorUtils {
     if (deletedImages.length > 0) {
       uploadService.cleanupUnusedImages(deletedImages).catch((err: unknown) => {
         const errorMessage = err instanceof Error ? err.message : String(err);
-        logger.error(`${context}任务失败: ${errorMessage}`);
+        logger.error(`[失败] ${context}任务失败: ${errorMessage}`);
       });
     }
   }

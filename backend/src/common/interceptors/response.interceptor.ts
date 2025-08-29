@@ -31,7 +31,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, any> {
         // 特殊下游：如果是文件流，直接透传，不做包装
         if (data instanceof StreamableFile) {
           this.logger.log(
-            `【${request.method}】${request.url} - 响应类型为文件流，跳过JSON包装`,
+            `[响应] ${request.method} ${request.url} - 文件流响应，跳过JSON包装`,
           );
           return data;
         }
@@ -39,7 +39,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, any> {
         // 正常下游：统一包装 JSON 响应
         const duration = Date.now() - startTime;
         this.logger.log(
-          `【${request.method}】${request.url} - ${response.statusCode} - ${duration}ms`,
+          `[响应] ${request.method} ${request.url} - 状态码: ${response.statusCode}, 耗时: ${duration}ms`,
         );
         response.statusCode = 200; // 统一设置为 200
         return { code: 10000, msg: '成功', data };
