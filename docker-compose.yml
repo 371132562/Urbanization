@@ -5,7 +5,7 @@ services:
     container_name: urbanization-main
     image: linstar666/urbanization:latest
     ports:
-      - "1818:3333" # 将容器的 3333 端口映射到主机的 1818 端口
+      - "1818:3888" # 将容器的 3888 端口映射到主机的 1818 端口
     volumes:
       # 持久化 SQLite 数据库文件/上传文件/日志文件
       - db_main:/app/backend/db

@@ -32,8 +32,8 @@ Urbanization/
 │   │   ├── components/      # 公共组件
 │   │   ├── pages/          # 页面组件
 │   │   ├── stores/         # 状态管理
-│   │   ├── services/       # API服务
-│   │   ├── types/          # 类型定义
+│   │   ├── services/       # API服务（Axios实例在 services/base.ts）
+│   │   ├── types/          # 类型定义（见 src/types/index.ts）
 │   │   └── utils/          # 工具函数
 │   ├── public/             # 静态资源
 │   └── dist/               # 构建输出
@@ -42,10 +42,10 @@ Urbanization/
 │   │   ├── businessModules/  # 业务模块
 │   │   ├── commonModules/    # 公共模块
 │   │   ├── common/           # 公共文件
-│   │   ├── exceptions/         # 异常处理
-│   │   ├── interceptors/       # 拦截器
-│   │   ├── upload/            # 文件上传
-│   │   └── utils/             # 工具函数
+│   │   ├── exceptions/       # 异常处理（common/exceptions）
+│   │   ├── interceptors/     # 拦截器（common/interceptors）
+│   │   ├── upload/           # 文件上传（commonModules/upload + common/upload）
+│   │   └── utils/            # 工具函数
 │   ├── prisma/               # 数据库配置
 │   └── types/                # 类型定义
 ```
@@ -124,16 +124,16 @@ pnpm install
 - **登录接口**: `/auth/login`，支持用户编号(code) + 密码登录
 
 ### 路由权限配置
-- **路由配置**: 在`frontend/src/router/routesConfig.tsx`中统一配置
-- **特殊路由处理**:
-  - `roleAssignType: 'parent'`: 综合评价等特殊路由只分配父级权限
+- **路由配置**: 在 `frontend/src/router/routesConfig.tsx` 中统一配置，运行时由 `frontend/src/router.tsx` 动态生成 `RouteObject[]`
+- **权限字段**:
   - `adminOnly: true`: 系统管理菜单仅超管可见，不参与权限分配
+  - 其余菜单基于角色的 `allowedRoutes` 精确到叶子路由筛选（见 `getFilteredRoutes`）
 
 ### 初始数据
-- **种子数据**: 通过`backend/prisma/seed.js`初始化
-- **超管角色**: 自动创建admin角色，`allowedRoutes`为空数组
-- **超管用户**: 自动创建编号为`88888888`的超管用户，绑定admin角色
-- **初始密码**: 超管初始密码为`88888888`
+- **种子数据**: 通过 `backend/prisma/seed.js` 初始化
+- **超管角色**: 自动创建 admin 角色，`allowedRoutes` 为空数组
+- **超管用户**: 自动创建编号为 `88888888` 的超管用户，绑定 admin 角色
+- **初始密码**: 超管初始密码为 `88888888`（账号与密码均为 8 个 8）
 
 ### 启动开发服务器
 
@@ -163,7 +163,7 @@ npx prisma studio
 
 ## Docker镜像讲解
 
-本项目使用GitHub Actions进行自动化构建和Docker镜像发布：
+本项目使用 GitHub Actions 进行自动化构建和 Docker 镜像发布：
 
 ### GitHub工作流
 - **触发条件**: 推送代码到 `master` 分支时自动触发
@@ -176,12 +176,16 @@ npx prisma studio
 
 ### 环境配置
 
-项目使用环境文件进行配置，请根据部署环境创建相应的环境文件：
+项目使用环境变量进行配置，请根据部署环境创建相应的环境文件：
 
-- **开发环境**: 前端使用 `.env.development`，后端使用 `.env.development`
-- **生产环境**: 前端使用 `.env.production`，后端使用 `.env.production`
+- 前端（示例 `.env.development` / `.env.production`）
+  - `VITE_DEPLOY_PATH=/` 或 `/urbanization`（用于子路径部署，`router` 的 `basename` 来源）
+  - `VITE_API_BASE_URL=/api`（后端全局前缀为 `/api`）
 
-请参考项目中的环境文件示例进行配置。
+- 后端（示例 `.env.development` / `.env.production`）
+  - `PORT=3888`
+  - `DEPLOY_PATH=/` 或 `/urbanization`（影响静态文件 `serveRoot`）
+  - `UPLOAD_DIR=./db/images`（图片物理存储路径）
 
 ### 部署方式
 
@@ -189,7 +193,7 @@ npx prisma studio
 
 本项目支持两种部署方式：
 
-#### 方式一：Docker Compose部署（推荐用于根目录部署）
+#### 方式一：Docker Compose 部署（可以用于根目录部署）
 
 适用于将应用部署在服务器根目录下的场景，如 `http://yourdomain.com/`。
 
@@ -197,7 +201,7 @@ npx prisma studio
 ```bash
 # 后端环境配置 (.env.production) - 仅供参考，请根据实际情况调整
 DEPLOY_PATH=/
-PORT=3333
+PORT=3888
 UPLOAD_DIR=./db/images
 
 # 前端环境配置 (.env.production) - 仅供参考，请根据实际情况调整
@@ -218,19 +222,19 @@ docker-compose logs -f
 
 **3. 访问方式**
 - **应用地址**: `http://yourdomain.com:1818`
-- **API接口**: `http://yourdomain.com:1818/api/`
-- **图片资源**: `http://yourdomain.com:1818/images/`
+- **API接口**: `http://yourdomain.com:1818/api/`（后端 `main.ts` 全局前缀）
+- **图片资源**: `http://yourdomain.com:1818/images/`（由 `ServeStaticModule` 基于 `DEPLOY_PATH` + `images` 提供）
 
 **4. 端口映射**
-- 容器端口: 3333
-- 主机端口: 1818 (可在docker-compose.yml中修改)
+- 容器端口: 3888
+- 主机端口: 1818（见 `docker-compose.yml` 映射 `1818:3888`）
 
 **5. 数据持久化**
 - 数据库文件: 通过Docker卷持久化到 `./db` 目录
 - 上传文件: 存储在 `./db/images` 目录
 - 日志文件: 存储在 `./db/logs` 目录
 
-#### 方式二：Nginx反向代理部署（推荐用于子路径部署）
+#### 方式二（推荐）：Nginx 反向代理部署（可用于任意路径部署）
 
 适用于将应用部署在服务器子路径下的场景，如 `http://yourdomain.com/urbanization/`。
 
@@ -238,7 +242,7 @@ docker-compose logs -f
 ```bash
 # 后端环境配置 (.env.production) - 仅供参考，请根据实际情况调整
 DEPLOY_PATH="/"
-PORT="3333"
+PORT="3888"
 
 # 前端环境配置 (.env.production) - 仅供参考，请根据实际情况调整
 VITE_DEPLOY_PATH=/urbanization
@@ -269,10 +273,10 @@ cd backend
 pnpm build
 node ./dist/src/main 
 ```
-注意后端服务默认包含前缀/api
+注意后端服务默认包含前缀 `/api`
 
 **4. Nginx配置**
-编辑 `/usr/local/etc/nginx/nginx.conf`，在http块中添加以下配置（仅供参考，请根据实际情况调整）：
+Linux 请编辑 `/etc/nginx/nginx.conf`（macOS 可参考 `/usr/local/etc/nginx/nginx.conf`），在 http 块中添加以下配置（仅供参考，请根据实际情况调整）：
 
 ```nginx
  server {
@@ -283,18 +287,34 @@ node ./dist/src/main
 
         #access_log  logs/host.access.log  main;
 
-        # /urbanization/api/ 路径反向代理到本地3333端口（优先级最高）
+        # /urbanization/api/ 路径反向代理到本地3888端口（优先级最高）
         location /urbanization/api/ {
-            proxy_pass http://127.0.0.1:3333/api/;
+            proxy_pass http://127.0.0.1:3888/api/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+
+            # 处理跨域
+            add_header Access-Control-Allow-Origin *;
+            add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS, PUT, DELETE';
+            add_header Access-Control-Allow-Headers 'DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+
+            # 处理 OPTIONS 预检
+            if ($request_method = 'OPTIONS') {
+                return 204;
+            }
+
+            # 文件上传与超时配置（需与后端 main.ts 限制相匹配）
+            client_max_body_size 10M;
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
         }
 
-        # /urbanization/images/ 路径反向代理到本地3333端口（图片静态文件）
+        # /urbanization/images/ 路径反向代理到本地3888端口（图片静态文件）
         location /urbanization/images/ {
-            proxy_pass http://127.0.0.1:3333/images/;
+            proxy_pass http://127.0.0.1:3888/images/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -308,28 +328,17 @@ node ./dist/src/main
         }
         
         location /urbanization/ {
-            alias /usr/local/var/www/dist/;
-            index index.html;
+            alias /var/www/urbanization/frontend/dist/;
+            index index.html index.htm;
             try_files $uri $uri/ /urbanization/index.html;
             
             # 为JavaScript模块设置正确的MIME类型
-            location ~* \.(js|mjs)$ {
-                add_header Content-Type application/javascript;
-            }
-            
+            location ~* \.(js|mjs)$ { add_header Content-Type application/javascript; }
             # 为CSS文件设置正确的MIME类型
-            location ~* \.css$ {
-                add_header Content-Type text/css;
-            }
-            
+            location ~* \.css$   { add_header Content-Type text/css; }
             # 为其他静态资源设置正确的MIME类型
-            location ~* \.(png|jpg|jpeg|gif|ico|svg)$ {
-                add_header Content-Type image/png;
-            }
-            
-            location ~* \.(woff|woff2|ttf|eot)$ {
-                add_header Content-Type font/woff;
-            }
+            location ~* \.(png|jpg|jpeg|gif|ico|svg)$ { add_header Content-Type image/png; }
+            location ~* \.(woff|woff2|ttf|eot)$ { add_header Content-Type font/woff; }
         }
 
         # 默认路径配置（注释掉原来的配置）
@@ -406,7 +415,7 @@ sudo nginx -s reload
 2. **检查后端服务状态**:
 ```bash
 # 检查3333端口是否有服务运行
-lsof -i :3333
+lsof -i :3888
 
 # 如果服务未运行，启动后端服务
 cd backend
@@ -416,7 +425,7 @@ pnpm start:dev
 3. **验证API代理配置**:
 ```bash
 # 测试直接访问后端API
-curl -X POST http://127.0.0.1:3333/api/upload -F "file=@/dev/null"
+curl -X POST http://127.0.0.1:3888/api/upload -F "file=@/dev/null"
 
 # 测试通过nginx代理访问API
 curl -X POST http://localhost/urbanization/api/upload -F "file=@/dev/null"
@@ -453,7 +462,7 @@ sudo tail -f /usr/local/var/log/nginx/error.log
 ```nginx
 # /urbanization/images/ 路径反向代理到本地3333端口（图片静态文件）
 location /urbanization/images/ {
-    proxy_pass http://127.0.0.1:3333/images/;
+    proxy_pass http://127.0.0.1:3888/images/;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
