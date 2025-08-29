@@ -95,7 +95,14 @@ const RoleManagement: React.FC = () => {
       render: (_: unknown, record: RoleListItemDto) => (
         <Space>
           <Button
-            size="small"
+            color="primary"
+            variant="outlined"
+            onClick={() => openAssignModal(record)}
+            disabled={record.name === 'admin'}
+          >
+            分配权限
+          </Button>
+          <Button
             onClick={() => openModal(record)}
             disabled={record.name === 'admin'}
           >
@@ -103,24 +110,27 @@ const RoleManagement: React.FC = () => {
           </Button>
           <Popconfirm
             title="确定删除该角色？"
+            description={
+              <span>
+                此操作不可恢复，请谨慎操作。
+                <br />
+                <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                  将被删除：角色 {record.name}
+                </span>
+              </span>
+            }
             onConfirm={() => deleteRole({ id: record.id })}
             disabled={record.name === 'admin'}
+            okText="确定"
+            cancelText="取消"
           >
             <Button
-              size="small"
               danger
               disabled={record.name === 'admin'}
             >
               删除
             </Button>
           </Popconfirm>
-          <Button
-            size="small"
-            onClick={() => openAssignModal(record)}
-            disabled={record.name === 'admin'}
-          >
-            分配权限
-          </Button>
         </Space>
       )
     }

@@ -28,9 +28,11 @@ const ScoreEvaluationDetailModify = () => {
 
   useEffect(() => {
     if (detail) {
-      form.setFieldsValue({
-        text: toFullPathContent(detail.text)
-      })
+      setTimeout(() => {
+        form.setFieldsValue({
+          text: toFullPathContent(detail.text)
+        })
+      }, 0)
     } else {
       form.resetFields(['text'])
     }

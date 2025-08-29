@@ -90,7 +90,6 @@ const UserManagement: React.FC = () => {
       render: (_: any, record: UserListItemDto) => (
         <Space>
           <Button
-            size="small"
             onClick={() => openModal(record)}
             disabled={record.code === '88888888'}
           >
@@ -98,11 +97,21 @@ const UserManagement: React.FC = () => {
           </Button>
           <Popconfirm
             title="确定删除该用户？"
+            description={
+              <span>
+                此操作不可恢复，请谨慎操作。
+                <br />
+                <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                  将被删除：用户 {record.name}（{record.code}）
+                </span>
+              </span>
+            }
             onConfirm={() => deleteUser({ id: record.id })}
             disabled={record.code === '88888888'}
+            okText="确定"
+            cancelText="取消"
           >
             <Button
-              size="small"
               danger
               disabled={record.code === '88888888'}
             >
@@ -110,7 +119,6 @@ const UserManagement: React.FC = () => {
             </Button>
           </Popconfirm>
           <Button
-            size="small"
             icon={<KeyOutlined />}
             onClick={() => openResetModal(record)}
           >

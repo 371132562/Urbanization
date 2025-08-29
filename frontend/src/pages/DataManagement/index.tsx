@@ -210,6 +210,15 @@ const DataManagement = () => {
 
             <Popconfirm
               title="确定删除这条数据吗？"
+              description={
+                <span>
+                  此操作不可恢复，请谨慎操作。
+                  <br />
+                  <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                    将被删除：{record.cnName}（{record.year}年）的城镇化数据
+                  </span>
+                </span>
+              }
               onConfirm={() => handleDelete(record)}
               okText="确定"
               cancelText="取消"

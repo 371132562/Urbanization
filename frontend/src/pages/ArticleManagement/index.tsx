@@ -68,7 +68,15 @@ const ArticleManagement: React.FC = () => {
           </Button>
           <Popconfirm
             title="确定要删除这篇文章吗？"
-            description="此操作不可恢复。"
+            description={
+              <span>
+                此操作不可恢复，请谨慎操作。
+                <br />
+                <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                  将被删除：文章《{record.title}》
+                </span>
+              </span>
+            }
             onConfirm={() => handleDelete(record.id)}
             okText="确定"
             cancelText="取消"

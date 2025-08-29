@@ -177,7 +177,15 @@ const ScoreEvaluationDetailListPage = () => {
             {record.hasCustomDetail && (
               <Popconfirm
                 title="确定要删除吗？"
-                description={`删除 ${record.cnName}（${record.year}年）的自定义评价详情文案。`}
+                description={
+                  <span>
+                    此操作不可恢复，请谨慎操作。
+                    <br />
+                    <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                      将被删除：{record.cnName}（{record.year}年）的自定义评价详情文案
+                    </span>
+                  </span>
+                }
                 onConfirm={async () => {
                   const success = await deleteEvaluationDetail({
                     year: record.year,
