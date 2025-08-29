@@ -107,7 +107,8 @@ const ScoreEvaluationPage = () => {
           type="secondary"
           className="flex-1"
         >
-          定义不同的评分区间及其对应的评价文案。系统将根据综合评分匹配相应的评价，请确保区间连续且不重叠。
+          定义不同的评分区间及其对应的评价文案。系统将根据综合评分匹配相应的评价，请确保区间连续且不重叠。评分区间采用左闭右开形式
+          ，即包含最小评分但不包含最大评分。
         </Text>
         <Space>
           <Button onClick={() => navigate('/scoreManagement/list')}>返回</Button>
@@ -169,7 +170,7 @@ const ScoreEvaluationPage = () => {
                     <Form.Item
                       {...restField}
                       name={[name, 'maxScore']}
-                      label="最大评分 (包含)"
+                      label="最大评分 (不包含)"
                       rules={[{ required: true, message: '请输入最大评分' }]}
                     >
                       <InputNumber

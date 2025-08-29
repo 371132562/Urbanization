@@ -429,7 +429,7 @@ export class ScoreService {
         for (const e of evaluations) {
           const min = decimalToNumber(e.minScore);
           const max = decimalToNumber(e.maxScore);
-          if (scoreNum >= min && scoreNum <= max) return e.evaluationText;
+          if (scoreNum >= min && scoreNum < max) return e.evaluationText;
         }
         return '';
       };

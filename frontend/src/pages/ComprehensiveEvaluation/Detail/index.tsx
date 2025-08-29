@@ -47,7 +47,7 @@ const ComprehensiveEvaluationDetail: FC = () => {
       return null
     }
     const score = detailData.totalScore
-    return evaluations.find(rule => score >= rule.minScore && score <= rule.maxScore) || null
+    return evaluations.find(rule => score >= rule.minScore && score < rule.maxScore) || null
   }, [detailData, evaluations])
 
   // 加载状态判断

@@ -1,5 +1,5 @@
 import { LoginOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons' // 导入图标
-import { Avatar, /* Breadcrumb, */ Dropdown, Layout, Menu, MenuProps } from 'antd'
+import { Avatar, /* Breadcrumb, */ Dropdown, Layout, Menu, MenuProps, Tag } from 'antd'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { /* Link,  */ useLocation, useNavigate, useOutlet } from 'react-router'
@@ -65,7 +65,13 @@ export const Component: FC = () => {
               {/* 角色名称 */}
               <div className="mb-2 flex items-center text-sm text-gray-600">
                 <span className="mr-2 text-gray-400">角色：</span>
-                <span>{user.role?.name || '-'}</span>
+                <span>
+                  {(user.role?.name === 'admin' ? (
+                    <Tag color="red">超级管理员</Tag>
+                  ) : (
+                    user.role?.name
+                  )) || '-'}
+                </span>
               </div>
               {/* 所属部门 */}
               <div className="flex items-center text-sm text-gray-600">
