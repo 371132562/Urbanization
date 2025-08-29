@@ -4,35 +4,26 @@ import { create } from 'zustand'
 import {
   systemLogsListFiles,
   systemLogsRead,
+  systemUserLogsList,
   systemUserLogsListFiles,
-  systemUserLogsRead,
-  systemUserLogsSearch
+  systemUserLogsRead
 } from '@/services/apis'
 import request from '@/services/base'
 import {
   LogLineItem,
+  LogUsersResDto,
   ReadLogReqDto,
   SystemLogFilesResDto,
-  UserLogFilesReqDto,
-  UserSearchResDto
+  UserLogFilesReqDto
 } from '@/types'
-
-/**
- * 文件选项类型
- * 用于Select组件的选项数据格式
- */
-type FileOption = {
-  label: string // 显示名称
-  value: string // 实际值
-}
 
 /**
  * 用户选项类型
  * 用于用户选择下拉框的选项数据格式
  */
 type UserOption = {
-  label: string // 用户显示名称
-  value: string // 用户ID
+  label: string // 用户显示名称：姓名/编号 或 编号
+  value: string // 用户编号
 }
 
 /**
@@ -53,16 +44,12 @@ type SystemLogsState = {
   // ==================== 系统日志相关状态 ====================
   /** 系统日志文件列表（原始数据） */
   files: SystemLogFilesResDto['files']
-  /** 系统日志文件选项（用于Select组件） */
-  fileOptions: FileOption[]
   /** 系统日志读取结果 */
   readResult?: LogLineItem[]
 
   // ==================== 用户日志相关状态 ====================
   /** 用户日志文件列表（原始数据） */
   userFiles: SystemLogFilesResDto['files']
-  /** 用户日志文件选项（用于Select组件） */
-  userFileOptions: FileOption[]
   /** 用户选项列表（用于用户选择） */
   userOptions: UserOption[]
   /** 用户日志读取结果 */
@@ -77,8 +64,6 @@ type SystemLogsState = {
   listFiles: () => Promise<void>
   /** 读取系统日志内容 */
   readLog: (payload: ReadLogReqDto) => Promise<void>
-  /** 构建系统日志文件选项 */
-  buildFileOptions: () => void
   /** 带防抖的文件列表刷新 */
   refreshFilesWithDebounce: (force?: boolean) => Promise<void>
 
@@ -87,10 +72,8 @@ type SystemLogsState = {
   listUserFiles: (payload: UserLogFilesReqDto) => Promise<void>
   /** 读取用户日志内容 */
   readUserLog: (payload: ReadLogReqDto & { userId: string }) => Promise<void>
-  /** 搜索用户 */
-  searchUsers: () => Promise<UserSearchResDto>
-  /** 构建用户日志文件选项 */
-  buildUserFileOptions: () => void
+  /** 列出日志用户 */
+  listUsers: () => Promise<LogUsersResDto>
   /** 带防抖的用户文件列表刷新 */
   refreshUserFilesWithDebounce: (userId: string, force?: boolean) => Promise<void>
   /** 加载初始用户列表 */
@@ -112,9 +95,7 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
   userFilesLoading: false,
   contentLoading: false,
   files: [],
-  fileOptions: [],
   userFiles: [],
-  userFileOptions: [],
   userOptions: [],
   lastRefreshTime: 0,
 
@@ -127,8 +108,6 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
     try {
       const res = await request.post<SystemLogFilesResDto>(systemLogsListFiles, {})
       set({ files: res.data.files })
-      // 自动构建文件选项，确保UI数据同步
-      get().buildFileOptions()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '获取日志文件失败'
       message.error(msg)
@@ -155,16 +134,6 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
   },
 
   /**
-   * 构建系统日志文件选项
-   * 将文件列表转换为Select组件需要的格式
-   */
-  buildFileOptions() {
-    const { files } = get()
-    const fileOptions = files.map(f => ({ label: f.filename, value: f.filename }))
-    set({ fileOptions })
-  },
-
-  /**
    * 带防抖的文件列表刷新
    * 避免频繁调用API，提升用户体验
    * @param force 是否强制刷新，忽略防抖限制
@@ -185,15 +154,13 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
   // ==================== 用户日志方法实现 ====================
   /**
    * 获取用户日志文件列表
-   * @param payload 请求参数，包含用户ID
+   * @param payload 请求参数，包含用户编号
    */
   async listUserFiles(payload) {
     set({ userFilesLoading: true })
     try {
       const res = await request.post<SystemLogFilesResDto>(systemUserLogsListFiles, payload)
       set({ userFiles: res.data.files })
-      // 自动构建用户文件选项，确保UI数据同步
-      get().buildUserFileOptions()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '获取用户日志文件失败'
       message.error(msg)
@@ -204,7 +171,7 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
 
   /**
    * 读取用户日志内容
-   * @param payload 读取参数，包含用户ID、文件名、过滤条件等
+   * @param payload 读取参数，包含用户编号、文件名、过滤条件等
    */
   async readUserLog(payload) {
     set({ contentLoading: true })
@@ -220,16 +187,16 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
   },
 
   /**
-   * 搜索用户
-   * 支持模糊搜索用户名或用户ID
-   * @param payload 搜索参数，包含关键词
-   * @returns 搜索结果
+   * 列出日志用户
    */
-  async searchUsers(payload) {
+  async listUsers() {
     set({ usersLoading: true })
     try {
-      const res = await request.post<UserSearchResDto>(systemUserLogsSearch, payload)
-      const userOptions = res.data.list.map(i => ({ label: i.name, value: i.userId }))
+      const res = await request.post<LogUsersResDto>(systemUserLogsList)
+      const userOptions = (res.data.list || []).map(i => ({
+        label: i.userName ? `${i.userName}/${i.userCode}` : i.userCode,
+        value: i.userCode
+      }))
       set({ userOptions })
       return res.data
     } catch {
@@ -241,19 +208,9 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
   },
 
   /**
-   * 构建用户日志文件选项
-   * 将用户文件列表转换为Select组件需要的格式
-   */
-  buildUserFileOptions() {
-    const { userFiles } = get()
-    const userFileOptions = userFiles.map(f => ({ label: f.filename, value: f.filename }))
-    set({ userFileOptions })
-  },
-
-  /**
    * 带防抖的用户文件列表刷新
    * 避免频繁调用API，提升用户体验
-   * @param userId 用户ID
+   * @param userId 用户编号
    * @param force 是否强制刷新，忽略防抖限制
    */
   async refreshUserFilesWithDebounce(userId: string, force = false) {
@@ -271,14 +228,16 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
 
   /**
    * 加载初始用户列表
-   * 组件初始化时调用，尝试加载一些示例用户
+   * 组件初始化时调用
    */
   async loadInitialUsers() {
     try {
-      // 尝试搜索空字符串，获取所有用户
-      const res = await get().searchUsers({ q: '' })
+      const res = await get().listUsers()
       if (res.list.length > 0) {
-        const userOptions = res.list.map(i => ({ label: i.name, value: i.userId }))
+        const userOptions = res.list.map(i => ({
+          label: i.userName ? `${i.userName}/${i.userCode}` : i.userCode,
+          value: i.userCode
+        }))
         set({ userOptions })
       }
     } catch {
@@ -293,11 +252,11 @@ export const useSystemLogsStore = create<SystemLogsState>((set, get) => ({
    */
   resetState() {
     set({
-      fileOptions: [],
-      userFileOptions: [],
       userOptions: [],
       readResult: undefined,
       readUserResult: undefined
     })
   }
 }))
+
+export default useSystemLogsStore

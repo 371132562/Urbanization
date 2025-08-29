@@ -62,8 +62,6 @@ export class ArticleService {
   }
 
   async detail(id: string): Promise<ArticleItem> {
-    this.logger.log(`[开始] 获取文章详情 - 文章ID: ${id}`);
-
     try {
       const article = await this.prisma.article.findFirst({
         where: { id, delete: 0 },
@@ -76,6 +74,11 @@ export class ArticleService {
           `文章ID ${id} 不存在`,
         );
       }
+
+      // 查到文章后再输出更友好的开始日志
+      this.logger.log(
+        `[开始] 获取文章详情 - 文章ID: ${id}, 标题: ${article.title}`,
+      );
 
       this.logger.log(
         `[成功] 获取文章详情 - 文章ID: ${id}, 标题: ${article.title}`,
@@ -238,14 +241,28 @@ export class ArticleService {
   }
 
   async update(updateArticleDto: UpdateArticleDto): Promise<ArticleItem> {
-    this.logger.log(`[开始] 更新文章 - 文章ID: ${updateArticleDto.id}`);
-
     try {
       const {
         id,
         deletedImages: incomingDeletedImages,
         ...data
       } = updateArticleDto;
+
+      // 先查原始文章，用于输出更友好的开始日志
+      const original = await this.prisma.article.findFirst({
+        where: { id, delete: 0 },
+        select: { id: true, title: true },
+      });
+      if (!original) {
+        this.logger.warn(`[验证失败] 更新文章 - 文章ID ${id} 不存在或已被删除`);
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `文章ID ${id} 不存在或已被删除`,
+        );
+      }
+      this.logger.log(
+        `[开始] 更新文章 - 文章ID: ${original.id}, 标题: ${original.title}`,
+      );
 
       // 使用工具类处理图片数据
       const { processedData, deletedImages } =
@@ -286,8 +303,6 @@ export class ArticleService {
   }
 
   async delete(id: string): Promise<ArticleItem> {
-    this.logger.log(`[开始] 删除文章 - 文章ID: ${id}`);
-
     try {
       // 1. 查找要删除的文章，以获取其图片列表
       const articleToDelete = await this.prisma.article.findFirst({
@@ -301,6 +316,11 @@ export class ArticleService {
           `文章ID ${id} 不存在或已被删除`,
         );
       }
+
+      // 查到文章后再输出更友好的开始日志
+      this.logger.log(
+        `[开始] 删除文章 - 文章ID: ${id}, 标题: ${articleToDelete.title}`,
+      );
 
       // 2. 物理删除
       const deletedArticle = await this.prisma.article.delete({

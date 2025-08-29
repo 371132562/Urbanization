@@ -292,11 +292,7 @@ export class DataManagementService {
     // 直接使用数字年份
     const yearValue = year;
 
-    this.logger.log(
-      `[开始] 创建指标值数据 - 国家ID: ${countryId}, 年份: ${yearValue}, 指标数量: ${indicators.length}`,
-    );
-
-    // 步骤2: 验证国家是否存在
+    // 步骤2: 验证国家是否存在，并在获取后输出更友好的开始日志
     const country = await this.prisma.country.findFirst({
       where: { id: countryId, delete: 0 },
     });
@@ -310,6 +306,10 @@ export class DataManagementService {
         `未找到ID为 ${countryId} 的国家`,
       );
     }
+
+    this.logger.log(
+      `[开始] 创建指标值数据 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}, 指标数量: ${indicators.length}`,
+    );
 
     // 步骤3: 检查该国家该年份是否已有数据
     const existingCount = await this.prisma.indicatorValue.count({
@@ -548,10 +548,6 @@ export class DataManagementService {
     // 直接使用数字年份
     const yearValue = year;
 
-    this.logger.log(
-      `[开始] 获取国家详细指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}`,
-    );
-
     // 步骤2: 获取国家基本信息
     const country = await this.prisma.country.findFirst({
       where: { id: countryId, delete: 0 },
@@ -566,6 +562,10 @@ export class DataManagementService {
         `未找到ID为 ${countryId} 的国家`,
       );
     }
+
+    this.logger.log(
+      `[开始] 获取国家详细指标数据 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}`,
+    );
 
     // 步骤3: 获取指定年份的指标数据
 
@@ -725,44 +725,72 @@ export class DataManagementService {
   async delete(params: CountryYearQueryDto): Promise<{ count: number }> {
     const { countryId, year } = params;
     const yearValue = year;
+    try {
+      // 先获取国家信息以便输出更友好的日志
+      const country = await this.prisma.country.findFirst({
+        where: { id: countryId, delete: 0 },
+        select: { id: true, cnName: true, enName: true },
+      });
+      if (!country) {
+        this.logger.warn(
+          `[验证失败] 删除国家指标数据 - 国家ID ${countryId} 不存在，年份: ${yearValue}`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `未找到ID为 ${countryId} 的国家`,
+        );
+      }
 
-    this.logger.log(
-      `[开始] 删除国家指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}`,
-    );
-
-    // 步骤1: 检查数据是否存在
-    const existingCount = await this.prisma.indicatorValue.count({
-      where: {
-        countryId,
-        year: yearValue,
-        delete: 0,
-      },
-    });
-
-    if (existingCount === 0) {
-      throw new BusinessException(
-        ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到国家ID ${countryId} 在 ${yearValue} 年的数据，无需删除`,
+      this.logger.log(
+        `[开始] 删除国家指标数据 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}`,
       );
+
+      // 步骤1: 检查数据是否存在
+      const existingCount = await this.prisma.indicatorValue.count({
+        where: {
+          countryId,
+          year: yearValue,
+          delete: 0,
+        },
+      });
+
+      if (existingCount === 0) {
+        this.logger.warn(
+          `[验证失败] 删除国家指标数据 - 国家: ${country.cnName}(${country.enName}), 年份: ${yearValue} 无数据可删`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `未找到国家ID ${countryId} 在 ${yearValue} 年的数据，无需删除`,
+        );
+      }
+
+      // 步骤2: 执行软删除
+      const { count } = await this.prisma.indicatorValue.updateMany({
+        where: {
+          countryId,
+          year: yearValue,
+          delete: 0,
+        },
+        data: {
+          delete: 1,
+        },
+      });
+
+      this.logger.log(
+        `[成功] 删除国家指标数据 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}, 删除数量: ${count}`,
+      );
+
+      return { count };
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      this.logger.error(
+        `[失败] 删除国家指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}, ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-
-    // 步骤2: 执行软删除
-    const { count } = await this.prisma.indicatorValue.updateMany({
-      where: {
-        countryId,
-        year: yearValue,
-        delete: 0,
-      },
-      data: {
-        delete: 1,
-      },
-    });
-
-    this.logger.log(
-      `[成功] 删除国家指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}, 删除数量: ${count}`,
-    );
-
-    return { count };
   }
 
   /**
@@ -777,11 +805,7 @@ export class DataManagementService {
     // 直接使用数字年份
     const yearValue = year;
 
-    this.logger.log(
-      `[开始] 检查国家指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}`,
-    );
-
-    // 验证国家是否存在
+    // 验证国家是否存在，并在获取后输出更友好的开始日志
     const country = await this.prisma.country.findFirst({
       where: { id: countryId, delete: 0 },
     });
@@ -795,6 +819,10 @@ export class DataManagementService {
         `未找到ID为 ${countryId} 的国家`,
       );
     }
+
+    this.logger.log(
+      `[开始] 检查国家指标数据 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}`,
+    );
 
     // 查询该国家该年份的指标值数量
     // 使用精确匹配查询，因为现在 year 是 number 类型

@@ -106,10 +106,13 @@ export class RoleService {
    * 编辑角色
    */
   async updateRole(dto: UpdateRoleDto) {
-    this.logger.log(`[开始] 编辑角色 - ID: ${dto.id}`);
-
     try {
       const role = await this.prisma.role.findUnique({ where: { id: dto.id } });
+      this.logger.log(
+        role
+          ? `[开始] 编辑角色 - ID: ${dto.id}, 名称: ${role.name}`
+          : `[开始] 编辑角色 - ID: ${dto.id}`,
+      );
       if (!role || role.delete !== 0) {
         this.logger.warn(`[验证失败] 编辑角色 - 角色ID ${dto.id} 不存在`);
         throw new BusinessException(ErrorCode.ROLE_NOT_FOUND, '角色不存在');
@@ -171,10 +174,13 @@ export class RoleService {
    * 删除角色（软删除）
    */
   async deleteRole(dto: DeleteRoleDto) {
-    this.logger.log(`[开始] 删除角色 - ID: ${dto.id}`);
-
     try {
       const role = await this.prisma.role.findUnique({ where: { id: dto.id } });
+      this.logger.log(
+        role
+          ? `[开始] 删除角色 - ID: ${dto.id}, 名称: ${role.name}`
+          : `[开始] 删除角色 - ID: ${dto.id}`,
+      );
       if (!role || role.delete !== 0) {
         this.logger.warn(`[验证失败] 删除角色 - 角色ID ${dto.id} 不存在`);
         throw new BusinessException(ErrorCode.ROLE_NOT_FOUND, '角色不存在');
@@ -227,10 +233,13 @@ export class RoleService {
    * 分配角色菜单权限
    */
   async assignRoleRoutes(dto: AssignRoleRoutesDto) {
-    this.logger.log(`[开始] 分配角色菜单权限 - 角色ID: ${dto.id}`);
-
     try {
       const role = await this.prisma.role.findUnique({ where: { id: dto.id } });
+      this.logger.log(
+        role
+          ? `[开始] 分配角色菜单权限 - 角色ID: ${dto.id}, 名称: ${role.name}`
+          : `[开始] 分配角色菜单权限 - 角色ID: ${dto.id}`,
+      );
       if (!role || role.delete !== 0) {
         this.logger.warn(
           `[验证失败] 分配角色菜单权限 - 角色ID ${dto.id} 不存在`,

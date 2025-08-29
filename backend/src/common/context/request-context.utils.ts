@@ -2,8 +2,8 @@ import { AsyncLocalStorage } from 'async_hooks';
 
 // 请求上下文中的用户类型定义（可根据实际用户结构扩展）
 export type RequestUser = {
-  id: string | number;
-  username?: string;
+  userCode: string | number; // 用户编号
+  userName?: string; // 用户姓名
 };
 
 // 请求上下文存储结构定义

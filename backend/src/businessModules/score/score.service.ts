@@ -489,8 +489,16 @@ export class ScoreService {
   ): Promise<ScoreEvaluationDetailEditResDto | null> {
     const { year, countryId } = params;
 
+    // 为日志补充国家名称
+    const countryForLog = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
+      select: { id: true, cnName: true, enName: true },
+    });
+
     this.logger.log(
-      `[开始] 获取评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
+      countryForLog
+        ? `[开始] 获取评价详情 - 年份: ${year}, 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}`
+        : `[开始] 获取评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
     );
 
     try {
@@ -516,7 +524,9 @@ export class ScoreService {
       };
 
       this.logger.log(
-        `[成功] 获取评价详情 - 年份: ${year}, 国家ID: ${countryId}, 记录ID: ${record.id}`,
+        countryForLog
+          ? `[成功] 获取评价详情 - 年份: ${year}, 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}, 记录ID: ${record.id}`
+          : `[成功] 获取评价详情 - 年份: ${year}, 国家ID: ${countryId}, 记录ID: ${record.id}`,
       );
 
       return result;
@@ -539,8 +549,16 @@ export class ScoreService {
   ): Promise<ScoreEvaluationDetailEditResDto> {
     const { year, countryId, text } = dto;
 
+    // 为日志补充国家名称
+    const countryForLog = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
+      select: { id: true, cnName: true, enName: true },
+    });
+
     this.logger.log(
-      `[开始] 保存/更新评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
+      countryForLog
+        ? `[开始] 保存/更新评价详情 - 年份: ${year}, 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}`
+        : `[开始] 保存/更新评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
     );
 
     try {
@@ -603,7 +621,9 @@ export class ScoreService {
       };
 
       this.logger.log(
-        `[成功] 保存/更新评价详情 - 年份: ${year}, 国家ID: ${countryId}, 记录ID: ${saved.id}, 操作类型: ${existing ? '更新' : '创建'}`,
+        countryForLog
+          ? `[成功] 保存/更新评价详情 - 年份: ${year}, 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}, 记录ID: ${saved.id}, 操作类型: ${existing ? '更新' : '创建'}`
+          : `[成功] 保存/更新评价详情 - 年份: ${year}, 国家ID: ${countryId}, 记录ID: ${saved.id}, 操作类型: ${existing ? '更新' : '创建'}`,
       );
 
       return result;
@@ -625,8 +645,15 @@ export class ScoreService {
     dto: DeleteScoreEvaluationDetailDto,
   ): Promise<void> {
     const { year, countryId } = dto;
+    // 为日志补充国家名称
+    const countryForLog = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
+      select: { id: true, cnName: true, enName: true },
+    });
     this.logger.log(
-      `[开始] 删除评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
+      countryForLog
+        ? `[开始] 删除评价详情 - 年份: ${year}, 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}`
+        : `[开始] 删除评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
     );
 
     try {
@@ -659,7 +686,9 @@ export class ScoreService {
       );
 
       this.logger.log(
-        `[成功] 删除评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
+        countryForLog
+          ? `[成功] 删除评价详情 - 年份: ${year}, 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}`
+          : `[成功] 删除评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
       );
     } catch (error) {
       if (error instanceof BusinessException) {
@@ -692,10 +721,6 @@ export class ScoreService {
     // 直接使用数字年份
     const yearValue = year;
 
-    this.logger.log(
-      `[开始] 创建评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
-    );
-
     try {
       // 2. 验证关联的国家是否存在且未被删除
       const country = await this.prisma.country.findFirst({
@@ -710,6 +735,10 @@ export class ScoreService {
           `未找到 ID 为 ${countryId} 的国家`,
         );
       }
+
+      this.logger.log(
+        `[开始] 创建评分记录 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}`,
+      );
 
       // 3. 检查该国家在该年份是否已存在评分记录
       const existingScore = await this.prisma.score.findFirst({
@@ -734,20 +763,20 @@ export class ScoreService {
       if (existingScore) {
         // 如果记录已存在，则更新现有记录
         this.logger.log(
-          `[开始] 更新评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+          `[开始] 更新评分记录 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}`,
         );
         const result = await this.prisma.score.update({
           where: { id: existingScore.id },
           data: scoreData,
         });
         this.logger.log(
-          `[成功] 更新评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+          `[成功] 更新评分记录 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}`,
         );
         return result;
       } else {
         // 如果记录不存在，则创建新记录
         this.logger.log(
-          `[开始] 创建新评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+          `[开始] 创建新评分记录 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}`,
         );
         const result = await this.prisma.score.create({
           data: {
@@ -758,7 +787,7 @@ export class ScoreService {
           },
         });
         this.logger.log(
-          `[成功] 创建新评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+          `[成功] 创建新评分记录 - 国家: ${country.cnName}(${country.enName}), 国家ID: ${country.id}, 年份: ${yearValue}`,
         );
         return result;
       }
@@ -917,8 +946,16 @@ export class ScoreService {
     const { countryId, year } = params;
     const yearValue = year; // 直接使用数字年份
 
+    // 为日志补充国家名称
+    const countryForLog = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
+      select: { id: true, cnName: true, enName: true },
+    });
+
     this.logger.log(
-      `[开始] 获取评分详情 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+      countryForLog
+        ? `[开始] 获取评分详情 - 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}, 年份: ${yearValue}`
+        : `[开始] 获取评分详情 - 国家ID: ${countryId}, 年份: ${yearValue}`,
     );
 
     try {
@@ -975,7 +1012,7 @@ export class ScoreService {
       };
 
       this.logger.log(
-        `[成功] 获取评分详情 - 国家ID: ${countryId}, 年份: ${yearValue}, 记录ID: ${score.id}`,
+        `[成功] 获取评分详情 - 国家: ${result.country.cnName}(${result.country.enName}), 国家ID: ${result.country.id}, 年份: ${yearValue}, 记录ID: ${score.id}`,
       );
 
       return result;
@@ -1002,8 +1039,16 @@ export class ScoreService {
     const { countryId, year } = params;
     const yearValue = year; // 直接使用数字年份
 
+    // 为日志补充国家名称
+    const countryForLog = await this.prisma.country.findFirst({
+      where: { id: countryId, delete: 0 },
+      select: { id: true, cnName: true, enName: true },
+    });
+
     this.logger.log(
-      `[开始] 检查评分数据是否存在 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+      countryForLog
+        ? `[开始] 检查评分数据是否存在 - 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}, 年份: ${yearValue}`
+        : `[开始] 检查评分数据是否存在 - 国家ID: ${countryId}, 年份: ${yearValue}`,
     );
 
     try {
@@ -1021,7 +1066,9 @@ export class ScoreService {
       };
 
       this.logger.log(
-        `[成功] 检查评分数据是否存在 - 国家ID: ${countryId}, 年份: ${yearValue}, 存在: ${result.exists}, 数量: ${count}`,
+        countryForLog
+          ? `[成功] 检查评分数据是否存在 - 国家: ${countryForLog.cnName}(${countryForLog.enName}), 国家ID: ${countryForLog.id}, 年份: ${yearValue}, 存在: ${result.exists}, 数量: ${count}`
+          : `[成功] 检查评分数据是否存在 - 国家ID: ${countryId}, 年份: ${yearValue}, 存在: ${result.exists}, 数量: ${count}`,
       );
 
       return result;
@@ -1126,12 +1173,13 @@ export class ScoreService {
    */
   async delete(params: DeleteScoreDto): Promise<Score> {
     const { id } = params;
-    this.logger.log(`[开始] 删除评分记录 - 评分ID: ${id}`);
-
     try {
       // 1. 查找要删除的评分记录，以获取其年份和国家ID
       const scoreToDelete = await this.prisma.score.findFirst({
         where: { id, delete: 0 },
+        include: {
+          country: { select: { id: true, cnName: true, enName: true } },
+        },
       });
 
       if (!scoreToDelete) {
@@ -1143,6 +1191,13 @@ export class ScoreService {
           `评分记录不存在或已被删除`,
         );
       }
+
+      // 查询到记录后再输出更友好的开始日志
+      this.logger.log(
+        scoreToDelete.country
+          ? `[开始] 删除评分记录 - 评分ID: ${id}, 年份: ${scoreToDelete.year}, 国家: ${scoreToDelete.country.cnName}(${scoreToDelete.country.enName}), 国家ID: ${scoreToDelete.countryId}`
+          : `[开始] 删除评分记录 - 评分ID: ${id}, 年份: ${scoreToDelete.year}, 国家ID: ${scoreToDelete.countryId}`,
+      );
 
       // 2. 查找并删除相关的评分详情（自定义文案）
       const relatedDetail = await this.prisma.scoreEvaluationDetail.findFirst({
@@ -1181,7 +1236,9 @@ export class ScoreService {
       }
 
       this.logger.log(
-        `[成功] 删除评分记录 - 评分ID: ${id}, 年份: ${deletedScore.year}, 国家ID: ${deletedScore.countryId}`,
+        scoreToDelete.country
+          ? `[成功] 删除评分记录 - 评分ID: ${id}, 年份: ${deletedScore.year}, 国家: ${scoreToDelete.country.cnName}(${scoreToDelete.country.enName}), 国家ID: ${deletedScore.countryId}`
+          : `[成功] 删除评分记录 - 评分ID: ${id}, 年份: ${deletedScore.year}, 国家ID: ${deletedScore.countryId}`,
       );
       return deletedScore;
     } catch (error) {

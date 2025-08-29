@@ -8,9 +8,10 @@ import {
   SystemLogFileItem,
   SystemLogFilesResDto,
   UserLogFilesReqDto,
-  UserSearchResDto,
+  LogUsersResDto,
   LogLineItem,
 } from '../../../types/dto';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 /**
  * 系统日志服务
@@ -153,7 +154,7 @@ export class SystemLogsService {
   async listUserFiles(dto: UserLogFilesReqDto): Promise<SystemLogFilesResDto> {
     const { userId } = dto;
 
-    this.logger.log(`[开始] 列出用户日志文件 - 用户ID: ${userId}`);
+    this.logger.log(`[开始] 列出用户日志文件 - 用户编号: ${userId}`);
 
     try {
       const userLogDir = join(this.baseLogDir, 'users', userId);
@@ -161,7 +162,7 @@ export class SystemLogsService {
       // 检查用户日志目录是否存在
       if (!existsSync(userLogDir)) {
         this.logger.log(
-          `[成功] 列出用户日志文件 - 用户ID: ${userId}, 目录不存在，返回空列表`,
+          `[成功] 列出用户日志文件 - 用户编号: ${userId}, 目录不存在，返回空列表`,
         );
         return { files: [] };
       }
@@ -169,13 +170,13 @@ export class SystemLogsService {
       const files = await this.scanLogFiles(userLogDir);
 
       this.logger.log(
-        `[成功] 列出用户日志文件 - 用户ID: ${userId}, 共 ${files.length} 个文件`,
+        `[成功] 列出用户日志文件 - 用户编号: ${userId}, 共 ${files.length} 个文件`,
       );
 
       return { files };
     } catch (error) {
       this.logger.error(
-        `[失败] 列出用户日志文件 - 用户ID: ${userId}, ${error instanceof Error ? error.message : '未知错误'}`,
+        `[失败] 列出用户日志文件 - 用户编号: ${userId}, ${error instanceof Error ? error.message : '未知错误'}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;
@@ -264,7 +265,7 @@ export class SystemLogsService {
     const { userId, filename } = dto;
 
     this.logger.log(
-      `[开始] 读取用户日志 - 用户ID: ${userId}, 文件名: ${filename}`,
+      `[开始] 读取用户日志 - 用户编号: ${userId}, 文件名: ${filename}`,
     );
 
     try {
@@ -286,13 +287,13 @@ export class SystemLogsService {
       const result = await this.readLogFile(filePath);
 
       this.logger.log(
-        `[成功] 读取用户日志 - 用户ID: ${userId}, 文件名: ${filename}, 共 ${result.length} 行日志`,
+        `[成功] 读取用户日志 - 用户编号: ${userId}, 文件名: ${filename}, 共 ${result.length} 行日志`,
       );
 
       return result;
     } catch (error) {
       this.logger.error(
-        `[失败] 读取用户日志 - 用户ID: ${userId}, 文件名: ${filename}, ${error instanceof Error ? error.message : '未知错误'}`,
+        `[失败] 读取用户日志 - 用户编号: ${userId}, 文件名: ${filename}, ${error instanceof Error ? error.message : '未知错误'}`,
         error instanceof Error ? error.stack : undefined,
       );
       return [];
@@ -306,32 +307,41 @@ export class SystemLogsService {
    * @param dto 搜索请求参数
    * @returns 用户搜索结果
    */
-  async searchUsers(): Promise<UserSearchResDto> {
-    this.logger.log('[开始] 搜索用户');
+  constructor(private readonly prisma: PrismaService) {}
+
+  async listLogUsers(): Promise<LogUsersResDto> {
+    this.logger.log('[开始] 列出日志用户');
 
     try {
       const { readdirSync } = await import('fs');
       const usersDir = join(this.baseLogDir, 'users');
 
-      // 检查用户目录是否存在
       if (!existsSync(usersDir)) {
-        this.logger.log('[成功] 搜索用户 - 用户目录不存在，返回空列表');
+        this.logger.log('[成功] 列出日志用户 - 用户目录不存在，返回空列表');
         return { list: [] };
       }
 
       const dirs = readdirSync(usersDir, { withFileTypes: true });
-      const all = dirs
-        .filter((d) => d.isDirectory())
-        .map((d) => ({ userId: d.name, name: d.name }));
+      const codes = dirs.filter((d) => d.isDirectory()).map((d) => d.name);
 
-      const result = { list: all };
+      // 查询用户表，匹配编号 -> 姓名
+      const users = await this.prisma.user.findMany({
+        where: { code: { in: codes }, delete: 0 },
+        select: { code: true, name: true },
+      });
+      const codeToName = new Map(users.map((u) => [u.code, u.name]));
 
-      this.logger.log(`[成功] 搜索用户 - 共找到 ${result.list.length} 个用户`);
+      const list = codes.map((code) => ({
+        userCode: code,
+        userName: codeToName.get(code) || '',
+      }));
 
+      const result = { list };
+      this.logger.log(`[成功] 列出日志用户 - 共 ${result.list.length} 个用户`);
       return result;
     } catch (error) {
       this.logger.error(
-        `[失败] 搜索用户 - ${error instanceof Error ? error.message : '未知错误'}`,
+        `[失败] 列出日志用户 - ${error instanceof Error ? error.message : '未知错误'}`,
         error instanceof Error ? error.stack : undefined,
       );
       return { list: [] };

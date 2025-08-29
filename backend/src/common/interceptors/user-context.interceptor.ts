@@ -25,8 +25,8 @@ export class UserContextInterceptor implements NestInterceptor {
         userName?: string;
       };
       RequestContext.setUser({
-        id: userCode ?? '访客',
-        username: userName ?? '访客',
+        userCode: userCode ?? '访客',
+        userName: userName ?? '访客',
       });
     }
     return next.handle();

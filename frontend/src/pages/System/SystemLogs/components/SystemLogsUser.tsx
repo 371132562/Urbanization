@@ -75,13 +75,17 @@ const SystemLogsUser: React.FC = () => {
   /** 用户日志读取结果 */
   const readUserResult = useSystemLogsStore(state => state.readUserResult)
   /** 用户日志文件选项（用于Select组件） */
-  const userFileOptions = useSystemLogsStore(state => state.userFileOptions)
+  const userFiles = useSystemLogsStore(state => state.userFiles)
+  const userFileOptions = useMemo(
+    () => userFiles.map(f => ({ label: f.filename, value: f.filename })),
+    [userFiles]
+  )
   /** 用户选项列表（用于用户选择） */
   const userOptions = useSystemLogsStore(state => state.userOptions)
   /** 读取用户日志方法 */
   const readUserLog = useSystemLogsStore(state => state.readUserLog)
   /** 搜索用户方法 */
-  const searchUsers = useSystemLogsStore(state => state.searchUsers)
+  const listUsers = useSystemLogsStore(state => state.listUsers)
   /** 带防抖的用户文件列表刷新方法 */
   const refreshUserFilesWithDebounce = useSystemLogsStore(
     state => state.refreshUserFilesWithDebounce
@@ -131,7 +135,7 @@ const SystemLogsUser: React.FC = () => {
    * 组件初始化时加载所有用户
    */
   const loadUsers = async () => {
-    await searchUsers()
+    await listUsers()
   }
 
   /**
@@ -240,14 +244,14 @@ const SystemLogsUser: React.FC = () => {
         >
           <Form.Item
             name="userId"
-            label="用户编号"
+            label="用户（姓名/编号）"
             className="!mb-2"
           >
             <Select
               loading={usersLoading}
               showSearch
               allowClear
-              placeholder="请选择用户或输入编号搜索"
+              placeholder="请选择用户或输入姓名/编号搜索"
               style={{ width: 240 }}
               filterOption={(input, option) =>
                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
@@ -319,7 +323,7 @@ const SystemLogsUser: React.FC = () => {
             virtual
             scroll={{ y: 586 }}
             pagination={false}
-            columns={columns as any}
+            columns={columns}
             dataSource={filteredDataSource}
           />
         )}

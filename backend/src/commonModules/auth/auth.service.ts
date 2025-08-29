@@ -182,8 +182,6 @@ export class AuthService {
    * @returns 用户详细信息
    */
   async getUserProfile(userId: string) {
-    this.logger.log(`[开始] 获取用户信息 - 用户ID: ${userId}`);
-
     try {
       const user = await this.prisma.user.findFirst({
         where: {
@@ -211,6 +209,11 @@ export class AuthService {
           '用户不存在或已被删除',
         );
       }
+
+      // 查询到用户后再输出更友好的开始/成功日志
+      this.logger.log(
+        `[开始] 获取用户信息 - 用户ID: ${userId}, 编号: ${user.code}, 姓名: ${user.name}`,
+      );
 
       this.logger.log(
         `[成功] 获取用户信息 - 用户ID: ${userId}, 姓名: ${user.name}`,

@@ -1,21 +1,9 @@
 import { QuestionCircleOutlined } from '@ant-design/icons'
-import {
-  Card,
-  DatePicker,
-  Form,
-  Input,
-  Select,
-  Skeleton,
-  Space,
-  Table,
-  Tooltip,
-  Typography
-} from 'antd'
+import { Card, DatePicker, Form, Input, Select, Skeleton, Space, Table, Tooltip } from 'antd'
 import dayjs from 'dayjs'
 import React, { useEffect, useMemo, useState } from 'react'
 
 import { useSystemLogsStore } from '@/stores/systemLogsStore'
-const { Text } = Typography
 /**
  * 完整日志页面组件
  *
@@ -80,12 +68,18 @@ const SystemLogsFull: React.FC = () => {
   const contentLoading = useSystemLogsStore(state => state.contentLoading)
   /** 系统日志读取结果 */
   const readResult = useSystemLogsStore(state => state.readResult)
-  /** 系统日志文件选项（用于Select组件） */
-  const fileOptions = useSystemLogsStore(state => state.fileOptions)
+  /** 系统日志文件（原始数据） */
+  const files = useSystemLogsStore(state => state.files)
   /** 读取系统日志方法 */
   const readLog = useSystemLogsStore(state => state.readLog)
   /** 带防抖的文件列表刷新方法 */
   const refreshFilesWithDebounce = useSystemLogsStore(state => state.refreshFilesWithDebounce)
+
+  // 由原始 files 直接计算 Select 选项
+  const fileOptions = useMemo(
+    () => files.map(f => ({ label: f.filename, value: f.filename })),
+    [files]
+  )
 
   // ==================== 本地状态 ====================
   /** 表格数据源，从store的readResult转换而来 */

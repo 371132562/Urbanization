@@ -930,20 +930,20 @@ export type UserLogFilesReqDto = {
  * 用户搜索结果项
  * 描述单个用户的基本信息
  */
-export type UserSearchItemDto = {
-  /** 用户ID，用于后续的日志查询 */
-  userId: string;
-  /** 用户名称，用于显示 */
-  name: string;
+export type LogUserItemDto = {
+  /** 用户编号（作为日志目录名） */
+  userCode: string;
+  /** 用户姓名，若未匹配到则为空字符串 */
+  userName: string;
 };
 
 /**
  * 用户搜索结果响应
  * 返回符合条件的用户列表
  */
-export type UserSearchResDto = {
+export type LogUsersResDto = {
   /** 用户列表 */
-  list: UserSearchItemDto[];
+  list: LogUserItemDto[];
 };
 
 /**

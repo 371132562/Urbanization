@@ -70,9 +70,22 @@ export class CountryAndContinentService {
    */
   async getCountries(params: QueryCountryReqDto): Promise<CountryListResDto> {
     const { includeContinent = false, continentId } = params;
-    this.logger.log(
-      `[开始] 获取国家信息 - 包含大洲: ${includeContinent}, 大洲ID: ${continentId || '所有'}`,
-    );
+    // 如携带大洲ID，则尝试补充大洲名称，增强可读性
+    if (continentId) {
+      const continent = await this.prisma.continent.findFirst({
+        where: { id: continentId, delete: 0 },
+        select: { id: true, cnName: true, enName: true },
+      });
+      this.logger.log(
+        continent
+          ? `[开始] 获取国家信息 - 包含大洲: ${includeContinent}, 大洲: ${continent.cnName}(${continent.enName}), 大洲ID: ${continent.id}`
+          : `[开始] 获取国家信息 - 包含大洲: ${includeContinent}, 大洲ID: ${continentId}`,
+      );
+    } else {
+      this.logger.log(
+        `[开始] 获取国家信息 - 包含大洲: ${includeContinent}, 大洲: 所有`,
+      );
+    }
 
     try {
       // 构建查询条件

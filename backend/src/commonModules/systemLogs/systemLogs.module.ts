@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { SystemLogsController } from './systemLogs.controller';
 import { SystemLogsService } from './systemLogs.service';
@@ -15,6 +16,6 @@ import { SystemLogsService } from './systemLogs.service';
     ]),
   ],
   controllers: [SystemLogsController],
-  providers: [SystemLogsService],
+  providers: [SystemLogsService, PrismaService],
 })
 export class SystemLogsModule {}

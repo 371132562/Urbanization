@@ -6,7 +6,7 @@ import {
   ReadUserLogReqDto,
   SystemLogFilesResDto,
   UserLogFilesReqDto,
-  UserSearchResDto,
+  LogUsersResDto,
   LogLineItem,
 } from '../../../types/dto';
 
@@ -48,10 +48,11 @@ export class SystemLogsController {
     return this.service.readUserLog(dto);
   }
 
-  // 搜索用户（限流：每分钟最多50次，搜索操作相对轻量）
-  @Post('user/search')
-  @Throttle({ default: { limit: 50, ttl: 60000 } })
-  async searchUsers(): Promise<UserSearchResDto> {
-    return this.service.searchUsers();
+  // 列出日志用户（限流：每分钟最多30次）
+  @Post('user/list')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  async listLogUsers(): Promise<LogUsersResDto> {
+    const result = await this.service.listLogUsers();
+    return result;
   }
 }
