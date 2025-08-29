@@ -203,7 +203,8 @@ const ScoreEvaluationPage = () => {
               ))}
 
               <Button
-                type="dashed"
+                color="primary"
+                variant="dashed"
                 onClick={() =>
                   add({ minScore: null, maxScore: null, evaluationText: '', images: [] })
                 }
