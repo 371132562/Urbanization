@@ -397,7 +397,7 @@ sudo nginx -s reload
 
 **可能原因**:
 1. **nginx临时文件目录权限不足**: nginx无法写入临时文件目录
-2. **后端服务未启动**: 3333端口无服务响应
+2. **后端服务未启动**: 3888端口无服务响应
 3. **nginx配置错误**: location块匹配优先级问题
 
 **解决方案(仅供参考，根据实际情况调整)**:
@@ -414,7 +414,7 @@ sudo nginx -s reload
 
 2. **检查后端服务状态**:
 ```bash
-# 检查3333端口是否有服务运行
+# 检查3888端口是否有服务运行
 lsof -i :3888
 
 # 如果服务未运行，启动后端服务
@@ -460,7 +460,7 @@ sudo tail -f /usr/local/var/log/nginx/error.log
 1. **检查nginx配置**:
 确保nginx配置中包含图片静态文件代理：
 ```nginx
-# /urbanization/images/ 路径反向代理到本地3333端口（图片静态文件）
+# /urbanization/images/ 路径反向代理到本地3888端口（图片静态文件）
 location /urbanization/images/ {
     proxy_pass http://127.0.0.1:3888/images/;
     proxy_set_header Host $host;
