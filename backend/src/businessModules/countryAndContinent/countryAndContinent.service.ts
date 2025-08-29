@@ -11,11 +11,6 @@ import {
 import { BusinessException } from '../../common/exceptions/businessException';
 import { ErrorCode } from '../../../types/response';
 
-type ErrorWithMessage = {
-  message: string;
-  stack?: string;
-};
-
 @Injectable()
 export class CountryAndContinentService {
   private readonly logger = new Logger(CountryAndContinentService.name);

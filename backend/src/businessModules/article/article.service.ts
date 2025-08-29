@@ -132,7 +132,7 @@ export class ArticleService {
       ]);
 
       this.logger.log(
-        `[成功] 获取文章列表 - 共 ${total} 篇文章，当前页 ${articles.length} 篇`,
+        `[成功] 获取文章列表 - 共 ${total} 篇文章，当前页返回 ${articles.length} 篇，页码: ${page}`,
       );
 
       return {
@@ -212,12 +212,17 @@ export class ArticleService {
       });
 
       // 异步清理不再使用的图片，不阻塞主流程
-      ImageProcessorUtils.cleanupImagesAsync(
-        this.uploadService,
-        this.logger,
-        deletedImages,
-        '后台图片清理',
-      );
+      if (deletedImages.length > 0) {
+        this.logger.log(
+          `[资源清理] 清理文章图片 - 待清理图片数量: ${deletedImages.length}`,
+        );
+        ImageProcessorUtils.cleanupImagesAsync(
+          this.uploadService,
+          this.logger,
+          deletedImages,
+          '后台图片清理',
+        );
+      }
 
       this.logger.log(
         `[成功] 创建文章 - 文章ID: ${article.id}, 标题: ${article.title}`,
@@ -255,12 +260,17 @@ export class ArticleService {
       });
 
       // 异步清理不再使用的图片，不阻塞主流程
-      ImageProcessorUtils.cleanupImagesAsync(
-        this.uploadService,
-        this.logger,
-        deletedImages,
-        '后台图片清理',
-      );
+      if (deletedImages.length > 0) {
+        this.logger.log(
+          `[资源清理] 清理文章图片 - 待清理图片数量: ${deletedImages.length}`,
+        );
+        ImageProcessorUtils.cleanupImagesAsync(
+          this.uploadService,
+          this.logger,
+          deletedImages,
+          '后台图片清理',
+        );
+      }
 
       this.logger.log(
         `[成功] 更新文章 - 文章ID: ${article.id}, 标题: ${article.title}`,
@@ -298,12 +308,18 @@ export class ArticleService {
       });
 
       // 3. 异步清理该文章关联的图片
-      ImageProcessorUtils.cleanupImagesAsync(
-        this.uploadService,
-        this.logger,
-        deletedArticle.images as string[],
-        '删除文章后的图片清理',
-      );
+      const imagesToClean = deletedArticle.images as string[];
+      if (imagesToClean.length > 0) {
+        this.logger.log(
+          `[资源清理] 清理删除文章的图片 - 待清理图片数量: ${imagesToClean.length}`,
+        );
+        ImageProcessorUtils.cleanupImagesAsync(
+          this.uploadService,
+          this.logger,
+          imagesToClean,
+          '删除文章后的图片清理',
+        );
+      }
 
       this.logger.log(
         `[成功] 删除文章 - 文章ID: ${id}, 标题: ${deletedArticle.title}`,
@@ -332,128 +348,202 @@ export class ArticleService {
   ): Promise<ArticleOrderDto> {
     const { page, articles } = upsertArticleOrderDto;
 
-    // 校验所有文章ID都存在
-    const existingArticles = await this.prisma.article.findMany({
-      where: {
-        id: { in: articles },
-        delete: 0,
-      },
-      select: {
-        id: true,
-      },
-    });
+    this.logger.log(
+      `[开始] 更新文章排序 - 页面: ${page}, 文章数量: ${articles.length}`,
+    );
 
-    if (existingArticles.length !== articles.length) {
-      const existingIds = new Set(existingArticles.map((a) => a.id));
-      const nonExistentIds = articles.filter((id) => !existingIds.has(id));
-      throw new BusinessException(
-        ErrorCode.RESOURCE_NOT_FOUND,
-        `文章ID ${nonExistentIds.join(', ')} 不存在或已被删除`,
-      );
-    }
-
-    const result = await this.prisma.$transaction(async (tx) => {
-      const articleOrder = await tx.articleOrder.findFirst({
+    try {
+      // 校验所有文章ID都存在
+      const existingArticles = await this.prisma.article.findMany({
         where: {
-          page: page,
+          id: { in: articles },
+          delete: 0,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingArticles.length !== articles.length) {
+        const existingIds = new Set(existingArticles.map((a) => a.id));
+        const nonExistentIds = articles.filter((id) => !existingIds.has(id));
+        this.logger.warn(
+          `[验证失败] 更新文章排序 - 文章ID ${nonExistentIds.join(', ')} 不存在或已被删除`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `文章ID ${nonExistentIds.join(', ')} 不存在或已被删除`,
+        );
+      }
+
+      const result = await this.prisma.$transaction(async (tx) => {
+        const articleOrder = await tx.articleOrder.findFirst({
+          where: {
+            page: page,
+            delete: 0,
+          },
+        });
+
+        if (articleOrder) {
+          // 更新
+          return tx.articleOrder.update({
+            where: { id: articleOrder.id },
+            data: { articles: articles },
+          });
+        } else {
+          // 创建
+          return tx.articleOrder.create({
+            data: {
+              page: page,
+              articles: articles,
+            },
+          });
+        }
+      });
+
+      this.logger.log(
+        `[成功] 更新文章排序 - 页面: ${page}, 排序ID: ${result.id}`,
+      );
+      return this.mapToArticleOrderDto(result);
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      this.logger.error(
+        `[失败] 更新文章排序 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
+  async getArticlesByPage(page: string): Promise<ArticleItem[]> {
+    this.logger.log(`[开始] 获取页面文章 - 页面: ${page}`);
+
+    try {
+      const articleOrder = await this.prisma.articleOrder.findFirst({
+        where: { page, delete: 0 },
+      });
+
+      if (!articleOrder) {
+        this.logger.log(`[成功] 获取页面文章 - 页面: ${page}, 未配置文章排序`);
+        return [];
+      }
+
+      const articleIds = articleOrder.articles as string[];
+      if (!Array.isArray(articleIds) || articleIds.length === 0) {
+        this.logger.log(`[成功] 获取页面文章 - 页面: ${page}, 文章排序为空`);
+        return [];
+      }
+
+      const articles = await this.prisma.article.findMany({
+        where: {
+          id: { in: articleIds },
           delete: 0,
         },
       });
 
-      if (articleOrder) {
-        // 更新
-        return tx.articleOrder.update({
-          where: { id: articleOrder.id },
-          data: { articles: articles },
-        });
-      } else {
-        // 创建
-        return tx.articleOrder.create({
-          data: {
-            page: page,
-            articles: articles,
-          },
-        });
-      }
-    });
+      // 保持articles数组中定义的顺序
+      const articleMap = new Map<string, Article>();
+      articles.forEach((article) => articleMap.set(article.id, article));
 
-    return this.mapToArticleOrderDto(result);
-  }
+      const sortedArticles = articleIds
+        .map((id) => articleMap.get(id))
+        .filter((article): article is Article => article !== undefined)
+        .map((article) => this.mapToDto(article));
 
-  async getArticlesByPage(page: string): Promise<ArticleItem[]> {
-    const articleOrder = await this.prisma.articleOrder.findFirst({
-      where: { page, delete: 0 },
-    });
-
-    if (!articleOrder) {
-      return [];
+      this.logger.log(
+        `[成功] 获取页面文章 - 页面: ${page}, 返回 ${sortedArticles.length} 篇文章`,
+      );
+      return sortedArticles;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取页面文章 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-
-    const articleIds = articleOrder.articles as string[];
-    if (!Array.isArray(articleIds) || articleIds.length === 0) {
-      return [];
-    }
-
-    const articles = await this.prisma.article.findMany({
-      where: {
-        id: { in: articleIds },
-        delete: 0,
-      },
-    });
-
-    // 保持articles数组中定义的顺序
-    const articleMap = new Map<string, Article>();
-    articles.forEach((article) => articleMap.set(article.id, article));
-
-    const sortedArticles = articleIds
-      .map((id) => articleMap.get(id))
-      .filter((article): article is Article => article !== undefined)
-      .map((article) => this.mapToDto(article));
-
-    return sortedArticles;
   }
 
   async getDetailsByIds(ids: string[]): Promise<ArticleItem[]> {
     if (!ids || ids.length === 0) {
+      this.logger.log('[成功] 获取文章详情 - 文章ID列表为空');
       return [];
     }
-    const articles = await this.prisma.article.findMany({
-      where: {
-        id: { in: ids },
-        delete: 0,
-      },
-    });
 
-    const articleMap = new Map<string, Article>();
-    articles.forEach((article) => articleMap.set(article.id, article));
+    this.logger.log(`[开始] 获取文章详情 - 文章ID数量: ${ids.length}`);
 
-    // 保持传入id的顺序
-    const sortedArticles = ids
-      .map((id) => articleMap.get(id))
-      .filter((article): article is Article => article !== undefined)
-      .map((article) => this.mapToDto(article));
+    try {
+      const articles = await this.prisma.article.findMany({
+        where: {
+          id: { in: ids },
+          delete: 0,
+        },
+      });
 
-    return sortedArticles;
+      const articleMap = new Map<string, Article>();
+      articles.forEach((article) => articleMap.set(article.id, article));
+
+      // 保持传入id的顺序
+      const sortedArticles = ids
+        .map((id) => articleMap.get(id))
+        .filter((article): article is Article => article !== undefined)
+        .map((article) => this.mapToDto(article));
+
+      this.logger.log(
+        `[成功] 获取文章详情 - 请求 ${ids.length} 篇文章，返回 ${sortedArticles.length} 篇`,
+      );
+      return sortedArticles;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取文章详情 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   // 配置评价体系上方的评价标准文章，如果未配置，则返回空对象，前端根据空id判断不初始化并走创建逻辑，否则展示并走更新逻辑
   async getScoreStandard(): Promise<ArticleItem> {
-    const article = await this.prisma.article.findFirst({
-      where: { type: ArticleType.SCORE_STANDARD, delete: 0 },
-    });
-    return this.mapToDto(
-      article
-        ? article
-        : {
-            id: '',
-            title: '',
-            content: '',
-            images: [],
-            type: ArticleType.SCORE_STANDARD,
-            createTime: new Date(),
-            updateTime: new Date(),
-            delete: 0,
-          },
-    );
+    this.logger.log('[开始] 获取评分标准文章');
+
+    try {
+      const article = await this.prisma.article.findFirst({
+        where: { type: ArticleType.SCORE_STANDARD, delete: 0 },
+      });
+
+      const result = this.mapToDto(
+        article
+          ? article
+          : {
+              id: '',
+              title: '',
+              content: '',
+              images: [],
+              type: ArticleType.SCORE_STANDARD,
+              createTime: new Date(),
+              updateTime: new Date(),
+              delete: 0,
+            },
+      );
+
+      if (article) {
+        this.logger.log(
+          `[成功] 获取评分标准文章 - 文章ID: ${article.id}, 标题: ${article.title}`,
+        );
+      } else {
+        this.logger.log(
+          '[成功] 获取评分标准文章 - 未配置评分标准文章，返回空对象',
+        );
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取评分标准文章 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 }

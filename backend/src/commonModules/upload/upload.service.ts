@@ -169,8 +169,11 @@ export class UploadService {
     deleted: string[];
     failed: { filename: string; error: string }[];
   }> {
+    this.logger.log(`[开始] 批量删除图片 - 文件数量: ${filenames.length}`);
+
     const deleted: string[] = [];
     const failed: { filename: string; error: string }[] = [];
+
     for (const name of filenames) {
       try {
         await this.deleteFile(name);
@@ -179,8 +182,16 @@ export class UploadService {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         failed.push({ filename: name, error: errorMessage });
+        this.logger.warn(
+          `[警告] 批量删除图片 - 文件 ${name} 删除失败: ${errorMessage}`,
+        );
       }
     }
+
+    this.logger.log(
+      `[成功] 批量删除图片 - 成功: ${deleted.length}, 失败: ${failed.length}`,
+    );
+
     return { deleted, failed };
   }
 
@@ -195,25 +206,40 @@ export class UploadService {
    */
   async cleanupUnusedImages(candidateFilenames: string[]): Promise<void> {
     if (!Array.isArray(candidateFilenames) || candidateFilenames.length === 0) {
+      this.logger.log('[开始] 清理未引用图片 - 无候选文件，跳过清理');
       return;
     }
 
+    this.logger.log(
+      `[开始] 清理未引用图片 - 候选文件数量: ${candidateFilenames.length}`,
+    );
+
     const inUse = await this.collectInUseImageFilenames();
+    let cleanedCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
 
     for (const filename of candidateFilenames) {
       try {
         if (!inUse.has(filename)) {
           await this.deleteFile(filename);
-          this.logger.log(`清理未引用图片成功: ${filename}`);
+          cleanedCount++;
+          this.logger.log(`[资源清理] 清理未引用图片成功: ${filename}`);
         } else {
-          this.logger.log(`图片仍在使用，跳过删除: ${filename}`);
+          skippedCount++;
+          this.logger.log(`[跳过] 图片仍在使用，跳过删除: ${filename}`);
         }
       } catch (error) {
+        failedCount++;
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        this.logger.error(`清理图片 ${filename} 失败: ${errorMessage}`);
+        this.logger.error(`[失败] 清理图片 ${filename} 失败: ${errorMessage}`);
       }
     }
+
+    this.logger.log(
+      `[成功] 清理未引用图片完成 - 清理: ${cleanedCount}, 跳过: ${skippedCount}, 失败: ${failedCount}`,
+    );
   }
 
   /**
@@ -224,33 +250,49 @@ export class UploadService {
    * 两者取并集返回，供前端操作
    */
   async listOrphanImages(): Promise<string[]> {
-    // 1) 枚举物理目录下的所有图片文件名
-    const uploadAbsDir = join(process.cwd(), UPLOAD_DIR);
-    const diskFiles = existsSync(uploadAbsDir)
-      ? await readdir(uploadAbsDir)
-      : [];
-    const imageRegex = /^[0-9a-zA-Z._-]+\.(?:png|jpe?g|gif|webp|svg)$/;
-    const diskImageFiles = diskFiles.filter((f) => imageRegex.test(f));
+    this.logger.log('[开始] 列出孤立图片');
 
-    // 2) 获取数据库 image 表中的所有文件名
-    const dbRows = await this.prisma.image.findMany({
-      select: { filename: true },
-    });
-    const dbImageFiles = dbRows.map((r) => r.filename);
+    try {
+      // 1) 枚举物理目录下的所有图片文件名
+      const uploadAbsDir = join(process.cwd(), UPLOAD_DIR);
+      const diskFiles = existsSync(uploadAbsDir)
+        ? await readdir(uploadAbsDir)
+        : [];
+      const imageRegex = /^[0-9a-zA-Z._-]+\.(?:png|jpe?g|gif|webp|svg)$/;
+      const diskImageFiles = diskFiles.filter((f) => imageRegex.test(f));
 
-    // 3) 收集系统内正在使用的文件名集合
-    const inUse = await this.collectInUseImageFilenames();
+      // 2) 获取数据库 image 表中的所有文件名
+      const dbRows = await this.prisma.image.findMany({
+        select: { filename: true },
+      });
+      const dbImageFiles = dbRows.map((r) => r.filename);
 
-    // 4) 计算孤立集合（目录中未使用 ∪ 数据库未使用）
-    const orphanSet = new Set<string>();
-    for (const f of diskImageFiles) {
-      if (!inUse.has(f)) orphanSet.add(f);
+      // 3) 收集系统内正在使用的文件名集合
+      const inUse = await this.collectInUseImageFilenames();
+
+      // 4) 计算孤立集合（目录中未使用 ∪ 数据库未使用）
+      const orphanSet = new Set<string>();
+      for (const f of diskImageFiles) {
+        if (!inUse.has(f)) orphanSet.add(f);
+      }
+      for (const f of dbImageFiles) {
+        if (!inUse.has(f)) orphanSet.add(f);
+      }
+
+      const result = Array.from(orphanSet);
+
+      this.logger.log(
+        `[成功] 列出孤立图片 - 磁盘文件: ${diskImageFiles.length}, 数据库文件: ${dbImageFiles.length}, 在用文件: ${inUse.size}, 孤立文件: ${result.length}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 列出孤立图片 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-    for (const f of dbImageFiles) {
-      if (!inUse.has(f)) orphanSet.add(f);
-    }
-
-    return Array.from(orphanSet);
   }
 
   // ---------- 图片引用收集器管理 ----------
@@ -276,9 +318,11 @@ export class UploadService {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        this.logger.error(`在用图片收集器执行失败: ${errorMessage}`);
+        this.logger.error(`[失败] 在用图片收集器执行失败: ${errorMessage}`);
       }
     }
+
+    this.logger.log(`[统计] 收集在用图片完成 - 共 ${inUse.size} 个文件`);
 
     return inUse;
   }

@@ -271,7 +271,7 @@ export class DataManagementService {
       return yearData;
     } catch (error) {
       this.logger.error(
-        `[失败] 获取年份数据失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        `[失败] 获取年份数据 - ${error instanceof Error ? error.message : '未知错误'}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw new BusinessException(
@@ -293,7 +293,7 @@ export class DataManagementService {
     const yearValue = year;
 
     this.logger.log(
-      `准备为国家ID ${countryId} 在 ${yearValue} 年创建/更新 ${indicators.length} 个指标值`,
+      `[开始] 创建指标值数据 - 国家ID: ${countryId}, 年份: ${yearValue}, 指标数量: ${indicators.length}`,
     );
 
     // 步骤2: 验证国家是否存在
@@ -302,7 +302,9 @@ export class DataManagementService {
     });
 
     if (!country) {
-      this.logger.error(`未找到ID为 ${countryId} 的国家`);
+      this.logger.error(
+        `[验证失败] 创建指标值数据 - 国家ID ${countryId} 不存在`,
+      );
       throw new BusinessException(
         ErrorCode.RESOURCE_NOT_FOUND,
         `未找到ID为 ${countryId} 的国家`,
@@ -360,7 +362,7 @@ export class DataManagementService {
         });
 
         this.logger.log(
-          `已删除国家 ${country.cnName} 在 ${yearValue} 年的 ${existingCount} 条现有数据`,
+          `[关联删除] 删除现有指标值数据 - 国家: ${country.cnName}, 年份: ${yearValue}, 删除数量: ${existingCount}`,
         );
       }
 
@@ -376,7 +378,7 @@ export class DataManagementService {
     });
 
     this.logger.log(
-      `成功为国家 ${country.cnName} 在 ${yearValue} 年创建了 ${result.count} 个指标值数据`,
+      `[成功] 创建指标值数据 - 国家: ${country.cnName}, 年份: ${yearValue}, 创建数量: ${result.count}`,
     );
 
     return { count: result.count };
@@ -400,7 +402,7 @@ export class DataManagementService {
     // 验证请求数据大小，防止过大的请求导致性能问题
     if (countries.length > 500) {
       this.logger.warn(
-        `批量导入数据量过大: ${countries.length} 个国家，建议分批处理`,
+        `[警告] 批量创建指标值数据 - 数据量过大: ${countries.length} 个国家，建议分批处理`,
       );
       throw new BusinessException(
         ErrorCode.INVALID_INPUT,
@@ -409,7 +411,7 @@ export class DataManagementService {
     }
 
     this.logger.log(
-      `准备批量创建 ${countries.length} 个国家在 ${yearValue} 年的指标值数据`,
+      `[开始] 批量创建指标值数据 - 年份: ${yearValue}, 国家数量: ${countries.length}`,
     );
 
     // 步骤1: 验证所有国家是否存在
@@ -427,7 +429,9 @@ export class DataManagementService {
     );
 
     if (invalidCountryIds.length > 0) {
-      this.logger.error(`未找到以下国家ID: ${invalidCountryIds.join(', ')}`);
+      this.logger.error(
+        `[验证失败] 批量创建指标值数据 - 未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+      );
       throw new BusinessException(
         ErrorCode.RESOURCE_NOT_FOUND,
         `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
@@ -506,7 +510,7 @@ export class DataManagementService {
         });
 
         this.logger.log(
-          `已删除 ${existingCountryIdsSet.size} 个国家在 ${yearValue} 年的 ${deleteResult.count} 条现有数据`,
+          `[关联删除] 删除现有指标值数据 - 年份: ${yearValue}, 国家数量: ${existingCountryIdsSet.size}, 删除数量: ${deleteResult.count}`,
         );
       }
 
@@ -522,7 +526,7 @@ export class DataManagementService {
     });
 
     this.logger.log(
-      `成功批量创建了 ${countries.length} 个国家在 ${yearValue} 年的 ${result.totalCount} 个指标值数据`,
+      `[成功] 批量创建指标值数据 - 年份: ${yearValue}, 国家数量: ${countries.length}, 创建数量: ${result.totalCount}`,
     );
 
     return {
@@ -545,7 +549,7 @@ export class DataManagementService {
     const yearValue = year;
 
     this.logger.log(
-      `获取国家ID为 ${countryId} 在 ${yearValue} 年的详细指标数据`,
+      `[开始] 获取国家详细指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}`,
     );
 
     // 步骤2: 获取国家基本信息
@@ -554,7 +558,9 @@ export class DataManagementService {
     });
 
     if (!country) {
-      this.logger.error(`未找到ID为 ${countryId} 的国家`);
+      this.logger.error(
+        `[验证失败] 获取国家详细指标数据 - 国家ID ${countryId} 不存在`,
+      );
       throw new BusinessException(
         ErrorCode.RESOURCE_NOT_FOUND,
         `未找到ID为 ${countryId} 的国家`,
@@ -721,7 +727,7 @@ export class DataManagementService {
     const yearValue = year;
 
     this.logger.log(
-      `准备删除国家ID ${countryId} 在 ${yearValue} 年的所有指标数据`,
+      `[开始] 删除国家指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}`,
     );
 
     // 步骤1: 检查数据是否存在
@@ -753,7 +759,7 @@ export class DataManagementService {
     });
 
     this.logger.log(
-      `成功软删除了国家ID ${countryId} 在 ${yearValue} 年的 ${count} 条指标数据`,
+      `[成功] 删除国家指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}, 删除数量: ${count}`,
     );
 
     return { count };
@@ -772,7 +778,7 @@ export class DataManagementService {
     const yearValue = year;
 
     this.logger.log(
-      `检查国家ID ${countryId} 在 ${yearValue} 年是否已有指标数据`,
+      `[开始] 检查国家指标数据 - 国家ID: ${countryId}, 年份: ${yearValue}`,
     );
 
     // 验证国家是否存在
@@ -781,7 +787,9 @@ export class DataManagementService {
     });
 
     if (!country) {
-      this.logger.error(`未找到ID为 ${countryId} 的国家`);
+      this.logger.error(
+        `[验证失败] 检查国家指标数据 - 国家ID ${countryId} 不存在`,
+      );
       throw new BusinessException(
         ErrorCode.RESOURCE_NOT_FOUND,
         `未找到ID为 ${countryId} 的国家`,
@@ -801,9 +809,9 @@ export class DataManagementService {
     const exists = count > 0;
 
     this.logger.log(
-      `国家 ${country.cnName} 在 ${yearValue} 年${
-        exists ? `已有 ${count} 条` : '没有'
-      }指标数据`,
+      `[成功] 检查国家指标数据 - 国家: ${country.cnName}, 年份: ${yearValue}, ${
+        exists ? `已有 ${count} 条数据` : '没有数据'
+      }`,
     );
 
     return {
@@ -825,7 +833,7 @@ export class DataManagementService {
     const yearValue = year;
 
     this.logger.log(
-      `准备批量检查 ${countryIds.length} 个国家在 ${yearValue} 年的指标数据是否存在`,
+      `[开始] 批量检查指标数据 - 年份: ${yearValue}, 国家数量: ${countryIds.length}`,
     );
 
     // 步骤1: 验证所有国家是否存在
@@ -842,7 +850,9 @@ export class DataManagementService {
     );
 
     if (invalidCountryIds.length > 0) {
-      this.logger.error(`未找到以下国家ID: ${invalidCountryIds.join(', ')}`);
+      this.logger.error(
+        `[验证失败] 批量检查指标数据 - 未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+      );
       throw new BusinessException(
         ErrorCode.RESOURCE_NOT_FOUND,
         `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
@@ -870,7 +880,7 @@ export class DataManagementService {
     );
 
     this.logger.log(
-      `批量检查完成: ${countryIds.length} 个国家中，${existingDataCountryIds.size} 个已有指标数据，${nonExistingCountryIds.length} 个没有指标数据`,
+      `[成功] 批量检查指标数据 - 年份: ${yearValue}, 总数量: ${countryIds.length}, 已有数据: ${existingDataCountryIds.size}, 无数据: ${nonExistingCountryIds.length}`,
     );
 
     return {
@@ -892,7 +902,7 @@ export class DataManagementService {
     const { yearCountryPairs, format } = params;
 
     this.logger.log(
-      `开始多年份导出，共 ${yearCountryPairs.length} 个年份，格式为 ${format}`,
+      `[开始] 多年份数据导出 - 年份数量: ${yearCountryPairs.length}, 格式: ${format}`,
     );
 
     // 步骤1: 获取所有三级指标定义作为表头
@@ -900,7 +910,9 @@ export class DataManagementService {
       where: { delete: 0 },
       orderBy: { createTime: 'asc' }, // 保证每次导出的指标顺序一致
     });
-    this.logger.log(`成功获取 ${indicators.length} 个三级指标作为表头`);
+    this.logger.log(
+      `[统计] 获取三级指标作为表头 - 共 ${indicators.length} 个指标`,
+    );
 
     // 步骤2: 获取所有涉及的国家信息
     const allCountryIds = yearCountryPairs.flatMap((pair) => pair.countryIds);
@@ -913,7 +925,9 @@ export class DataManagementService {
       },
     });
     const countryMap = new Map(countries.map((c) => [c.id, c]));
-    this.logger.log(`成功获取 ${countries.length} 个涉及的国家信息`);
+    this.logger.log(
+      `[统计] 获取涉及的国家信息 - 共 ${countries.length} 个国家`,
+    );
 
     // 步骤3: 一次性获取所有相关指标值
     const allYearCountryPairs = yearCountryPairs.flatMap((pair) =>
@@ -929,7 +943,7 @@ export class DataManagementService {
         delete: 0,
       },
     });
-    this.logger.log(`查询到 ${values.length} 条相关指标值`);
+    this.logger.log(`[统计] 查询相关指标值 - 共 ${values.length} 条数据`);
 
     // 步骤4: 将指标值处理成快速查找的嵌套Map: Map<year-countryId, Map<indicatorId, value>>
     const valuesMap = new Map<string, Map<string, number>>();
@@ -958,7 +972,9 @@ export class DataManagementService {
     } else if (format === ExportFormat.CSV) {
       // CSV格式只支持单年份，如果有多个年份，只导出第一个年份的数据
       if (yearCountryPairs.length > 1) {
-        this.logger.warn('CSV格式不支持多年份，只导出第一个年份的数据');
+        this.logger.warn(
+          '[警告] 多年份数据导出 - CSV格式不支持多年份，只导出第一个年份的数据',
+        );
       }
       return this._generateSingleYearCsvFile(
         yearCountryPairs[0],
@@ -1044,27 +1060,37 @@ export class DataManagementService {
    * @returns {Promise<DataManagementYearsResDto>} 年份数组，按降序排列
    */
   async getYears(): Promise<DataManagementYearsResDto> {
-    this.logger.log('获取有数据的年份列表');
+    this.logger.log('[开始] 获取有数据的年份列表');
 
-    // 查询所有不重复的年份，只返回年份字段以减少数据传输
-    const years = await this.prisma.indicatorValue.findMany({
-      where: {
-        delete: 0,
-        country: { delete: 0 },
-        detailedIndicator: { delete: 0 },
-      },
-      select: {
-        year: true,
-      },
-      distinct: ['year'],
-      orderBy: {
-        year: 'desc',
-      },
-    });
+    try {
+      // 查询所有不重复的年份，只返回年份字段以减少数据传输
+      const years = await this.prisma.indicatorValue.findMany({
+        where: {
+          delete: 0,
+          country: { delete: 0 },
+          detailedIndicator: { delete: 0 },
+        },
+        select: {
+          year: true,
+        },
+        distinct: ['year'],
+        orderBy: {
+          year: 'desc',
+        },
+      });
 
-    const result = years.map((item) => item.year);
-    this.logger.log(`找到 ${result.length} 个年份`);
-    return result;
+      const result = years.map((item) => item.year);
+      this.logger.log(
+        `[成功] 获取有数据的年份列表 - 共 ${result.length} 个年份`,
+      );
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取有数据的年份列表 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -1075,54 +1101,67 @@ export class DataManagementService {
   async getCountriesByYears(params: {
     years: number[];
   }): Promise<Array<{ year: number; countries: SimpleCountryData[] }>> {
-    this.logger.log(`获取年份 ${params.years.join(', ')} 下的国家列表`);
+    this.logger.log(`[开始] 获取年份 ${params.years.join(', ')} 下的国家列表`);
 
-    const result: Array<{
-      year: number;
-      countries: SimpleCountryData[];
-    }> = [];
+    try {
+      const result: Array<{
+        year: number;
+        countries: SimpleCountryData[];
+      }> = [];
 
-    // 为每个年份查询对应的国家列表
-    for (const year of params.years) {
-      const countries = await this.prisma.indicatorValue.findMany({
-        where: {
-          year,
-          delete: 0,
-          country: { delete: 0 },
-          detailedIndicator: { delete: 0 },
-        },
-        select: {
-          country: {
-            select: {
-              id: true,
-              cnName: true,
-              enName: true,
+      // 为每个年份查询对应的国家列表
+      for (const year of params.years) {
+        const countries = await this.prisma.indicatorValue.findMany({
+          where: {
+            year,
+            delete: 0,
+            country: { delete: 0 },
+            detailedIndicator: { delete: 0 },
+          },
+          select: {
+            country: {
+              select: {
+                id: true,
+                cnName: true,
+                enName: true,
+              },
             },
           },
-        },
-        distinct: ['countryId'],
-        orderBy: {
-          country: {
-            cnName: 'asc', // 按中文名称排序
+          distinct: ['countryId'],
+          orderBy: {
+            country: {
+              cnName: 'asc', // 按中文名称排序
+            },
           },
-        },
-      });
+        });
 
-      const yearCountries: SimpleCountryData[] = countries.map((item) => ({
-        id: item.country.id,
-        cnName: item.country.cnName,
-        enName: item.country.enName,
-      }));
+        const yearCountries: SimpleCountryData[] = countries.map((item) => ({
+          id: item.country.id,
+          cnName: item.country.cnName,
+          enName: item.country.enName,
+        }));
 
-      result.push({
-        year,
-        countries: yearCountries,
-      });
+        result.push({
+          year,
+          countries: yearCountries,
+        });
 
-      this.logger.log(`年份 ${year} 下找到 ${yearCountries.length} 个国家`);
+        this.logger.log(
+          `[统计] 年份 ${year} 下找到 ${yearCountries.length} 个国家`,
+        );
+      }
+
+      this.logger.log(
+        `[成功] 获取年份 ${params.years.join(', ')} 下的国家列表 - 共 ${result.length} 个年份组`,
+      );
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取年份 ${params.years.join(', ')} 下的国家列表 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-
-    return result;
   }
 
   /**

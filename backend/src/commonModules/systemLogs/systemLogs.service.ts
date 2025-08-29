@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { existsSync, statSync } from 'fs';
 import { join } from 'path';
 import {
@@ -25,6 +25,8 @@ import {
  */
 @Injectable()
 export class SystemLogsService {
+  private readonly logger = new Logger(SystemLogsService.name);
+
   /** 日志文件根目录，可通过环境变量 LOG_DIR 配置 */
   private readonly baseLogDir = process.env.LOG_DIR || './logs';
 
@@ -109,7 +111,9 @@ export class SystemLogsService {
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
     } catch (error) {
-      console.warn(`扫描目录 ${dirPath} 失败:`, error);
+      this.logger.warn(
+        `[警告] 扫描日志目录失败 - 目录: ${dirPath}, ${error instanceof Error ? error.message : '未知错误'}`,
+      );
     }
 
     return files;
@@ -122,8 +126,21 @@ export class SystemLogsService {
    * @returns 日志文件列表响应
    */
   async listSystemFiles(): Promise<SystemLogFilesResDto> {
-    const files = await this.scanLogFiles(this.baseLogDir);
-    return { files };
+    this.logger.log('[开始] 列出系统日志文件');
+
+    try {
+      const files = await this.scanLogFiles(this.baseLogDir);
+
+      this.logger.log(`[成功] 列出系统日志文件 - 共 ${files.length} 个文件`);
+
+      return { files };
+    } catch (error) {
+      this.logger.error(
+        `[失败] 列出系统日志文件 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -135,15 +152,34 @@ export class SystemLogsService {
    */
   async listUserFiles(dto: UserLogFilesReqDto): Promise<SystemLogFilesResDto> {
     const { userId } = dto;
-    const userLogDir = join(this.baseLogDir, 'users', userId);
 
-    // 检查用户日志目录是否存在
-    if (!existsSync(userLogDir)) {
-      return { files: [] };
+    this.logger.log(`[开始] 列出用户日志文件 - 用户ID: ${userId}`);
+
+    try {
+      const userLogDir = join(this.baseLogDir, 'users', userId);
+
+      // 检查用户日志目录是否存在
+      if (!existsSync(userLogDir)) {
+        this.logger.log(
+          `[成功] 列出用户日志文件 - 用户ID: ${userId}, 目录不存在，返回空列表`,
+        );
+        return { files: [] };
+      }
+
+      const files = await this.scanLogFiles(userLogDir);
+
+      this.logger.log(
+        `[成功] 列出用户日志文件 - 用户ID: ${userId}, 共 ${files.length} 个文件`,
+      );
+
+      return { files };
+    } catch (error) {
+      this.logger.error(
+        `[失败] 列出用户日志文件 - 用户ID: ${userId}, ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-
-    const files = await this.scanLogFiles(userLogDir);
-    return { files };
   }
 
   /**
@@ -183,22 +219,36 @@ export class SystemLogsService {
   async readSystemLog(dto: ReadLogReqDto): Promise<LogLineItem[]> {
     const { filename } = dto;
 
-    // 安全检查：只允许读取日志文件
-    const safe = ['application-info', 'application-error'];
-    if (!safe.some((p) => filename.startsWith(p))) {
-      return [];
-    }
-
-    const filePath = join(this.baseLogDir, filename);
-    if (!existsSync(filePath)) {
-      return [];
-    }
+    this.logger.log(`[开始] 读取系统日志 - 文件名: ${filename}`);
 
     try {
-      return await this.readLogFile(filePath);
+      // 安全检查：只允许读取日志文件
+      const safe = ['application-info', 'application-error'];
+      if (!safe.some((p) => filename.startsWith(p))) {
+        this.logger.warn(
+          `[验证失败] 读取系统日志 - 文件名 ${filename} 不在安全列表中`,
+        );
+        return [];
+      }
+
+      const filePath = join(this.baseLogDir, filename);
+      if (!existsSync(filePath)) {
+        this.logger.warn(`[验证失败] 读取系统日志 - 文件 ${filename} 不存在`);
+        return [];
+      }
+
+      const result = await this.readLogFile(filePath);
+
+      this.logger.log(
+        `[成功] 读取系统日志 - 文件名: ${filename}, 共 ${result.length} 行日志`,
+      );
+
+      return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      console.warn(`读取系统日志失败: ${errorMessage}`);
+      this.logger.error(
+        `[失败] 读取系统日志 - 文件名: ${filename}, ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return [];
     }
   }
@@ -213,22 +263,38 @@ export class SystemLogsService {
   async readUserLog(dto: ReadUserLogReqDto): Promise<LogLineItem[]> {
     const { userId, filename } = dto;
 
-    // 安全检查：只允许读取日志文件
-    const safe = ['application-info', 'application-error'];
-    if (!safe.some((p) => filename.startsWith(p))) {
-      return [];
-    }
-
-    const filePath = join(this.baseLogDir, 'users', userId, filename);
-    if (!existsSync(filePath)) {
-      return [];
-    }
+    this.logger.log(
+      `[开始] 读取用户日志 - 用户ID: ${userId}, 文件名: ${filename}`,
+    );
 
     try {
-      return await this.readLogFile(filePath);
+      // 安全检查：只允许读取日志文件
+      const safe = ['application-info', 'application-error'];
+      if (!safe.some((p) => filename.startsWith(p))) {
+        this.logger.warn(
+          `[验证失败] 读取用户日志 - 文件名 ${filename} 不在安全列表中`,
+        );
+        return [];
+      }
+
+      const filePath = join(this.baseLogDir, 'users', userId, filename);
+      if (!existsSync(filePath)) {
+        this.logger.warn(`[验证失败] 读取用户日志 - 文件 ${filename} 不存在`);
+        return [];
+      }
+
+      const result = await this.readLogFile(filePath);
+
+      this.logger.log(
+        `[成功] 读取用户日志 - 用户ID: ${userId}, 文件名: ${filename}, 共 ${result.length} 行日志`,
+      );
+
+      return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      console.warn(`读取用户日志失败: ${errorMessage}`);
+      this.logger.error(
+        `[失败] 读取用户日志 - 用户ID: ${userId}, 文件名: ${filename}, ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return [];
     }
   }
@@ -241,12 +307,15 @@ export class SystemLogsService {
    * @returns 用户搜索结果
    */
   async searchUsers(): Promise<UserSearchResDto> {
+    this.logger.log('[开始] 搜索用户');
+
     try {
       const { readdirSync } = await import('fs');
       const usersDir = join(this.baseLogDir, 'users');
 
       // 检查用户目录是否存在
       if (!existsSync(usersDir)) {
+        this.logger.log('[成功] 搜索用户 - 用户目录不存在，返回空列表');
         return { list: [] };
       }
 
@@ -255,11 +324,16 @@ export class SystemLogsService {
         .filter((d) => d.isDirectory())
         .map((d) => ({ userId: d.name, name: d.name }));
 
-      return {
-        list: all,
-      };
+      const result = { list: all };
+
+      this.logger.log(`[成功] 搜索用户 - 共找到 ${result.list.length} 个用户`);
+
+      return result;
     } catch (error) {
-      console.warn('搜索用户失败:', error);
+      this.logger.error(
+        `[失败] 搜索用户 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return { list: [] };
     }
   }

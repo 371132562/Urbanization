@@ -142,7 +142,9 @@ export class ScoreService {
       });
 
       if (!scores || scores.length === 0) {
-        this.logger.log('未找到任何城镇化国家的评分数据，返回空数组。');
+        this.logger.log(
+          '[成功] 获取评分数据并按国家分组 - 未找到任何数据，返回空数组',
+        );
         return [];
       }
 
@@ -173,7 +175,9 @@ export class ScoreService {
         },
       );
 
-      this.logger.log('按国家分组的评分数据处理完成，只包含城镇化的国家。');
+      this.logger.log(
+        `[成功] 获取评分数据并按国家分组 - 共 ${result.length} 个国家，总评分记录 ${scores.length} 条`,
+      );
       return result;
     } catch (error) {
       this.logger.error(
@@ -199,77 +203,199 @@ export class ScoreService {
       sortOrder,
     } = params;
 
-    const skip = (page - 1) * pageSize;
+    this.logger.log(
+      `[开始] 获取年份评分数据 - 年份: ${year}, 页码: ${page}, 每页大小: ${pageSize}, 搜索: ${searchTerm || '无'}, 排序: ${sortField || '无'}`,
+    );
 
-    const whereCondition = {
-      year,
-      delete: 0,
-      country: {
+    try {
+      const skip = (page - 1) * pageSize;
+
+      const whereCondition = {
+        year,
         delete: 0,
-        ...(searchTerm && {
-          OR: [
-            { cnName: { contains: searchTerm } },
-            { enName: { contains: searchTerm } },
-          ],
-        }),
-      },
-    } as const;
+        country: {
+          delete: 0,
+          ...(searchTerm && {
+            OR: [
+              { cnName: { contains: searchTerm } },
+              { enName: { contains: searchTerm } },
+            ],
+          }),
+        },
+      } as const;
 
-    const totalCount = await this.prisma.score
-      .groupBy({
-        by: ['countryId'],
-        where: whereCondition,
-        _count: { countryId: true },
-      })
-      .then((groups) => groups.length);
+      const totalCount = await this.prisma.score
+        .groupBy({
+          by: ['countryId'],
+          where: whereCondition,
+          _count: { countryId: true },
+        })
+        .then((groups) => groups.length);
 
-    let countryIdList: string[] = [];
-    if (sortField && sortOrder) {
-      const allScores = await this.prisma.score.findMany({
-        where: whereCondition,
+      let countryIdList: string[] = [];
+      if (sortField && sortOrder) {
+        const allScores = await this.prisma.score.findMany({
+          where: whereCondition,
+          include: { country: true },
+        });
+
+        const sortedScores = allScores.sort((a, b) => {
+          let aValue: number | null = null;
+          let bValue: number | null = null;
+          switch (sortField) {
+            case 'totalScore':
+              aValue = decimalToNumber(a.totalScore);
+              bValue = decimalToNumber(b.totalScore);
+              break;
+            case 'urbanizationProcessDimensionScore':
+              aValue = decimalToNumber(a.urbanizationProcessDimensionScore);
+              bValue = decimalToNumber(b.urbanizationProcessDimensionScore);
+              break;
+            case 'humanDynamicsDimensionScore':
+              aValue = decimalToNumber(a.humanDynamicsDimensionScore);
+              bValue = decimalToNumber(b.humanDynamicsDimensionScore);
+              break;
+            case 'materialDynamicsDimensionScore':
+              aValue = decimalToNumber(a.materialDynamicsDimensionScore);
+              bValue = decimalToNumber(b.materialDynamicsDimensionScore);
+              break;
+            case 'spatialDynamicsDimensionScore':
+              aValue = decimalToNumber(a.spatialDynamicsDimensionScore);
+              bValue = decimalToNumber(b.spatialDynamicsDimensionScore);
+              break;
+            default:
+              return sortOrder === 'asc'
+                ? a.country.updateTime.getTime() -
+                    b.country.updateTime.getTime()
+                : b.country.updateTime.getTime() -
+                    a.country.updateTime.getTime();
+          }
+          if (aValue == null && bValue == null) return 0;
+          if (aValue == null) return 1;
+          if (bValue == null) return -1;
+          return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+        });
+
+        const uniqueCountryIds = [
+          ...new Set(sortedScores.map((s) => s.countryId)),
+        ];
+        countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+      } else {
+        const allCountryIds = await this.prisma.score.findMany({
+          where: whereCondition,
+          select: { countryId: true },
+          orderBy: { country: { updateTime: 'desc' } },
+        });
+        const uniqueCountryIds = [
+          ...new Set(
+            allCountryIds.map((i: { countryId: string }) => i.countryId),
+          ),
+        ];
+        countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
+      }
+
+      const scores = await this.prisma.score.findMany({
+        where: {
+          year,
+          countryId: { in: countryIdList },
+          delete: 0,
+          country: { delete: 0 },
+        },
         include: { country: true },
+        orderBy: [{ country: { updateTime: 'desc' } }],
       });
 
-      const sortedScores = allScores.sort((a, b) => {
-        let aValue: number | null = null;
-        let bValue: number | null = null;
-        switch (sortField) {
-          case 'totalScore':
-            aValue = decimalToNumber(a.totalScore);
-            bValue = decimalToNumber(b.totalScore);
-            break;
-          case 'urbanizationProcessDimensionScore':
-            aValue = decimalToNumber(a.urbanizationProcessDimensionScore);
-            bValue = decimalToNumber(b.urbanizationProcessDimensionScore);
-            break;
-          case 'humanDynamicsDimensionScore':
-            aValue = decimalToNumber(a.humanDynamicsDimensionScore);
-            bValue = decimalToNumber(b.humanDynamicsDimensionScore);
-            break;
-          case 'materialDynamicsDimensionScore':
-            aValue = decimalToNumber(a.materialDynamicsDimensionScore);
-            bValue = decimalToNumber(b.materialDynamicsDimensionScore);
-            break;
-          case 'spatialDynamicsDimensionScore':
-            aValue = decimalToNumber(a.spatialDynamicsDimensionScore);
-            bValue = decimalToNumber(b.spatialDynamicsDimensionScore);
-            break;
-          default:
-            return sortOrder === 'asc'
-              ? a.country.updateTime.getTime() - b.country.updateTime.getTime()
-              : b.country.updateTime.getTime() - a.country.updateTime.getTime();
-        }
-        if (aValue == null && bValue == null) return 0;
-        if (aValue == null) return 1;
-        if (bValue == null) return -1;
-        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-      });
+      const data: ScoreDataItem[] = countryIdList
+        .map((cid) => {
+          const items = scores.filter((s) => s.countryId === cid);
+          if (items.length === 0) return null;
+          const base = items[0];
+          return {
+            id: base.id,
+            countryId: base.countryId,
+            cnName: base.country.cnName,
+            enName: base.country.enName,
+            year: base.year,
+            totalScore: decimalToNumber(base.totalScore),
+            urbanizationProcessDimensionScore: decimalToNumber(
+              base.urbanizationProcessDimensionScore,
+            ),
+            humanDynamicsDimensionScore: decimalToNumber(
+              base.humanDynamicsDimensionScore,
+            ),
+            materialDynamicsDimensionScore: decimalToNumber(
+              base.materialDynamicsDimensionScore,
+            ),
+            spatialDynamicsDimensionScore: decimalToNumber(
+              base.spatialDynamicsDimensionScore,
+            ),
+            createTime: base.country.createTime,
+            updateTime: base.country.updateTime,
+          } as ScoreDataItem;
+        })
+        .filter(Boolean) as ScoreDataItem[];
 
-      const uniqueCountryIds = [
-        ...new Set(sortedScores.map((s) => s.countryId)),
-      ];
-      countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
-    } else {
+      const totalPages = Math.ceil(totalCount / pageSize);
+      const pagination = { page, pageSize, total: totalCount, totalPages };
+
+      const result: PaginatedYearScoreData = { year, data, pagination };
+
+      this.logger.log(
+        `[成功] 获取年份评分数据 - 年份: ${year}, 共 ${totalCount} 个国家，当前页返回 ${data.length} 个，页码: ${page}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取年份评分数据 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * @description 评价详情（自定义文案）列表：
+   * 仅返回综合分、评价规则匹配文案、是否存在自定义详情的标记。
+   * 注意：与"评分详情（ScoreDetail）"不同；此处不返回四个维度得分，仅用于自定义评价详情管理列表。
+   * 不需要排序，支持搜索与分页。分页逻辑基于唯一国家分页，与评分管理列表一致。
+   */
+  async listEvaluationDetailByYear(
+    params: ScoreEvaluationDetailListByYearReqDto,
+  ): Promise<ScoreEvaluationDetailListByYearResDto> {
+    const { year, page = 1, pageSize = 10, searchTerm } = params;
+
+    this.logger.log(
+      `[开始] 获取评价详情列表 - 年份: ${year}, 页码: ${page}, 每页大小: ${pageSize}, 搜索: ${searchTerm || '无'}`,
+    );
+
+    try {
+      const skip = (page - 1) * pageSize;
+
+      const whereCondition = {
+        year,
+        delete: 0,
+        country: {
+          delete: 0,
+          ...(searchTerm && {
+            OR: [
+              { cnName: { contains: searchTerm } },
+              { enName: { contains: searchTerm } },
+            ],
+          }),
+        },
+      } as const;
+
+      // 统计该年份国家数量（去重）
+      const totalCount = await this.prisma.score
+        .groupBy({
+          by: ['countryId'],
+          where: whereCondition,
+          _count: { countryId: true },
+        })
+        .then((groups) => groups.length);
+
+      // 取出去重后的国家ID并分页
       const allCountryIds = await this.prisma.score.findMany({
         where: whereCondition,
         select: { countryId: true },
@@ -280,162 +406,79 @@ export class ScoreService {
           allCountryIds.map((i: { countryId: string }) => i.countryId),
         ),
       ];
-      countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
-    }
+      const countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
 
-    const scores = await this.prisma.score.findMany({
-      where: {
-        year,
-        countryId: { in: countryIdList },
-        delete: 0,
-        country: { delete: 0 },
-      },
-      include: { country: true },
-      orderBy: [{ country: { updateTime: 'desc' } }],
-    });
-
-    const data: ScoreDataItem[] = countryIdList
-      .map((cid) => {
-        const items = scores.filter((s) => s.countryId === cid);
-        if (items.length === 0) return null;
-        const base = items[0];
-        return {
-          id: base.id,
-          countryId: base.countryId,
-          cnName: base.country.cnName,
-          enName: base.country.enName,
-          year: base.year,
-          totalScore: decimalToNumber(base.totalScore),
-          urbanizationProcessDimensionScore: decimalToNumber(
-            base.urbanizationProcessDimensionScore,
-          ),
-          humanDynamicsDimensionScore: decimalToNumber(
-            base.humanDynamicsDimensionScore,
-          ),
-          materialDynamicsDimensionScore: decimalToNumber(
-            base.materialDynamicsDimensionScore,
-          ),
-          spatialDynamicsDimensionScore: decimalToNumber(
-            base.spatialDynamicsDimensionScore,
-          ),
-          createTime: base.country.createTime,
-          updateTime: base.country.updateTime,
-        } as ScoreDataItem;
-      })
-      .filter(Boolean) as ScoreDataItem[];
-
-    const totalPages = Math.ceil(totalCount / pageSize);
-    const pagination = { page, pageSize, total: totalCount, totalPages };
-
-    const result: PaginatedYearScoreData = { year, data, pagination };
-    return result;
-  }
-
-  /**
-   * @description 评价详情（自定义文案）列表：
-   * 仅返回综合分、评价规则匹配文案、是否存在自定义详情的标记。
-   * 注意：与“评分详情（ScoreDetail）”不同；此处不返回四个维度得分，仅用于自定义评价详情管理列表。
-   * 不需要排序，支持搜索与分页。分页逻辑基于唯一国家分页，与评分管理列表一致。
-   */
-  async listEvaluationDetailByYear(
-    params: ScoreEvaluationDetailListByYearReqDto,
-  ): Promise<ScoreEvaluationDetailListByYearResDto> {
-    const { year, page = 1, pageSize = 10, searchTerm } = params;
-
-    const skip = (page - 1) * pageSize;
-
-    const whereCondition = {
-      year,
-      delete: 0,
-      country: {
-        delete: 0,
-        ...(searchTerm && {
-          OR: [
-            { cnName: { contains: searchTerm } },
-            { enName: { contains: searchTerm } },
-          ],
-        }),
-      },
-    } as const;
-
-    // 统计该年份国家数量（去重）
-    const totalCount = await this.prisma.score
-      .groupBy({
-        by: ['countryId'],
-        where: whereCondition,
-        _count: { countryId: true },
-      })
-      .then((groups) => groups.length);
-
-    // 取出去重后的国家ID并分页
-    const allCountryIds = await this.prisma.score.findMany({
-      where: whereCondition,
-      select: { countryId: true },
-      orderBy: { country: { updateTime: 'desc' } },
-    });
-    const uniqueCountryIds = [
-      ...new Set(allCountryIds.map((i: { countryId: string }) => i.countryId)),
-    ];
-    const countryIdList = uniqueCountryIds.slice(skip, skip + pageSize);
-
-    // 查询分页后的评分记录
-    const scores = await this.prisma.score.findMany({
-      where: {
-        year,
-        countryId: { in: countryIdList },
-        delete: 0,
-        country: { delete: 0 },
-      },
-      include: { country: true },
-      orderBy: [{ country: { updateTime: 'desc' } }],
-    });
-
-    // 读取评价体系规则，用于匹配文案
-    const evaluations = await this.prisma.scoreEvaluation.findMany({
-      orderBy: { minScore: 'asc' },
-    });
-
-    const matchText = (scoreNum: number): string => {
-      for (const e of evaluations) {
-        const min = decimalToNumber(e.minScore);
-        const max = decimalToNumber(e.maxScore);
-        if (scoreNum >= min && scoreNum <= max) return e.evaluationText;
-      }
-      return '';
-    };
-
-    // 查询自定义详情存在性
-    const details = await this.prisma.scoreEvaluationDetail.findMany({
-      where: { year, countryId: { in: countryIdList }, delete: 0 },
-      select: { countryId: true },
-    });
-    const hasDetailSet = new Set(details.map((d) => d.countryId));
-
-    const data: ScoreEvaluationDetailListItemDto[] = countryIdList.reduce<
-      ScoreEvaluationDetailListItemDto[]
-    >((acc, cid) => {
-      const item = scores.find((s) => s.countryId === cid);
-      if (!item) return acc;
-      const totalScore = decimalToNumber(item.totalScore);
-      acc.push({
-        id: item.id,
-        countryId: item.countryId,
-        cnName: item.country.cnName,
-        enName: item.country.enName,
-        year: item.year,
-        totalScore,
-        matchedText: matchText(totalScore),
-        hasCustomDetail: hasDetailSet.has(item.countryId),
-        createTime: item.country.createTime,
-        updateTime: item.country.updateTime,
+      // 查询分页后的评分记录
+      const scores = await this.prisma.score.findMany({
+        where: {
+          year,
+          countryId: { in: countryIdList },
+          delete: 0,
+          country: { delete: 0 },
+        },
+        include: { country: true },
+        orderBy: [{ country: { updateTime: 'desc' } }],
       });
-      return acc;
-    }, []);
 
-    const totalPages = Math.ceil(totalCount / pageSize);
-    const pagination = { page, pageSize, total: totalCount, totalPages };
+      // 读取评价体系规则，用于匹配文案
+      const evaluations = await this.prisma.scoreEvaluation.findMany({
+        orderBy: { minScore: 'asc' },
+      });
 
-    return { year, data, pagination };
+      const matchText = (scoreNum: number): string => {
+        for (const e of evaluations) {
+          const min = decimalToNumber(e.minScore);
+          const max = decimalToNumber(e.maxScore);
+          if (scoreNum >= min && scoreNum <= max) return e.evaluationText;
+        }
+        return '';
+      };
+
+      // 查询自定义详情存在性
+      const details = await this.prisma.scoreEvaluationDetail.findMany({
+        where: { year, countryId: { in: countryIdList }, delete: 0 },
+        select: { countryId: true },
+      });
+      const hasDetailSet = new Set(details.map((d) => d.countryId));
+
+      const data: ScoreEvaluationDetailListItemDto[] = countryIdList.reduce<
+        ScoreEvaluationDetailListItemDto[]
+      >((acc, cid) => {
+        const item = scores.find((s) => s.countryId === cid);
+        if (!item) return acc;
+        const totalScore = decimalToNumber(item.totalScore);
+        acc.push({
+          id: item.id,
+          countryId: item.countryId,
+          cnName: item.country.cnName,
+          enName: item.country.enName,
+          year: item.year,
+          totalScore,
+          matchedText: matchText(totalScore),
+          hasCustomDetail: hasDetailSet.has(item.countryId),
+          createTime: item.country.createTime,
+          updateTime: item.country.updateTime,
+        });
+        return acc;
+      }, []);
+
+      const totalPages = Math.ceil(totalCount / pageSize);
+      const pagination = { page, pageSize, total: totalCount, totalPages };
+
+      const result = { year, data, pagination };
+
+      this.logger.log(
+        `[成功] 获取评价详情列表 - 年份: ${year}, 共 ${totalCount} 个国家，当前页返回 ${data.length} 个，页码: ${page}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取评价详情列表 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -445,19 +488,45 @@ export class ScoreService {
     params: ScoreEvaluationDetailGetReqDto,
   ): Promise<ScoreEvaluationDetailEditResDto | null> {
     const { year, countryId } = params;
-    const record = await this.prisma.scoreEvaluationDetail.findFirst({
-      where: { year, countryId, delete: 0 },
-    });
-    if (!record) return null;
-    return {
-      id: record.id,
-      year: record.year,
-      countryId: record.countryId,
-      text: (record as unknown as { text?: string }).text ?? '',
-      images: (record.images as string[]) || [],
-      createTime: record.createTime,
-      updateTime: record.updateTime,
-    };
+
+    this.logger.log(
+      `[开始] 获取评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
+    );
+
+    try {
+      const record = await this.prisma.scoreEvaluationDetail.findFirst({
+        where: { year, countryId, delete: 0 },
+      });
+
+      if (!record) {
+        this.logger.log(
+          `[成功] 获取评价详情 - 年份: ${year}, 国家ID: ${countryId}, 未找到记录`,
+        );
+        return null;
+      }
+
+      const result = {
+        id: record.id,
+        year: record.year,
+        countryId: record.countryId,
+        text: (record as unknown as { text?: string }).text ?? '',
+        images: (record.images as string[]) || [],
+        createTime: record.createTime,
+        updateTime: record.updateTime,
+      };
+
+      this.logger.log(
+        `[成功] 获取评价详情 - 年份: ${year}, 国家ID: ${countryId}, 记录ID: ${record.id}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取评价详情 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -469,58 +538,82 @@ export class ScoreService {
     dto: UpsertScoreEvaluationDetailDto,
   ): Promise<ScoreEvaluationDetailEditResDto> {
     const { year, countryId, text } = dto;
-    const cleanedImages = ImageProcessorUtils.cleanImageFilenames(
-      dto.images || [],
-    );
-    const cleanedDeleted = ImageProcessorUtils.cleanImageFilenames(
-      dto.deletedImages || [],
+
+    this.logger.log(
+      `[开始] 保存/更新评价详情 - 年份: ${year}, 国家ID: ${countryId}`,
     );
 
-    const reconciled = ImageProcessorUtils.reconcileImages(
-      cleanedImages,
-      cleanedDeleted,
-      text,
-    );
+    try {
+      const cleanedImages = ImageProcessorUtils.cleanImageFilenames(
+        dto.images || [],
+      );
+      const cleanedDeleted = ImageProcessorUtils.cleanImageFilenames(
+        dto.deletedImages || [],
+      );
 
-    const existing = await this.prisma.scoreEvaluationDetail.findFirst({
-      where: { year, countryId, delete: 0 },
-    });
+      const reconciled = ImageProcessorUtils.reconcileImages(
+        cleanedImages,
+        cleanedDeleted,
+        text,
+      );
 
-    const dataToSave = {
-      text,
-      images: reconciled.images,
-    } as const;
+      const existing = await this.prisma.scoreEvaluationDetail.findFirst({
+        where: { year, countryId, delete: 0 },
+      });
 
-    const saved = existing
-      ? await this.prisma.scoreEvaluationDetail.update({
-          where: { id: existing.id },
-          data: dataToSave,
-        })
-      : await this.prisma.scoreEvaluationDetail.create({
-          data: {
-            year,
-            country: { connect: { id: countryId } },
-            ...dataToSave,
-          },
-        });
+      const dataToSave = {
+        text,
+        images: reconciled.images,
+      } as const;
 
-    // 异步清理图片
-    ImageProcessorUtils.cleanupImagesAsync(
-      this.uploadService,
-      this.logger,
-      reconciled.deletedImages,
-      '评价详情更新，图片清理',
-    );
+      const saved = existing
+        ? await this.prisma.scoreEvaluationDetail.update({
+            where: { id: existing.id },
+            data: dataToSave,
+          })
+        : await this.prisma.scoreEvaluationDetail.create({
+            data: {
+              year,
+              country: { connect: { id: countryId } },
+              ...dataToSave,
+            },
+          });
 
-    return {
-      id: saved.id,
-      year: saved.year,
-      countryId: saved.countryId,
-      text: (saved as unknown as { text?: string }).text ?? '',
-      images: (saved.images as string[]) || [],
-      createTime: saved.createTime,
-      updateTime: saved.updateTime,
-    };
+      // 异步清理图片
+      if (reconciled.deletedImages.length > 0) {
+        this.logger.log(
+          `[资源清理] 清理评价详情图片 - 待清理图片数量: ${reconciled.deletedImages.length}`,
+        );
+        ImageProcessorUtils.cleanupImagesAsync(
+          this.uploadService,
+          this.logger,
+          reconciled.deletedImages,
+          '评价详情更新，图片清理',
+        );
+      }
+
+      const result = {
+        id: saved.id,
+        year: saved.year,
+        countryId: saved.countryId,
+        text: (saved as unknown as { text?: string }).text ?? '',
+        images: (saved.images as string[]) || [],
+        createTime: saved.createTime,
+        updateTime: saved.updateTime,
+      };
+
+      this.logger.log(
+        `[成功] 保存/更新评价详情 - 年份: ${year}, 国家ID: ${countryId}, 记录ID: ${saved.id}, 操作类型: ${existing ? '更新' : '创建'}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 保存/更新评价详情 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -599,57 +692,85 @@ export class ScoreService {
     // 直接使用数字年份
     const yearValue = year;
 
-    // 2. 验证关联的国家是否存在且未被删除
-    const country = await this.prisma.country.findFirst({
-      where: { id: countryId, delete: 0 },
-    });
-    if (!country) {
-      throw new BusinessException(
-        ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到 ID 为 ${countryId} 的国家`,
-      );
-    }
+    this.logger.log(
+      `[开始] 创建评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+    );
 
-    // 3. 检查该国家在该年份是否已存在评分记录
-    const existingScore = await this.prisma.score.findFirst({
-      where: {
-        countryId,
-        year: yearValue,
-        delete: 0,
-      },
-    });
-
-    // 4. 准备要写入数据库的评分数据
-    const scoreData = {
-      totalScore,
-      urbanizationProcessDimensionScore,
-      humanDynamicsDimensionScore,
-      materialDynamicsDimensionScore,
-      spatialDynamicsDimensionScore,
-      year: yearValue,
-    };
-
-    // 5. 根据记录是否存在，执行更新或创建操作
-    if (existingScore) {
-      // 如果记录已存在，则更新现有记录
-      this.logger.log(`正在更新国家 ${countryId} 在 ${year} 年的评分记录。`);
-      return this.prisma.score.update({
-        where: { id: existingScore.id },
-        data: scoreData,
+    try {
+      // 2. 验证关联的国家是否存在且未被删除
+      const country = await this.prisma.country.findFirst({
+        where: { id: countryId, delete: 0 },
       });
-    } else {
-      // 如果记录不存在，则创建新记录
-      this.logger.log(
-        `正在为国家 ${countryId} 在 ${year} 年创建新的评分记录。`,
-      );
-      return this.prisma.score.create({
-        data: {
-          ...scoreData,
-          country: {
-            connect: { id: countryId }, // 关联到国家
-          },
+      if (!country) {
+        this.logger.warn(
+          `[验证失败] 创建评分记录 - 国家ID ${countryId} 不存在`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `未找到 ID 为 ${countryId} 的国家`,
+        );
+      }
+
+      // 3. 检查该国家在该年份是否已存在评分记录
+      const existingScore = await this.prisma.score.findFirst({
+        where: {
+          countryId,
+          year: yearValue,
+          delete: 0,
         },
       });
+
+      // 4. 准备要写入数据库的评分数据
+      const scoreData = {
+        totalScore,
+        urbanizationProcessDimensionScore,
+        humanDynamicsDimensionScore,
+        materialDynamicsDimensionScore,
+        spatialDynamicsDimensionScore,
+        year: yearValue,
+      };
+
+      // 5. 根据记录是否存在，执行更新或创建操作
+      if (existingScore) {
+        // 如果记录已存在，则更新现有记录
+        this.logger.log(
+          `[开始] 更新评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+        );
+        const result = await this.prisma.score.update({
+          where: { id: existingScore.id },
+          data: scoreData,
+        });
+        this.logger.log(
+          `[成功] 更新评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+        );
+        return result;
+      } else {
+        // 如果记录不存在，则创建新记录
+        this.logger.log(
+          `[开始] 创建新评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+        );
+        const result = await this.prisma.score.create({
+          data: {
+            ...scoreData,
+            country: {
+              connect: { id: countryId }, // 关联到国家
+            },
+          },
+        });
+        this.logger.log(
+          `[成功] 创建新评分记录 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+        );
+        return result;
+      }
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      this.logger.error(
+        `[失败] 创建评分记录 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
   }
 
@@ -671,7 +792,7 @@ export class ScoreService {
     // 验证请求数据大小，防止过大的请求导致性能问题
     if (scores.length > 500) {
       this.logger.warn(
-        `批量导入评分数据量过大: ${scores.length} 个国家，建议分批处理`,
+        `[警告] 批量创建评分记录 - 数据量过大: ${scores.length} 个国家，建议分批处理`,
       );
       throw new BusinessException(
         ErrorCode.INVALID_INPUT,
@@ -680,98 +801,111 @@ export class ScoreService {
     }
 
     this.logger.log(
-      `准备批量创建 ${scores.length} 个国家在 ${yearValue} 年的评分数据`,
+      `[开始] 批量创建评分记录 - 年份: ${yearValue}, 国家数量: ${scores.length}`,
     );
 
-    // 步骤1: 验证所有国家是否存在
-    const countryIds = scores.map((s) => s.countryId);
-    const existingCountries = await this.prisma.country.findMany({
-      where: {
-        id: { in: countryIds },
-        delete: 0,
-      },
-    });
+    try {
+      // 步骤1: 验证所有国家是否存在
+      const countryIds = scores.map((s) => s.countryId);
+      const existingCountries = await this.prisma.country.findMany({
+        where: {
+          id: { in: countryIds },
+          delete: 0,
+        },
+      });
 
-    const existingCountryIds = new Set(existingCountries.map((c) => c.id));
-    const invalidCountryIds = countryIds.filter(
-      (id) => !existingCountryIds.has(id),
-    );
-
-    if (invalidCountryIds.length > 0) {
-      this.logger.error(`未找到以下国家ID: ${invalidCountryIds.join(', ')}`);
-      throw new BusinessException(
-        ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+      const existingCountryIds = new Set(existingCountries.map((c) => c.id));
+      const invalidCountryIds = countryIds.filter(
+        (id) => !existingCountryIds.has(id),
       );
-    }
 
-    // 步骤2: 检查哪些国家该年份已有数据
-    const existingScores = await this.prisma.score.findMany({
-      where: {
-        countryId: { in: countryIds },
-        year: yearValue,
-        delete: 0,
-      },
-      select: {
-        id: true,
-        countryId: true,
-      },
-    });
-
-    const existingScoreMap = new Map(
-      existingScores.map((s) => [s.countryId, s.id]),
-    );
-
-    // 步骤3: 执行批量数据库操作
-    const result = await this.prisma.$transaction(async (prisma) => {
-      let totalCount = 0;
-
-      // 处理每个国家的评分数据
-      for (const scoreData of scores) {
-        const { countryId, ...scoreFields } = scoreData;
-
-        // 准备要写入数据库的评分数据
-        const dataToSave = {
-          ...scoreFields,
-          year: yearValue,
-        };
-
-        // 检查是否已存在记录
-        const existingScoreId = existingScoreMap.get(countryId);
-
-        if (existingScoreId) {
-          // 如果记录已存在，则更新现有记录
-          await prisma.score.update({
-            where: { id: existingScoreId },
-            data: dataToSave,
-          });
-        } else {
-          // 如果记录不存在，则创建新记录
-          await prisma.score.create({
-            data: {
-              ...dataToSave,
-              country: {
-                connect: { id: countryId },
-              },
-            },
-          });
-        }
-        totalCount++;
+      if (invalidCountryIds.length > 0) {
+        this.logger.error(
+          `[验证失败] 批量创建评分记录 - 未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+        );
       }
 
-      return { totalCount };
-    });
+      // 步骤2: 检查哪些国家该年份已有数据
+      const existingScores = await this.prisma.score.findMany({
+        where: {
+          countryId: { in: countryIds },
+          year: yearValue,
+          delete: 0,
+        },
+        select: {
+          id: true,
+          countryId: true,
+        },
+      });
 
-    this.logger.log(
-      `成功批量创建了 ${scores.length} 个国家在 ${yearValue} 年的评分数据`,
-    );
+      const existingScoreMap = new Map(
+        existingScores.map((s) => [s.countryId, s.id]),
+      );
 
-    return {
-      totalCount: result.totalCount,
-      successCount: scores.length,
-      failCount: 0,
-      failedCountries: [],
-    };
+      // 步骤3: 执行批量数据库操作
+      const result = await this.prisma.$transaction(async (prisma) => {
+        let totalCount = 0;
+
+        // 处理每个国家的评分数据
+        for (const scoreData of scores) {
+          const { countryId, ...scoreFields } = scoreData;
+
+          // 准备要写入数据库的评分数据
+          const dataToSave = {
+            ...scoreFields,
+            year: yearValue,
+          };
+
+          // 检查是否已存在记录
+          const existingScoreId = existingScoreMap.get(countryId);
+
+          if (existingScoreId) {
+            // 如果记录已存在，则更新现有记录
+            await prisma.score.update({
+              where: { id: existingScoreId },
+              data: dataToSave,
+            });
+          } else {
+            // 如果记录不存在，则创建新记录
+            await prisma.score.create({
+              data: {
+                ...dataToSave,
+                country: {
+                  connect: { id: countryId },
+                },
+              },
+            });
+          }
+          totalCount++;
+        }
+
+        return { totalCount };
+      });
+
+      this.logger.log(
+        `[成功] 批量创建评分记录 - 年份: ${yearValue}, 国家数量: ${scores.length}, 处理数量: ${result.totalCount}`,
+      );
+
+      return {
+        totalCount: result.totalCount,
+        successCount: scores.length,
+        failCount: 0,
+        failedCountries: [],
+      };
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      this.logger.error(
+        `[失败] 批量创建评分记录 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -783,54 +917,78 @@ export class ScoreService {
     const { countryId, year } = params;
     const yearValue = year; // 直接使用数字年份
 
-    // 查询特定国家和年份的评分记录
-    const score = await this.prisma.score.findFirst({
-      where: {
-        countryId,
-        year: yearValue,
-        delete: 0,
-      },
-      include: {
-        country: true, // 同时返回关联的国家信息
-      },
-    });
+    this.logger.log(
+      `[开始] 获取评分详情 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+    );
 
-    // 如果未找到记录，则抛出业务异常
-    if (!score) {
-      throw new BusinessException(
-        ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到国家 ID ${countryId} 在 ${year} 年的评分记录`,
+    try {
+      // 查询特定国家和年份的评分记录
+      const score = await this.prisma.score.findFirst({
+        where: {
+          countryId,
+          year: yearValue,
+          delete: 0,
+        },
+        include: {
+          country: true, // 同时返回关联的国家信息
+        },
+      });
+
+      // 如果未找到记录，则抛出业务异常
+      if (!score) {
+        this.logger.warn(
+          `[验证失败] 获取评分详情 - 国家ID ${countryId} 在 ${yearValue} 年的评分记录不存在`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `未找到国家 ID ${countryId} 在 ${year} 年的评分记录`,
+        );
+      }
+
+      // 将 Prisma Decimal 转换为 number 类型
+      const result = {
+        id: score.id,
+        totalScore: decimalToNumber(score.totalScore),
+        urbanizationProcessDimensionScore: decimalToNumber(
+          score.urbanizationProcessDimensionScore,
+        ),
+        humanDynamicsDimensionScore: decimalToNumber(
+          score.humanDynamicsDimensionScore,
+        ),
+        materialDynamicsDimensionScore: decimalToNumber(
+          score.materialDynamicsDimensionScore,
+        ),
+        spatialDynamicsDimensionScore: decimalToNumber(
+          score.spatialDynamicsDimensionScore,
+        ),
+        year: score.year,
+        countryId: score.countryId,
+        country: {
+          id: score.country.id,
+          cnName: score.country.cnName,
+          enName: score.country.enName,
+          createTime: score.country.createTime,
+          updateTime: score.country.updateTime,
+        },
+        createTime: score.createTime,
+        updateTime: score.updateTime,
+      };
+
+      this.logger.log(
+        `[成功] 获取评分详情 - 国家ID: ${countryId}, 年份: ${yearValue}, 记录ID: ${score.id}`,
       );
-    }
 
-    // 将 Prisma Decimal 转换为 number 类型
-    return {
-      id: score.id,
-      totalScore: decimalToNumber(score.totalScore),
-      urbanizationProcessDimensionScore: decimalToNumber(
-        score.urbanizationProcessDimensionScore,
-      ),
-      humanDynamicsDimensionScore: decimalToNumber(
-        score.humanDynamicsDimensionScore,
-      ),
-      materialDynamicsDimensionScore: decimalToNumber(
-        score.materialDynamicsDimensionScore,
-      ),
-      spatialDynamicsDimensionScore: decimalToNumber(
-        score.spatialDynamicsDimensionScore,
-      ),
-      year: score.year,
-      countryId: score.countryId,
-      country: {
-        id: score.country.id,
-        cnName: score.country.cnName,
-        enName: score.country.enName,
-        createTime: score.country.createTime,
-        updateTime: score.country.updateTime,
-      },
-      createTime: score.createTime,
-      updateTime: score.updateTime,
-    };
+      return result;
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      this.logger.error(
+        `[失败] 获取评分详情 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -844,18 +1002,36 @@ export class ScoreService {
     const { countryId, year } = params;
     const yearValue = year; // 直接使用数字年份
 
-    const count = await this.prisma.score.count({
-      where: {
-        countryId,
-        year: yearValue,
-        delete: 0,
-      },
-    });
+    this.logger.log(
+      `[开始] 检查评分数据是否存在 - 国家ID: ${countryId}, 年份: ${yearValue}`,
+    );
 
-    return {
-      exists: count > 0,
-      count,
-    };
+    try {
+      const count = await this.prisma.score.count({
+        where: {
+          countryId,
+          year: yearValue,
+          delete: 0,
+        },
+      });
+
+      const result = {
+        exists: count > 0,
+        count,
+      };
+
+      this.logger.log(
+        `[成功] 检查评分数据是否存在 - 国家ID: ${countryId}, 年份: ${yearValue}, 存在: ${result.exists}, 数量: ${count}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 检查评分数据是否存在 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -870,59 +1046,74 @@ export class ScoreService {
     const yearValue = year; // 直接使用数字年份
 
     this.logger.log(
-      `准备批量检查 ${countryIds.length} 个国家在 ${yearValue} 年的评分数据是否存在`,
+      `[开始] 批量检查评分数据是否存在 - 年份: ${yearValue}, 国家数量: ${countryIds.length}`,
     );
 
-    // 步骤1: 验证所有国家是否存在
-    const existingCountries = await this.prisma.country.findMany({
-      where: {
-        id: { in: countryIds },
-        delete: 0,
-      },
-    });
+    try {
+      // 步骤1: 验证所有国家是否存在
+      const existingCountries = await this.prisma.country.findMany({
+        where: {
+          id: { in: countryIds },
+          delete: 0,
+        },
+      });
 
-    const existingCountryIds = new Set(existingCountries.map((c) => c.id));
-    const invalidCountryIds = countryIds.filter(
-      (id) => !existingCountryIds.has(id),
-    );
-
-    if (invalidCountryIds.length > 0) {
-      this.logger.error(`未找到以下国家ID: ${invalidCountryIds.join(', ')}`);
-      throw new BusinessException(
-        ErrorCode.RESOURCE_NOT_FOUND,
-        `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+      const existingCountryIds = new Set(existingCountries.map((c) => c.id));
+      const invalidCountryIds = countryIds.filter(
+        (id) => !existingCountryIds.has(id),
       );
+
+      if (invalidCountryIds.length > 0) {
+        this.logger.warn(
+          `[验证失败] 批量检查评分数据是否存在 - 未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+        );
+        throw new BusinessException(
+          ErrorCode.RESOURCE_NOT_FOUND,
+          `未找到以下国家ID: ${invalidCountryIds.join(', ')}`,
+        );
+      }
+
+      // 步骤2: 批量查询已存在的评分数据
+      const existingScores = await this.prisma.score.findMany({
+        where: {
+          countryId: { in: countryIds },
+          year: yearValue,
+          delete: 0,
+        },
+        select: {
+          countryId: true,
+        },
+      });
+
+      const existingScoreCountryIds = new Set(
+        existingScores.map((s) => s.countryId),
+      );
+      const nonExistingCountryIds = countryIds.filter(
+        (id) => !existingScoreCountryIds.has(id),
+      );
+
+      const result = {
+        totalCount: countryIds.length,
+        existingCount: existingScoreCountryIds.size,
+        existingCountries: Array.from(existingScoreCountryIds),
+        nonExistingCountries: nonExistingCountryIds,
+      };
+
+      this.logger.log(
+        `[成功] 批量检查评分数据是否存在 - 年份: ${yearValue}, 总国家数: ${result.totalCount}, 已有数据: ${result.existingCount}, 无数据: ${result.nonExistingCountries.length}`,
+      );
+
+      return result;
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      this.logger.error(
+        `[失败] 批量检查评分数据是否存在 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-
-    // 步骤2: 批量查询已存在的评分数据
-    const existingScores = await this.prisma.score.findMany({
-      where: {
-        countryId: { in: countryIds },
-        year: yearValue,
-        delete: 0,
-      },
-      select: {
-        countryId: true,
-      },
-    });
-
-    const existingScoreCountryIds = new Set(
-      existingScores.map((s) => s.countryId),
-    );
-    const nonExistingCountryIds = countryIds.filter(
-      (id) => !existingScoreCountryIds.has(id),
-    );
-
-    this.logger.log(
-      `批量检查完成: ${countryIds.length} 个国家中，${existingScoreCountryIds.size} 个已有评分数据，${nonExistingCountryIds.length} 个没有评分数据`,
-    );
-
-    return {
-      totalCount: countryIds.length,
-      existingCount: existingScoreCountryIds.size,
-      existingCountries: Array.from(existingScoreCountryIds),
-      nonExistingCountries: nonExistingCountryIds,
-    };
   }
 
   /**
@@ -1010,22 +1201,38 @@ export class ScoreService {
    * @returns {Promise<ScoreEvaluationResponseDto[]>} 按最小评分升序排列的评价规则列表。
    */
   async listEvaluation(): Promise<ScoreEvaluationResponseDto[]> {
-    const evaluations = await this.prisma.scoreEvaluation.findMany({
-      orderBy: {
-        minScore: 'asc', // 按最小评分升序排序
-      },
-    });
+    this.logger.log('[开始] 获取评分评价规则列表');
 
-    // 将 Prisma Decimal 转换为 number 类型
-    return evaluations.map((evaluation) => ({
-      id: evaluation.id,
-      minScore: decimalToNumber(evaluation.minScore),
-      maxScore: decimalToNumber(evaluation.maxScore),
-      evaluationText: evaluation.evaluationText,
-      images: evaluation.images as string[],
-      createTime: evaluation.createTime,
-      updateTime: evaluation.updateTime,
-    }));
+    try {
+      const evaluations = await this.prisma.scoreEvaluation.findMany({
+        orderBy: {
+          minScore: 'asc', // 按最小评分升序排序
+        },
+      });
+
+      // 将 Prisma Decimal 转换为 number 类型
+      const result = evaluations.map((evaluation) => ({
+        id: evaluation.id,
+        minScore: decimalToNumber(evaluation.minScore),
+        maxScore: decimalToNumber(evaluation.maxScore),
+        evaluationText: evaluation.evaluationText,
+        images: evaluation.images as string[],
+        createTime: evaluation.createTime,
+        updateTime: evaluation.updateTime,
+      }));
+
+      this.logger.log(
+        `[成功] 获取评分评价规则列表 - 共 ${result.length} 条规则`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取评分评价规则列表 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -1034,52 +1241,73 @@ export class ScoreService {
    * @returns {Promise<Prisma.BatchPayload>} 创建操作的结果。
    */
   async createEvaluation(data: ScoreEvaluationItemDto[]) {
-    // 1. 先收集现有评价规则的所有图片，避免产生孤立图片
-    const existingEvaluations = await this.prisma.scoreEvaluation.findMany({
-      select: { images: true },
-    });
+    this.logger.log(`[开始] 批量创建评分评价规则 - 规则数量: ${data.length}`);
 
-    // 收集所有现有图片
-    const existingImages = existingEvaluations.flatMap(
-      (evaluation) => (evaluation.images as string[]) || [],
-    );
+    try {
+      // 1. 先收集现有评价规则的所有图片，避免产生孤立图片
+      const existingEvaluations = await this.prisma.scoreEvaluation.findMany({
+        select: { images: true },
+      });
 
-    // 2. 删除所有现有的评价规则
-    await this.prisma.scoreEvaluation.deleteMany({});
-
-    // 3. 使用工具类处理每个评价规则的图片数据
-    const { processedData, allDeletedImages } =
-      ImageProcessorUtils.processEvaluationImages(data);
-
-    // 4. 收集新规则中使用的图片
-    const newImages = processedData.flatMap(
-      (item) => (item.images as string[]) || [],
-    );
-
-    // 5. 计算真正需要删除的图片：现有图片中不在新图片中的
-    const imagesToDelete = existingImages.filter(
-      (img) => !newImages.includes(img),
-    );
-
-    // 6. 合并需要删除的图片：孤立图片 + 新规则中标记删除的图片
-    const allImagesToDelete = [...imagesToDelete, ...allDeletedImages];
-
-    // 7. 批量创建新的评价规则
-    const result = await this.prisma.scoreEvaluation.createMany({
-      data: processedData,
-    });
-
-    // 8. 异步清理不再使用的图片，不阻塞主流程
-    if (allImagesToDelete.length > 0) {
-      ImageProcessorUtils.cleanupImagesAsync(
-        this.uploadService,
-        this.logger,
-        allImagesToDelete,
-        '评价规则更新，图片清理',
+      // 收集所有现有图片
+      const existingImages = existingEvaluations.flatMap(
+        (evaluation) => (evaluation.images as string[]) || [],
       );
-    }
 
-    return result;
+      this.logger.log(
+        `[统计] 批量创建评分评价规则 - 现有规则数量: ${existingEvaluations.length}, 现有图片数量: ${existingImages.length}`,
+      );
+
+      // 2. 删除所有现有的评价规则
+      await this.prisma.scoreEvaluation.deleteMany({});
+
+      // 3. 使用工具类处理每个评价规则的图片数据
+      const { processedData, allDeletedImages } =
+        ImageProcessorUtils.processEvaluationImages(data);
+
+      // 4. 收集新规则中使用的图片
+      const newImages = processedData.flatMap(
+        (item) => (item.images as string[]) || [],
+      );
+
+      // 5. 计算真正需要删除的图片：现有图片中不在新图片中的
+      const imagesToDelete = existingImages.filter(
+        (img) => !newImages.includes(img),
+      );
+
+      // 6. 合并需要删除的图片：孤立图片 + 新规则中标记删除的图片
+      const allImagesToDelete = [...imagesToDelete, ...allDeletedImages];
+
+      // 7. 批量创建新的评价规则
+      const result = await this.prisma.scoreEvaluation.createMany({
+        data: processedData,
+      });
+
+      // 8. 异步清理不再使用的图片，不阻塞主流程
+      if (allImagesToDelete.length > 0) {
+        this.logger.log(
+          `[资源清理] 清理评价规则图片 - 待清理图片数量: ${allImagesToDelete.length}`,
+        );
+        ImageProcessorUtils.cleanupImagesAsync(
+          this.uploadService,
+          this.logger,
+          allImagesToDelete,
+          '评价规则更新，图片清理',
+        );
+      }
+
+      this.logger.log(
+        `[成功] 批量创建评分评价规则 - 规则数量: ${data.length}, 创建成功: ${result.count}, 清理图片: ${allImagesToDelete.length}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 批量创建评分评价规则 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -1088,32 +1316,53 @@ export class ScoreService {
   async getCountriesByYears(
     params: DataManagementCountriesByYearsReqDto,
   ): Promise<DataManagementCountriesByYearsResDto> {
-    const result: DataManagementCountriesByYearsResDto = [];
-    for (const year of params.years) {
-      const countries = await this.prisma.score.findMany({
-        where: {
-          year,
-          delete: 0,
-          country: { delete: 0 },
-        },
-        select: {
-          country: {
-            select: { id: true, cnName: true, enName: true },
+    this.logger.log(
+      `[开始] 获取多个年份的国家列表 - 年份数量: ${params.years.length}`,
+    );
+
+    try {
+      const result: DataManagementCountriesByYearsResDto = [];
+      for (const year of params.years) {
+        const countries = await this.prisma.score.findMany({
+          where: {
+            year,
+            delete: 0,
+            country: { delete: 0 },
           },
-        },
-        distinct: ['countryId'],
-        orderBy: { country: { cnName: 'asc' } },
-      });
-      result.push({
-        year,
-        countries: countries.map((c) => ({
-          id: c.country.id,
-          cnName: c.country.cnName,
-          enName: c.country.enName,
-        })),
-      });
+          select: {
+            country: {
+              select: { id: true, cnName: true, enName: true },
+            },
+          },
+          distinct: ['countryId'],
+          orderBy: { country: { cnName: 'asc' } },
+        });
+        result.push({
+          year,
+          countries: countries.map((c) => ({
+            id: c.country.id,
+            cnName: c.country.cnName,
+            enName: c.country.enName,
+          })),
+        });
+      }
+
+      const totalCountries = result.reduce(
+        (sum, item) => sum + item.countries.length,
+        0,
+      );
+      this.logger.log(
+        `[成功] 获取多个年份的国家列表 - 年份数量: ${params.years.length}, 总国家数: ${totalCountries}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 获取多个年份的国家列表 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-    return result;
   }
 
   /**
@@ -1123,127 +1372,147 @@ export class ScoreService {
     params: ExportDataMultiYearReqDto,
   ): Promise<{ buffer: Buffer; mime: string; fileName: string }> {
     const { yearCountryPairs, format } = params;
-    // 拿到涉及国家
-    const allCountryIds = yearCountryPairs.flatMap((p) => p.countryIds);
-    const uniqueCountryIds = [...new Set(allCountryIds)];
-    const countries = await this.prisma.country.findMany({
-      where: { id: { in: uniqueCountryIds }, delete: 0 },
-    });
-    const countryMap = new Map(countries.map((c) => [c.id, c]));
 
-    // 取出对应年份国家的评分记录
-    const orConds = yearCountryPairs.flatMap((p) =>
-      p.countryIds.map((cid) => ({ year: p.year, countryId: cid })),
+    this.logger.log(
+      `[开始] 导出多年份评分数据 - 年份数量: ${yearCountryPairs.length}, 格式: ${format}`,
     );
-    const scores = await this.prisma.score.findMany({
-      where: { OR: orConds, delete: 0 },
-    });
-    // 按 key(year-countryId) 建索引
-    const keyToScore = new Map<string, (typeof scores)[0]>();
-    scores.forEach((s) => keyToScore.set(`${s.year}-${s.countryId}`, s));
 
-    // 生成格式
-    if (format === ExportFormat.JSON) {
-      const json: { [key: string]: any[] } = {};
+    try {
+      // 拿到涉及国家
+      const allCountryIds = yearCountryPairs.flatMap((p) => p.countryIds);
+      const uniqueCountryIds = [...new Set(allCountryIds)];
+      const countries = await this.prisma.country.findMany({
+        where: { id: { in: uniqueCountryIds }, delete: 0 },
+      });
+      const countryMap = new Map(countries.map((c) => [c.id, c]));
+
+      // 取出对应年份国家的评分记录
+      const orConds = yearCountryPairs.flatMap((p) =>
+        p.countryIds.map((cid) => ({ year: p.year, countryId: cid })),
+      );
+      const scores = await this.prisma.score.findMany({
+        where: { OR: orConds, delete: 0 },
+      });
+      // 按 key(year-countryId) 建索引
+      const keyToScore = new Map<string, (typeof scores)[0]>();
+      scores.forEach((s) => keyToScore.set(`${s.year}-${s.countryId}`, s));
+
+      // 生成格式
+      if (format === ExportFormat.JSON) {
+        const json: { [key: string]: any[] } = {};
+        yearCountryPairs.forEach(({ year, countryIds }) => {
+          const rows: any[] = [];
+          countryIds.forEach((cid) => {
+            const country = countryMap.get(cid);
+            if (!country) return;
+            const s = keyToScore.get(`${year}-${cid}`);
+            rows.push({
+              国家: country.cnName,
+              综合评分: s ? decimalToNumber(s.totalScore) : null,
+              城镇化进程: s
+                ? decimalToNumber(s.urbanizationProcessDimensionScore)
+                : null,
+              人口迁徙动力: s
+                ? decimalToNumber(s.humanDynamicsDimensionScore)
+                : null,
+              经济发展动力: s
+                ? decimalToNumber(s.materialDynamicsDimensionScore)
+                : null,
+              空间发展动力: s
+                ? decimalToNumber(s.spatialDynamicsDimensionScore)
+                : null,
+            });
+          });
+          json[`${year}年`] = rows;
+        });
+        const buffer = Buffer.from(JSON.stringify(json, null, 2));
+        const mime = 'application/json';
+        const fileName = `多年份评分数据_${new Date()
+          .toISOString()
+          .replace(/[:T-Z.]/g, '_')}.json`;
+        return { buffer, mime, fileName };
+      }
+
+      // 表头（统一）
+      const header = [
+        '国家',
+        '综合评分',
+        '城镇化进程',
+        '人口迁徙动力',
+        '经济发展动力',
+        '空间发展动力',
+      ];
+
+      // 使用 xlsx 生成 CSV/XLSX
+      if (format === ExportFormat.CSV) {
+        // CSV 仅导出第一个年份
+        const first = yearCountryPairs[0];
+        const rows: (string | number | null)[][] = [];
+        first.countryIds.forEach((cid) => {
+          const country = countryMap.get(cid);
+          if (!country) return;
+          const s = keyToScore.get(`${first.year}-${cid}`);
+          rows.push([
+            country.cnName,
+            s ? decimalToNumber(s.totalScore) : null,
+            s ? decimalToNumber(s.urbanizationProcessDimensionScore) : null,
+            s ? decimalToNumber(s.humanDynamicsDimensionScore) : null,
+            s ? decimalToNumber(s.materialDynamicsDimensionScore) : null,
+            s ? decimalToNumber(s.spatialDynamicsDimensionScore) : null,
+          ]);
+        });
+        const ws = xlsx.utils.aoa_to_sheet([header, ...rows]);
+        const csv = xlsx.utils.sheet_to_csv(ws);
+        const bom = Buffer.from([0xef, 0xbb, 0xbf]);
+        const buffer = Buffer.concat([bom, Buffer.from(csv)]);
+        const mime = 'text/csv;charset=utf-8;';
+        const fileName = `${first.year}_评分数据_${new Date()
+          .toISOString()
+          .replace(/[:T-Z.]/g, '_')}.csv`;
+        return { buffer, mime, fileName };
+      }
+
+      // XLSX: 为每个年份一个 sheet
+      const wb = xlsx.utils.book_new();
       yearCountryPairs.forEach(({ year, countryIds }) => {
-        const rows: any[] = [];
+        const rows: (string | number | null)[][] = [];
         countryIds.forEach((cid) => {
           const country = countryMap.get(cid);
           if (!country) return;
           const s = keyToScore.get(`${year}-${cid}`);
-          rows.push({
-            国家: country.cnName,
-            综合评分: s ? decimalToNumber(s.totalScore) : null,
-            城镇化进程: s
-              ? decimalToNumber(s.urbanizationProcessDimensionScore)
-              : null,
-            人口迁徙动力: s
-              ? decimalToNumber(s.humanDynamicsDimensionScore)
-              : null,
-            经济发展动力: s
-              ? decimalToNumber(s.materialDynamicsDimensionScore)
-              : null,
-            空间发展动力: s
-              ? decimalToNumber(s.spatialDynamicsDimensionScore)
-              : null,
-          });
+          rows.push([
+            country.cnName,
+            s ? decimalToNumber(s.totalScore) : null,
+            s ? decimalToNumber(s.urbanizationProcessDimensionScore) : null,
+            s ? decimalToNumber(s.humanDynamicsDimensionScore) : null,
+            s ? decimalToNumber(s.materialDynamicsDimensionScore) : null,
+            s ? decimalToNumber(s.spatialDynamicsDimensionScore) : null,
+          ]);
         });
-        json[`${year}年`] = rows;
+        const ws = xlsx.utils.aoa_to_sheet([header, ...rows]);
+        xlsx.utils.book_append_sheet(wb, ws, `${year}年`);
       });
-      const buffer = Buffer.from(JSON.stringify(json, null, 2));
-      const mime = 'application/json';
-      const fileName = `多年份评分数据_${new Date()
-        .toISOString()
-        .replace(/[:T-Z.]/g, '_')}.json`;
-      return { buffer, mime, fileName };
+      const buffer = xlsx.write(wb, {
+        type: 'buffer',
+        bookType: 'xlsx',
+      }) as Buffer;
+      const mime =
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const fileName = `评分数据_${new Date().toISOString().replace(/[:T-Z.]/g, '_')}.xlsx`;
+
+      const result = { buffer, mime, fileName };
+
+      this.logger.log(
+        `[成功] 导出多年份评分数据 - 年份数量: ${yearCountryPairs.length}, 格式: ${format}, 文件名: ${fileName}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `[失败] 导出多年份评分数据 - ${error instanceof Error ? error.message : '未知错误'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-
-    // 表头（统一）
-    const header = [
-      '国家',
-      '综合评分',
-      '城镇化进程',
-      '人口迁徙动力',
-      '经济发展动力',
-      '空间发展动力',
-    ];
-
-    // 使用 xlsx 生成 CSV/XLSX
-    if (format === ExportFormat.CSV) {
-      // CSV 仅导出第一个年份
-      const first = yearCountryPairs[0];
-      const rows: (string | number | null)[][] = [];
-      first.countryIds.forEach((cid) => {
-        const country = countryMap.get(cid);
-        if (!country) return;
-        const s = keyToScore.get(`${first.year}-${cid}`);
-        rows.push([
-          country.cnName,
-          s ? decimalToNumber(s.totalScore) : null,
-          s ? decimalToNumber(s.urbanizationProcessDimensionScore) : null,
-          s ? decimalToNumber(s.humanDynamicsDimensionScore) : null,
-          s ? decimalToNumber(s.materialDynamicsDimensionScore) : null,
-          s ? decimalToNumber(s.spatialDynamicsDimensionScore) : null,
-        ]);
-      });
-      const ws = xlsx.utils.aoa_to_sheet([header, ...rows]);
-      const csv = xlsx.utils.sheet_to_csv(ws);
-      const bom = Buffer.from([0xef, 0xbb, 0xbf]);
-      const buffer = Buffer.concat([bom, Buffer.from(csv)]);
-      const mime = 'text/csv;charset=utf-8;';
-      const fileName = `${first.year}_评分数据_${new Date()
-        .toISOString()
-        .replace(/[:T-Z.]/g, '_')}.csv`;
-      return { buffer, mime, fileName };
-    }
-
-    // XLSX: 为每个年份一个 sheet
-    const wb = xlsx.utils.book_new();
-    yearCountryPairs.forEach(({ year, countryIds }) => {
-      const rows: (string | number | null)[][] = [];
-      countryIds.forEach((cid) => {
-        const country = countryMap.get(cid);
-        if (!country) return;
-        const s = keyToScore.get(`${year}-${cid}`);
-        rows.push([
-          country.cnName,
-          s ? decimalToNumber(s.totalScore) : null,
-          s ? decimalToNumber(s.urbanizationProcessDimensionScore) : null,
-          s ? decimalToNumber(s.humanDynamicsDimensionScore) : null,
-          s ? decimalToNumber(s.materialDynamicsDimensionScore) : null,
-          s ? decimalToNumber(s.spatialDynamicsDimensionScore) : null,
-        ]);
-      });
-      const ws = xlsx.utils.aoa_to_sheet([header, ...rows]);
-      xlsx.utils.book_append_sheet(wb, ws, `${year}年`);
-    });
-    const buffer = xlsx.write(wb, {
-      type: 'buffer',
-      bookType: 'xlsx',
-    }) as Buffer;
-    const mime =
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    const fileName = `评分数据_${new Date().toISOString().replace(/[:T-Z.]/g, '_')}.xlsx`;
-    return { buffer, mime, fileName };
   }
 }
