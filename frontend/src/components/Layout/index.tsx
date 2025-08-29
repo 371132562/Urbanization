@@ -292,13 +292,13 @@ export const Component: FC = () => {
           </Sider>
         )}
         <Layout>
-          <Content className="!flex flex-grow flex-col bg-gray-100 p-6">
+          <Content className="!flex flex-grow bg-gray-100 p-6">
             {/* 添加面包屑导航 */}
             {/* <div className="mb-2">
               <Breadcrumb items={breadcrumbItems} />
             </div> */}
             <div
-              className="box-border flex flex-grow justify-center overflow-y-auto rounded-lg bg-white p-6 shadow-md"
+              className="box-border flex flex-grow flex-col items-center overflow-y-auto rounded-lg bg-white p-6 shadow-md"
               style={{
                 // 为滚动条预留空间，防止内容宽度变化
                 scrollbarGutter: 'stable'
