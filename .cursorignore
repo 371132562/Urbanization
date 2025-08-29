@@ -1,0 +1,7 @@
+# 忽略不需要被 Cursor 索引/上下文使用的子前端项目
+# 注意：不要忽略主前端项目 `frontend/`
+
+frontend-*/
+docker-compose.*.yml
+Dockerfile.*
+start-*.ps1
